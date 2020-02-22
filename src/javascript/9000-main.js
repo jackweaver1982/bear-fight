@@ -1,4 +1,4 @@
-v.version.set(0,1,0);
+v.version.set(0,1,1);
 
 /*
 Sample code demonstrating the node system.

@@ -4,13 +4,15 @@ This file records the `:passagedisplay` event handlers.
 
 //----------------------------------------------------------------------
 
-s.insertTextSubstitutions = function(ev) {
+s.insertTextSubstitutions = function(passage) {
     /*
     Inserts the text substitutions for the node corresponding to the
     incoming passage. Silently fails if there is no such node.
+
+    @param {String} passage - Title of the incoming passage.
     */
     try {
-        var node = s.getNode(ev.passage.title);
+        var node = s.getNode(passage);
     }
     catch (e) {
         return;
@@ -26,43 +28,54 @@ s.insertTextSubstitutions = function(ev) {
     return;
 }
 
-$(document).on(':passagedisplay', s.insertTextSubstitutions);
+$(document).on(':passagedisplay', function(ev) {
+    s.insertTextSubstitutions(ev.passage.title);
+    return;
+});
 
 //----------------------------------------------------------------------
 
-s.insertActionDiv = function(ev) {
+s.insertActionDiv = function(psgObject) {
     /*
     Insert a container to hold the action links.
+
+    @param {SugarCube Passage object} psgObject - The passage object
+    corresponding to the incoming passage.
     */
     $.wiki(
-        '<<append "#' + ev.passage.domId + '">>' +
+        '<<append "#' + psgObject.domId + '">>' +
             '<div id="actions"></div>' +
         '<</append>>'
     );
 }
 
-$(document).on(':passagedisplay', s.insertActionDiv);
+$(document).on(':passagedisplay', function(ev) {
+    s.insertActionDiv(ev.passage);
+    return;
+});
 
 //----------------------------------------------------------------------
 
-s.refreshActionLinks = function(ev) {
+s.refreshActionLinks = function(passage) {
     /*
     Deletes the contents of the action container, then inserts links for
     the actions contained in the node corresponding to the incoming
     passage. Silently fails if there is no such node.
+
+    @param {String} passage - Title of the incoming passage.
     */
-    $.wiki('<<replace "#actions">><</replace>>');
     try {
-        var node = s.getNode(ev.passage.title);
+        var node = s.getNode(passage);
     }
     catch (e) {
         return;
     }
+    $.wiki('<<replace "#actions">><</replace>>');
     for (var i = 0; i < node.length(); i++) {
         var actionId = node.get(i);
         var text = v[actionId].getText();
         $.wiki(
-            '<<append "#' + ev.passage.domId + '">>' +
+            '<<append "#actions">>' +
                 '<p><<link "' + text + '">>' +
                     '<<run v["' + actionId + '"].choose().carryOut()>>' + 
                 '<</link>></p>' +
@@ -71,5 +84,8 @@ s.refreshActionLinks = function(ev) {
     }
 }
 
-$(document).on(':passagedisplay', s.refreshActionLinks);
+$(document).on(':passagedisplay', function(ev) {
+    s.refreshActionLinks(ev.passage.title);
+    return;
+});
 

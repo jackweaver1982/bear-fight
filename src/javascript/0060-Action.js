@@ -52,9 +52,9 @@ s.Action.prototype._check = function(id) {
 s.Action.prototype.setText = function(text) {
     /*
     Sets `_displayText` to `text` and returns the calling `Action
-    object. Throws an error if `text` is not a string.
+    object. Throws an error if `text` is not a nonempty string.
     */
-    if (typeof(text) === 'string') {
+    if (typeof(text) === 'string' && text !== '') {
         this._displayText = text;
     } else {
         throw new Error(

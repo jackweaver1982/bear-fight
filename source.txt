@@ -178,7 +178,7 @@ s.Factory = function() {
     this instance, so there should not be any other instances created.
 
     The factory catalogs objects using a list of unique string id's. It
-    is therefore implements as a subclass of `List`.
+    is therefore implemented as a subclass of `List`.
     */
     s.List.call(this);
     return this;    
@@ -263,7 +263,7 @@ s.Factory.prototype.delete = function() {
 }
 
 v.factory = new s.Factory(); // The unique instance of the Factory
-                             // class, built with default value.
+                             // class, built with default values.
 
 /*
 Established `f` as a shorthand alias for `v.factory`.
@@ -285,7 +285,7 @@ s.Version = function() {
     @property {Integer} _minor - Should be a nonnegative integer less
     than 1000. Defaults to 0.
     @property {Integer} _patch - Should be a nonnegative integer less
-    than 1000. Defaults to 0.
+    than 1000. Defaults to 1.
     */
     this._major = 0;
     this._minor = 0;
@@ -329,10 +329,10 @@ s.Version.prototype.set = function(major, minor, patch) {
     @return {Version}
     */
     for (var i = 0; i < 3; i++) {
-        if (!(arguments[i] !== undefined &&
-              arguments[i] === parseInt(arguments[i], 10) &&
-              arguments[i] >= 0 &&
-              arguments[i] < 1000)) {
+        if (arguments[i] === undefined ||
+            arguments[i] !== parseInt(arguments[i], 10) ||
+            arguments[i] < 0 ||
+            arguments[i] > 999) {
             throw new Error(
                 'Version.set():\n' +
                 'numbers must be nonnegative integers less than 1000'
@@ -465,9 +465,9 @@ s.Action.prototype._check = function(id) {
 s.Action.prototype.setText = function(text) {
     /*
     Sets `_displayText` to `text` and returns the calling `Action
-    object. Throws an error if `text` is not a string.
+    object. Throws an error if `text` is not a nonempty string.
     */
-    if (typeof(text) === 'string') {
+    if (typeof(text) === 'string' && text !== '') {
         this._displayText = text;
     } else {
         throw new Error(
@@ -678,7 +678,7 @@ s.getNode = function(passage) {
     */
     if (typeof(passage) !== 'string' || passage === '') {
         throw new Error(
-            'getNode():' +
+            'getNode():\n' +
             '`passage` must be a nonempty string'
         );
     }
@@ -689,7 +689,7 @@ s.getNode = function(passage) {
         }
     }
     throw new Error(
-        'getNode():' +
+        'getNode():\n' +
         'No node corresponds to passage, "' + passage + '"'
     );
 }
@@ -700,13 +700,15 @@ This file records the `:passagedisplay` event handlers.
 
 //----------------------------------------------------------------------
 
-s.insertTextSubstitutions = function(ev) {
+s.insertTextSubstitutions = function(passage) {
     /*
     Inserts the text substitutions for the node corresponding to the
     incoming passage. Silently fails if there is no such node.
+
+    @param {String} passage - Title of the incoming passage.
     */
     try {
-        var node = s.getNode(ev.passage.title);
+        var node = s.getNode(passage);
     }
     catch (e) {
         return;
@@ -722,43 +724,54 @@ s.insertTextSubstitutions = function(ev) {
     return;
 }
 
-$(document).on(':passagedisplay', s.insertTextSubstitutions);
+$(document).on(':passagedisplay', function(ev) {
+    s.insertTextSubstitutions(ev.passage.title);
+    return;
+});
 
 //----------------------------------------------------------------------
 
-s.insertActionDiv = function(ev) {
+s.insertActionDiv = function(psgObject) {
     /*
     Insert a container to hold the action links.
+
+    @param {SugarCube Passage object} psgObject - The passage object
+    corresponding to the incoming passage.
     */
     $.wiki(
-        '<<append "#' + ev.passage.domId + '">>' +
+        '<<append "#' + psgObject.domId + '">>' +
             '<div id="actions"></div>' +
         '<</append>>'
     );
 }
 
-$(document).on(':passagedisplay', s.insertActionDiv);
+$(document).on(':passagedisplay', function(ev) {
+    s.insertActionDiv(ev.passage);
+    return;
+});
 
 //----------------------------------------------------------------------
 
-s.refreshActionLinks = function(ev) {
+s.refreshActionLinks = function(passage) {
     /*
     Deletes the contents of the action container, then inserts links for
     the actions contained in the node corresponding to the incoming
     passage. Silently fails if there is no such node.
+
+    @param {String} passage - Title of the incoming passage.
     */
-    $.wiki('<<replace "#actions">><</replace>>');
     try {
-        var node = s.getNode(ev.passage.title);
+        var node = s.getNode(passage);
     }
     catch (e) {
         return;
     }
+    $.wiki('<<replace "#actions">><</replace>>');
     for (var i = 0; i < node.length(); i++) {
         var actionId = node.get(i);
         var text = v[actionId].getText();
         $.wiki(
-            '<<append "#' + ev.passage.domId + '">>' +
+            '<<append "#actions">>' +
                 '<p><<link "' + text + '">>' +
                     '<<run v["' + actionId + '"].choose().carryOut()>>' + 
                 '<</link>></p>' +
@@ -767,10 +780,13 @@ s.refreshActionLinks = function(ev) {
     }
 }
 
-$(document).on(':passagedisplay', s.refreshActionLinks);
+$(document).on(':passagedisplay', function(ev) {
+    s.refreshActionLinks(ev.passage.title);
+    return;
+});
 
 /* twine-user-script #9: "9000-main.js" */
-v.version.set(0,1,0);
+v.version.set(0,1,1);
 
 /*
 Sample code demonstrating the node system.

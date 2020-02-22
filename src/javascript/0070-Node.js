@@ -178,7 +178,7 @@ s.getNode = function(passage) {
     */
     if (typeof(passage) !== 'string' || passage === '') {
         throw new Error(
-            'getNode():' +
+            'getNode():\n' +
             '`passage` must be a nonempty string'
         );
     }
@@ -189,7 +189,7 @@ s.getNode = function(passage) {
         }
     }
     throw new Error(
-        'getNode():' +
+        'getNode():\n' +
         'No node corresponds to passage, "' + passage + '"'
     );
 }

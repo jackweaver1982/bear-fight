@@ -9,7 +9,7 @@ s.Version = function() {
     @property {Integer} _minor - Should be a nonnegative integer less
     than 1000. Defaults to 0.
     @property {Integer} _patch - Should be a nonnegative integer less
-    than 1000. Defaults to 0.
+    than 1000. Defaults to 1.
     */
     this._major = 0;
     this._minor = 0;
@@ -53,10 +53,10 @@ s.Version.prototype.set = function(major, minor, patch) {
     @return {Version}
     */
     for (var i = 0; i < 3; i++) {
-        if (!(arguments[i] !== undefined &&
-              arguments[i] === parseInt(arguments[i], 10) &&
-              arguments[i] >= 0 &&
-              arguments[i] < 1000)) {
+        if (arguments[i] === undefined ||
+            arguments[i] !== parseInt(arguments[i], 10) ||
+            arguments[i] < 0 ||
+            arguments[i] > 999) {
             throw new Error(
                 'Version.set():\n' +
                 'numbers must be nonnegative integers less than 1000'

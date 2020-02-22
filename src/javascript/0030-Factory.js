@@ -5,7 +5,7 @@ s.Factory = function() {
     this instance, so there should not be any other instances created.
 
     The factory catalogs objects using a list of unique string id's. It
-    is therefore implements as a subclass of `List`.
+    is therefore implemented as a subclass of `List`.
     */
     s.List.call(this);
     return this;    
@@ -90,7 +90,7 @@ s.Factory.prototype.delete = function() {
 }
 
 v.factory = new s.Factory(); // The unique instance of the Factory
-                             // class, built with default value.
+                             // class, built with default values.
 
 /*
 Established `f` as a shorthand alias for `v.factory`.
