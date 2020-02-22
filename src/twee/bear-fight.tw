@@ -1,0 +1,70 @@
+:: StoryTitle
+Story Title
+
+:: StorySubtitle
+Story Subtitle
+
+:: StoryAuthor
+Story Author
+
+:: StoryBanner
+Story Banner
+
+:: StoryCaption
+Story Caption
+
+:: StoryMenu
+<<link 'menu item 1'>><</link>>
+<<link 'menu item 2'>><</link>>
+
+:: StoryData
+{
+    "ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
+    "format": "SugarCube",
+    "format-version": "2.29.0",
+    "start": "Start",
+    "zoom": 1
+}
+
+:: Story Stylesheet [stylesheet]
+html {
+    font: 100% Georgia, serif;
+}
+body {
+    color: white;
+    background-color: black;
+}
+a {
+    cursor: pointer;
+    color: #68d;
+    text-decoration: none;
+    font-weight: bold;
+    transition-duration: 200ms;
+}
+
+:: Story JavaScript [script]
+
+:: StoryInit
+
+:: Start
+<div align="center">
+    <h1><<= Story.title>></h1>
+    by<br>
+    <<= Story.get("StoryAuthor").text>><br>
+    version <<= v.version.asString()>><br>
+    <br>
+    <br>
+    <br>
+    <p><<link "begin">>
+        <<run $root.load()>>
+    <</link>></p>
+</div>
+
+:: Intro
+You finish teaching your night class. Your students leave and the engineering building is empty. You head from the classroom to your office to gather your things. In the hallway is a bear! It sees you and roars. There's thirty feet of hallway between you and the bear. The hallway behind you is very long. The door to the faculty lounge is behind you on your left. A janitor's cart with a mop and cleaning supplies is against the wall on your right.
+
+:: Bear charges
+You read an article on bear attacks last year. The most effective deterrent is pepper spray. Prof. Rossi keeps some in the faculty lounge. Suddenly, your phone rings. The bear charges.
+
+:: Bear chases
+You run <span id='sub0'></span>. The bear chases. He's much faster than you. You won't make it. He's about to catch you.

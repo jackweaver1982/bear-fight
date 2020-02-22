@@ -1,0 +1,892 @@
+:: StoryTitle
+Story Title
+
+
+:: StoryData
+{
+	"ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
+	"format": "SugarCube",
+	"format-version": "2.29.0",
+	"start": "Start",
+	"zoom": 1
+}
+
+
+:: Story Stylesheet [stylesheet]
+html {
+    font: 100% Georgia, serif;
+}
+body {
+    color: white;
+    background-color: black;
+}
+a {
+    cursor: pointer;
+    color: #68d;
+    text-decoration: none;
+    font-weight: bold;
+    transition-duration: 200ms;
+}
+
+
+:: Story JavaScript [script]
+/* twine-user-script #1: "0010-standard.js" */
+/*
+Establishes shorthand aliases for the following namespaces in
+SugarCube: `setup`, `settings`, `State.variables`, and
+`State.temporary`.
+
+All classes and functions are built on the `s` namespace. All instances
+are built on the `v` namespace.
+*/
+
+Object.defineProperty(window, "s", {
+    get: function() {
+        return setup;
+    }
+});
+
+Object.defineProperty(window, "ss", {
+    get: function() {
+        return settings;
+    }
+});
+
+Object.defineProperty(window, "v", {
+    get: function() {
+        return State.variables;
+    }
+});
+
+Object.defineProperty(window, "t", {
+    get: function() {
+        return State.temporary;
+    }
+});
+
+Config.passages.nobr = true; // sets all passages to `nobr`
+/* twine-user-script #2: "0020-List.js" */
+s.List = function() {
+    /*
+    A wrapper around an array with methods for controlling manipulation
+    and access of elements.
+
+    @property {Object array} _array - The list's array of objects. In
+    subclasses, it is typically an array of strings representing object
+    ids. Defaults to an empty array.
+    */
+    this._array = [];
+}
+
+s.List.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.List.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.List())._init(this);
+};
+
+s.List.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper('(new s.List())._init($ReviveData$)', newPC);
+};
+
+s.List.prototype._check = function(obj) {
+    /*
+    Checks if `obj` qualifies to be in the list. Should be overridden
+    by subclasses.
+
+    @param {Object} obj - The object to check.
+
+    @return {Boolean}
+    */
+    return true;
+}
+
+s.List.prototype.push = function() {
+    /*
+    Takes any number of objects as parameters. If any given object
+    fails the `_check` test, throws an error. Otherwise, adds all
+    objects to `_array` and returns the calling `List` object.
+
+    @param {Object} arguments[n] - The arguments passed to this method
+    are accessed by JavaScript's `arguments` object.
+
+    @return {List}
+    */
+    if (arguments.length > 0) {
+        var args = Array.prototype.slice.call(arguments);
+        var arg = args.shift();
+        if (this._check(arg)) {
+            this._array.push(arg);
+        } else {
+            throw new Error(
+                'List.push():\n' +
+                'object does not qualify for list'
+            );
+        }
+        this.push.apply(this, args);
+    }
+    return this;
+}
+
+s.List.prototype.delete = function(index) {
+    /*
+    Deletes the list element at the given index and returns the modified
+    `List` object. Throws an error if index is out of range.
+
+    @param {Integer} index - The index of the object to delete.
+
+    @return {List}
+    */
+    if (index !== parseInt(index, 10) || index < 0 ||
+        index >= this._array.length) {
+        throw new Error(
+            'List.delete():\n' +
+            'invalid index'
+        );
+    }
+    this._array.splice(index, 1);
+    return this;
+}
+
+s.List.prototype.get = function(index) {
+    return this._array[index];
+}
+
+s.List.prototype.indexOf = function(obj) {
+    return this._array.indexOf(obj);
+}
+
+s.List.prototype.length = function() {
+    return this._array.length;
+}
+/* twine-user-script #3: "0030-Factory.js" */
+s.Factory = function() {
+    /*
+    The factory is used to build and catalog objects. There is one
+    predefined instance, `factory`. (See below.) Other classes will use
+    this instance, so there should not be any other instances created.
+
+    The factory catalogs objects using a list of unique string id's. It
+    is therefore implements as a subclass of `List`.
+    */
+    s.List.call(this);
+    return this;    
+};
+
+s.Factory.prototype = Object.create(s.List.prototype);
+
+Object.defineProperty(s.Factory.prototype, 'constructor', {
+    value: s.Factory,
+    enumerable: false,
+    writable: true
+});
+
+s.Factory.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Factory())._init(this);
+};
+
+s.Factory.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper(
+        '(new s.Factory())._init($ReviveData$)', newPC
+    );
+};
+
+s.Factory.prototype.build = function(id, class_) {
+    /*
+    If the factory's catalog does not already contain `id`, this
+    method builds a new instance of class `class_`, adds an `_id`
+    property to the instance with value `id`, as well as a `getId()`
+    method. The newly created object is assigned to the variable
+    `v[id]`, and `id` is added to the catalog. Returns the newly created
+    instance. Throws an error if `id` is not a nonempty string, or if it
+    is already in the catalog.
+
+
+    @param {String} id - The _id property of the newly created object.
+    @param (String) class_ - The name of the class of the newly created
+    object. Specifically, this method will call `new s[class_]()`.
+
+    @return {Object}
+    */
+    if (typeof(id) !== 'string' || id == '' ||
+        this.indexOf(id) >= 0) {
+        throw new Error(
+            'Factory.build():\n' +
+            '`id` must be a nonempty string that does not match any ' +
+            'previously used ids'
+        );
+    }
+    v[id] = new s[class_]();
+    v[id]._id = id;
+    v[id].getId = function() {
+        return this._id;
+    }
+    this._array.push(id);
+    return v[id];
+}
+
+s.Factory.prototype.push = function() {
+    /*
+    @override
+    */
+    throw new Error(
+        'Factory.push():\n' +
+        'use the `build()` method to add to the factory'
+    );
+}
+
+s.Factory.prototype.delete = function() {
+    /*
+    @override
+    */
+    throw new Error(
+        'Factory.delete():\n' +
+        'items cannot be deleted from the factory'
+    );
+}
+
+v.factory = new s.Factory(); // The unique instance of the Factory
+                             // class, built with default value.
+
+/*
+Established `f` as a shorthand alias for `v.factory`.
+*/
+Object.defineProperty(window, "f", {
+    get: function() {
+        return v.factory;
+    }
+});
+/* twine-user-script #4: "0040-Version.js" */
+s.Version = function() {
+    /*
+    Keeps track of a three-part version number and returns it in
+    multiple useful formats. There is one predefined instance,
+    `version`. (See below.)
+
+    @property {Integer} _major - Should be a nonnegative integer less
+    than 1000. Defaults to 0.
+    @property {Integer} _minor - Should be a nonnegative integer less
+    than 1000. Defaults to 0.
+    @property {Integer} _patch - Should be a nonnegative integer less
+    than 1000. Defaults to 0.
+    */
+    this._major = 0;
+    this._minor = 0;
+    this._patch = 1;
+    return this;
+}
+
+s.Version.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.Version.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Version())._init(this);
+};
+
+s.Version.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newObj = {};
+    Object.keys(this).forEach(function (pn) {
+        newObj[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper('(new s.Version())._init($ReviveData$)', newObj);
+};
+
+s.Version.prototype.set = function(major, minor, patch) {
+    /*
+    Sets the corresponding properties. Throws an error if any
+    parameter is not a nonnegative integer less than 1000, or if all
+    parameters are 0. Returns the `Version` object.
+
+    @param {Integer} major - A nonnegative integer less than 1000.
+    @param {Integer} minor - A nonnegative integer less than 1000.
+    @param {Integer} patch - A nonnegative integer less than 1000.
+    Cannot be zero if both major and minor are zero.
+
+    @return {Version}
+    */
+    for (var i = 0; i < 3; i++) {
+        if (!(arguments[i] !== undefined &&
+              arguments[i] === parseInt(arguments[i], 10) &&
+              arguments[i] >= 0 &&
+              arguments[i] < 1000)) {
+            throw new Error(
+                'Version.set():\n' +
+                'numbers must be nonnegative integers less than 1000'
+            );
+        }
+    }
+    if (major + minor + patch === 0) {
+        throw new Error(
+            'Version.set():\n' +
+            'parts cannot all be 0'
+        );
+    }
+    this._major = major;
+    this._minor = minor;
+    this._patch = patch;
+    return this;
+}
+
+s.Version.prototype.asString = function() {
+    /*
+    Returns the version number as a string, such as `'2.113.86'`. If the
+    `_patch` parameter is 0, it is not included in the string.
+    */
+    var verString = this._major.toString() + '.' + this._minor.toString()
+    if (this._patch > 0) {
+        verString += '.' + this._patch.toString();
+    }
+    return verString;
+}
+
+s.Version.prototype.asInteger = function() {
+    /*
+    Returns the version number as a potentially nine-digit integer. For
+    example, 32.3.86 corresponds to 32003086.
+    */
+    return 1000000 * this._major + 1000 * this._minor + this._patch;
+}
+
+f.build('version', 'Version');
+/* twine-user-script #5: "0050-Outcome.js" */
+s.Outcome = function() {
+    /*
+    Represents one possible result of a player action.
+    */
+    return this;
+}
+
+s.Outcome.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.Outcome.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Outcome())._init(this);
+};
+
+s.Outcome.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newObj = {};
+    Object.keys(this).forEach(function (pn) {
+        newObj[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper('(new s.Outcome())._init($ReviveData$)', newObj);
+};
+
+s.Outcome.prototype.carryOut = function() {
+    /*
+    By default this method does nothing and returns `undefined`. It
+    should be overwritten by instances and represents instructions for
+    carrying out the outcome.
+    */
+    return;
+}
+/* twine-user-script #6: "0060-Action.js" */
+s.Action = function() {
+    /*
+    In a given passage, the reader will choose from a list of actions.
+    Each action will be displayed as a link, and when it is selected,
+    the story will choose from a list of that action's possible
+    outcomes. An `Action` object represents one of these actions.
+
+    Structurally, an action object is a list of outcome ids with a
+    display text for the link, and some additional methods available. As
+    such, it is implemented as a subclass of `List`.
+
+    @property {String} _displayText - The text to appear in the link.
+    Defaults to an empty string.
+    */
+    s.List.call(this);
+    this._displayText = '';
+    return this;
+};
+
+s.Action.prototype = Object.create(s.List.prototype);
+
+Object.defineProperty(s.Action.prototype, 'constructor', {
+    value: s.Action,
+    enumerable: false,
+    writable: true
+});
+
+s.Action.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Action())._init(this);
+};
+
+s.Action.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper('(new s.Action())._init($ReviveData$)', newPC);
+};
+
+s.Action.prototype._check = function(id) {
+    /*
+    @override
+
+    Members of an `Action` must be outcomes that are registered with the
+    factory.
+    */
+    return (f.indexOf(id) >= 0 && v[id] instanceof s.Outcome);
+}
+
+s.Action.prototype.setText = function(text) {
+    /*
+    Sets `_displayText` to `text` and returns the calling `Action
+    object. Throws an error if `text` is not a string.
+    */
+    if (typeof(text) === 'string') {
+        this._displayText = text;
+    } else {
+        throw new Error(
+            'Action.setText():\n' +
+            'wrong parameter type'
+        );
+    }
+    return this;
+}
+
+s.Action.prototype.getText = function() {
+    return this._displayText;
+}
+
+s.Action.prototype.choose = function() {
+    /*
+    By default, this method returns the first outcome in the action, or
+    null if the action contains no outcome. This method should be
+    overwritten by instances and represents instructions for choosing
+    an outcome when the player selects this action.
+
+    @return {Outcome}
+    */
+    if (this.length() > 0) {
+        return v[this.get(0)];
+    } else {
+        return null;
+    }
+}
+/* twine-user-script #7: "0070-Node.js" */
+s.Node = function() {
+    /*
+    A `Node` object is like a wrapper around a passage. It contains the
+    title of the passage which contains a narrative description of the
+    situation, as well as a list of possible actions for the reader to
+    choose from.
+
+    Structurally, a node is a list of action ids with a passage title
+    for the narrative description, and some additional methods
+    available. As such, it is implemented as a subclass of `List`.
+
+    The associated passage may have slots available for dynamically
+    generated text substitutions. The node object has properties and
+    methods for managing this. The `subCount` property should match the
+    length of the `textSubs` array. It is there for a redundancy check
+    to prevent the error of sending the wrong number of text
+    substitutions when loading a node. Text substitutions are stored in
+    an array. The string in the i-th index of this array will be
+    substituted into an HTML element with id ('sub' + i.toString()).
+
+    @property {String} _passage - The title of the associated passage.
+    Defaults to ''.
+    @property {Integer} _subCount - The number of expected text
+    substitutions. Defaults to 0.
+    @property {String array} _textSubs - The array of text
+    substitutions. Defaults to an empty array.
+    */
+    s.List.call(this);
+    this._passage = '';
+    this._subCount = 0;
+    this._textSubs = [];
+    return this;
+};
+
+s.Node.prototype = Object.create(s.List.prototype);
+
+Object.defineProperty(s.Node.prototype, 'constructor', {
+    value: s.Node,
+    enumerable: false,
+    writable: true
+});
+
+s.Node.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Node())._init(this);
+};
+
+s.Node.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper('(new s.Node())._init($ReviveData$)', newPC);
+};
+
+s.Node.prototype._check = function(id) {
+    /*
+    @override
+
+    Members of a `Node` must be actions that are registered with the
+    factory.
+    */
+    return (f.indexOf(id) >= 0 && v[id] instanceof s.Action);
+}
+
+s.Node.prototype.setPassage = function(passage) {
+    /*
+    Sets `_passage` to `passage` and returns the calling `Node` object.
+    Throws an error is `passage` is not a nonempty string.
+    */
+    if (typeof(passage) === 'string' && passage !== '') {
+        this._passage = passage;
+    } else {
+        throw new Error(
+            'Node.setPassage():\n' +
+            'Title must be a nonempty string'
+        );
+    }
+    return this;
+}
+
+s.Node.prototype.getPassage = function() {
+    return this._passage;
+}
+
+s.Node.prototype.setSubCount = function(num) {
+    /*
+    Sets `_subCount` to `num` and initializes `_textSubs` to an array of
+    length `num` filled with empty strings. Throws an error if `num` is
+    not a positive integer. Also throws an error if `_subCount` is
+    already positive. (To prevent unwanted errors, the sub count of a
+    node cannot be changed once it is set.) Returns the calling `Node`
+    object.
+
+    @param {Integer} num - Must be a positive integer.
+
+    @return {Node}
+    */
+    if (this._subCount > 0) {
+        throw new Error(
+            'Node.setSubCount():\n' +
+            'Cannot overwrite sub count once it is set'
+        );
+        return;
+    }
+
+    var parsed = parseInt(num, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+        throw new Error(
+            'Node.setSubCount():\n' +
+            'Wrong parameter type'
+        );
+        return;
+    }
+
+    this._subCount = parsed;
+    var array = [];
+    for (var i = 0; i < parsed; i++) {
+        array.push('');
+    }
+    this._textSubs = array;
+    return this;
+}
+
+s.Node.prototype.getSubCount = function() {
+    return this._subCount;
+}
+
+s.Node.prototype.setTextSubs = function(array) {
+    /*
+    Sets `_textSubs` to `array`. Throws an error is the elements in
+    `array` are not all strings. Also throws an error if the length of
+    `array` does not match `_subCounts`. Returns the calling `Node`
+    object.
+    */
+    if (array.length !== this._subCount) {
+        throw new Error(
+            'Node.setSubCount():\n' +
+            'Wrong number of text substitutions'
+        );
+    }
+    if (!array.every(function(element) {
+        return (typeof(element) === `string`);
+    })) {
+        throw new Error(
+            'Node.setSubCount():\n' +
+            'Wrong parameter type'
+        );
+    }
+    this._textSubs = array;
+    return this;
+}
+
+s.Node.prototype.getTextSub = function(index) {
+    return this._textSubs[index];
+}
+
+s.Node.prototype.load = function() {
+    /*
+    By default, this method initiates a passage transition in SugarCube
+    to the passage whose title is `_passage`. This method should be
+    overwritten by instances and represents instructions for loading the
+    node.
+    */
+    Engine.play(this._passage);
+    return;
+}
+
+s.getNode = function(passage) {
+    /*
+    Uses the factory instance to return a node given a passage title.
+    Throws an error if no such node exists.
+
+    @param {String} passage - The title of the given passage.
+
+    @return {Node}
+    */
+    if (typeof(passage) !== 'string' || passage === '') {
+        throw new Error(
+            'getNode():' +
+            '`passage` must be a nonempty string'
+        );
+    }
+    for (var i = 0; i < f.length(); i++) {
+        var obj = v[f.get(i)];
+        if ((obj instanceof s.Node) && obj.getPassage() === passage) {
+            return obj;
+        }
+    }
+    throw new Error(
+        'getNode():' +
+        'No node corresponds to passage, "' + passage + '"'
+    );
+}
+/* twine-user-script #8: "0080-passagedisplay.js" */
+/*
+This file records the `:passagedisplay` event handlers.
+*/
+
+//----------------------------------------------------------------------
+
+s.insertTextSubstitutions = function(ev) {
+    /*
+    Inserts the text substitutions for the node corresponding to the
+    incoming passage. Silently fails if there is no such node.
+    */
+    try {
+        var node = s.getNode(ev.passage.title);
+    }
+    catch (e) {
+        return;
+    }
+    var subCount = node.getSubCount();
+    for (var i = 0; i < subCount; i++) {
+        $.wiki(
+            '<<append "#sub' + i.toString() + '">>' +
+            node.getTextSub(i) +
+            '<</append>>'
+        );
+    }
+    return;
+}
+
+$(document).on(':passagedisplay', s.insertTextSubstitutions);
+
+//----------------------------------------------------------------------
+
+s.insertActionDiv = function(ev) {
+    /*
+    Insert a container to hold the action links.
+    */
+    $.wiki(
+        '<<append "#' + ev.passage.domId + '">>' +
+            '<div id="actions"></div>' +
+        '<</append>>'
+    );
+}
+
+$(document).on(':passagedisplay', s.insertActionDiv);
+
+//----------------------------------------------------------------------
+
+s.refreshActionLinks = function(ev) {
+    /*
+    Deletes the contents of the action container, then inserts links for
+    the actions contained in the node corresponding to the incoming
+    passage. Silently fails if there is no such node.
+    */
+    $.wiki('<<replace "#actions">><</replace>>');
+    try {
+        var node = s.getNode(ev.passage.title);
+    }
+    catch (e) {
+        return;
+    }
+    for (var i = 0; i < node.length(); i++) {
+        var actionId = node.get(i);
+        var text = v[actionId].getText();
+        $.wiki(
+            '<<append "#' + ev.passage.domId + '">>' +
+                '<p><<link "' + text + '">>' +
+                    '<<run v["' + actionId + '"].choose().carryOut()>>' + 
+                '<</link>></p>' +
+            '<</append>>'
+        );
+    }
+}
+
+$(document).on(':passagedisplay', s.refreshActionLinks);
+
+/* twine-user-script #9: "9000-main.js" */
+v.version.set(0,1,0);
+
+/*
+Sample code demonstrating the node system.
+*/
+
+v.XP = 0;
+v.knowledge = [];
+
+$(document).on(':passagedisplay', function(ev) {
+    console.log('XP: ' + v.XP);
+    console.log('knowledge: ' + v.knowledge);
+});
+
+f.build('root', 'Node');
+v.root.setPassage('Intro');
+
+    f.build('remember', 'Action');
+    v.remember.setText(
+        'Calmly stand still and try to remember something ' +
+        'about how to survive a bear encounter'
+    );
+    v.root.push('remember');
+
+        f.build('rememberSpray', 'Outcome');
+        v.rememberSpray.carryOut = function() {
+            v.XP += 1;
+            v.knowledge.push('spray');
+            v.bearCharges.load();
+        }
+        v.remember.push('rememberSpray');
+
+    f.build('runAway', 'Action');
+    v.runAway.setText(
+        'Turn around and run down the hall'
+    );
+    v.root.push('runAway');
+
+        f.build('tooSlow', 'Outcome');
+        v.tooSlow.carryOut = function() {
+            v.XP += 1;
+            v.bearChases.setTextSubs(['down the hall']);
+            v.bearChases.load();
+        }
+        v.runAway.push('tooSlow');
+
+    f.build('runToLounge', 'Action');
+    v.runToLounge.setText(
+        'Run to the faculty lounge'
+    );
+    v.root.push('runToLounge');
+
+        f.build('tooSlow2', 'Outcome');
+        v.tooSlow2.carryOut = function() {
+            v.XP += 1;
+            v.bearChases.setTextSubs(['toward the lounge']);
+            v.bearChases.load();
+        }
+        v.runToLounge.push('tooSlow2');
+
+f.build('bearCharges', 'Node');
+v.bearCharges.setPassage('Bear charges');
+
+f.build('bearChases', 'Node');
+v.bearChases.setPassage('Bear chases');
+v.bearChases.setSubCount(1);
+/* twine-user-script #10: "Story JavaScript" */
+
+
+:: StorySubtitle
+Story Subtitle
+
+
+:: StoryAuthor
+Story Author
+
+
+:: StoryBanner
+Story Banner
+
+
+:: StoryCaption
+Story Caption
+
+
+:: StoryMenu
+<<link 'menu item 1'>><</link>>
+<<link 'menu item 2'>><</link>>
+
+
+:: StoryInit
+
+
+:: Start
+<div align="center">
+    <h1><<= Story.title>></h1>
+    by<br>
+    <<= Story.get("StoryAuthor").text>><br>
+    version <<= v.version.asString()>><br>
+    <br>
+    <br>
+    <br>
+    <p><<link "begin">>
+        <<run $root.load()>>
+    <</link>></p>
+</div>
+
+
+:: Intro
+You finish teaching your night class. Your students leave and the engineering building is empty. You head from the classroom to your office to gather your things. In the hallway is a bear! It sees you and roars. There's thirty feet of hallway between you and the bear. The hallway behind you is very long. The door to the faculty lounge is behind you on your left. A janitor's cart with a mop and cleaning supplies is against the wall on your right.
+
+
+:: Bear charges
+You read an article on bear attacks last year. The most effective deterrent is pepper spray. Prof. Rossi keeps some in the faculty lounge. Suddenly, your phone rings. The bear charges.
+
+
+:: Bear chases
+You run <span id='sub0'></span>. The bear chases. He's much faster than you. You won't make it. He's about to catch you.
+
+

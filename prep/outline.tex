@@ -1,0 +1,718 @@
+%
+\documentclass[12pt]{article}
+\usepackage{amssymb,amsmath,latexsym,amsthm}
+\usepackage{mathrsfs,mathabx}
+\usepackage{environ}
+\usepackage{url}
+%\usepackage[inline]{showlabels}
+%\usepackage{showkeys}
+%\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage{etoolbox}
+\usepackage{ifpdf}
+\ifpdf
+  \usepackage[pdftex,colorlinks]{hyperref}
+  %\usepackage[pdftex]{hyperref}
+\else
+  \usepackage[dvips,colorlinks]{hyperref}
+  %\usepackage[dvips]{hyperref}
+\fi
+
+\newif\ifdraft
+\drafttrue
+%\draftfalse
+
+\newtoggle{draft}
+\settoggle{draft}{true}
+
+%\usepackage{endnotes}
+%\renewcommand{\enotesize}{\normalsize}
+%  The above creates endnotes in a normal size font.
+%  To insert an endnote, use the command:
+%  \endnote{type text of endnote here; may include equations, etc.}
+%  Insert this command exactly where you want the superscript
+%  for the endnote to appear.
+%  Be sure to uncomment the Notes section after the References
+
+\title{Bear Fight}
+\author{Jack Weaver}
+%\date{}
+
+%\pagestyle{empty} % no page numbers
+
+\pretolerance=10000 % turn off hyphenation
+
+%\allowdisplaybreaks % permits page breaks in display equations
+
+\setlength{\oddsidemargin}{0in}%
+\setlength{\textwidth}{6.5in}%
+\setlength{\topmargin}{-.5in}%
+\setlength{\textheight}{9in}
+%\setlength{\multlinegap}{0.5in}
+
+%\def\baselinestretch{2} % double spacing
+
+\DeclareMathOperator{\sgn}{sgn}%
+%\DeclareMathOperator{\Div}{div}%
+%\DeclareMathOperator{\med}{med}
+\usepackage{color}
+\usepackage[normalem]{ulem}
+
+\begin{document}
+
+%\newtheorem{thm}{Theorem}%[section]
+%\newtheorem{cor}[thm]{Corollary}
+%\newtheorem{prop}[thm]{Proposition}
+%\newtheorem{lemma}[thm]{Lemma}
+%\newtheorem{assum}[thm]{Assumption}
+%\theoremstyle{definition}
+%\newtheorem{defn}[thm]{Definition}
+%\newtheorem{rmk}[thm]{Remark}
+%\newtheorem{exer}[thm]{Exercise}
+%\newtheorem{expl}[thm]{Example}
+%\theoremstyle{remark}
+%\newtheorem{rmk}[thm]{Remark}
+%
+%\numberwithin{equation}{section}
+
+\def\al{\alpha}
+\def\be{\beta}
+\def\ga{\gamma}
+\def\Ga{\Gamma}
+\def\de{\delta}
+\def\De{\Delta}
+\def\ep{\varepsilon}
+\def\eps{\varepsilon}
+\def\ze{\zeta}
+\def\th{\theta}
+\def\ka{\kappa}
+\def\la{\lambda}
+\def\La{\Lambda}
+\def\vpi{\varpi}
+\def\si{\sigma}
+\def\Si{\Sigma}
+\def\ph{\varphi}
+\def\om{\omega}
+\def\Om{\Omega}
+
+\def\wt{\widetilde}
+\def\wh{\widehat}
+\def\wch{\widecheck}
+\def\ol{\overline}
+\def\ds{\displaystyle}
+
+\def\nab{\nabla}
+\def\pa{\partial}
+\def\To{\Rightarrow}
+\def\eqd{\overset{d}{=}}
+\def\emp{\emptyset}
+
+\def\pf{\noindent{\bf Proof.} }
+\def\qed{\hfill $\Box$}
+
+\providecommand{\flr}[1]{\left\lfloor{#1}\right\rfloor}
+\providecommand{\ceil}[1]{\left\lceil{#1}\right\rceil}
+\providecommand{\ang}[1]{\left\langle{#1}\right\rangle}
+
+% ----- hides proofs -----
+% \NewEnviron{killcontents}{}
+% \let\proof\killcontents
+% \let\endproof\endkillcontents
+
+\def\bA{\mathbb{A}}
+\def\bB{\mathbb{B}}
+\def\bC{\mathbb{C}}
+\def\bD{\mathbb{D}}
+\def\bE{\mathbb{E}}
+\def\bF{\mathbb{F}}
+\def\bG{\mathbb{G}}
+\def\bH{\mathbb{H}}
+\def\bI{\mathbb{I}}
+\def\bJ{\mathbb{J}}
+\def\bK{\mathbb{K}}
+\def\bL{\mathbb{L}}
+\def\bM{\mathbb{M}}
+\def\bN{\mathbb{N}}
+\def\bO{\mathbb{O}}
+\def\bP{\mathbb{P}}
+\def\bQ{\mathbb{Q}}
+\def\bR{\mathbb{R}}
+\def\bS{\mathbb{S}}
+\def\bT{\mathbb{T}}
+\def\bU{\mathbb{U}}
+\def\bV{\mathbb{V}}
+\def\bW{\mathbb{W}}
+\def\bX{\mathbb{X}}
+\def\bY{\mathbb{Y}}
+\def\bZ{\mathbb{Z}}
+
+\def\bfA{{\bf A}}
+\def\bfB{{\bf B}}
+\def\bfC{{\bf C}}
+\def\bfD{{\bf D}}
+\def\bfE{{\bf E}}
+\def\bfF{{\bf F}}
+\def\bfG{{\bf G}}
+\def\bfH{{\bf H}}
+\def\bfI{{\bf I}}
+\def\bfJ{{\bf J}}
+\def\bfK{{\bf K}}
+\def\bfL{{\bf L}}
+\def\bfM{{\bf M}}
+\def\bfN{{\bf N}}
+\def\bfO{{\bf O}}
+\def\bfP{{\bf P}}
+\def\bfQ{{\bf Q}}
+\def\bfR{{\bf R}}
+\def\bfS{{\bf S}}
+\def\bfT{{\bf T}}
+\def\bfU{{\bf U}}
+\def\bfV{{\bf V}}
+\def\bfW{{\bf W}}
+\def\bfX{{\bf X}}
+\def\bfY{{\bf Y}}
+\def\bfZ{{\bf Z}}
+
+\def\cA{\mathcal{A}}
+\def\cB{\mathcal{B}}
+\def\cC{\mathcal{C}}
+\def\cD{\mathcal{D}}
+\def\cE{\mathcal{E}}
+\def\cF{\mathcal{F}}
+\def\cG{\mathcal{G}}
+\def\cH{\mathcal{H}}
+\def\cI{\mathcal{I}}
+\def\cJ{\mathcal{J}}
+\def\cK{\mathcal{K}}
+\def\cL{\mathcal{L}}
+\def\cM{\mathcal{M}}
+\def\cN{\mathcal{N}}
+\def\cO{\mathcal{O}}
+\def\cP{\mathcal{P}}
+\def\cQ{\mathcal{Q}}
+\def\cR{\mathcal{R}}
+\def\cS{\mathcal{S}}
+\def\cT{\mathcal{T}}
+\def\cU{\mathcal{U}}
+\def\cV{\mathcal{V}}
+\def\cW{\mathcal{W}}
+\def\cX{\mathcal{X}}
+\def\cY{\mathcal{Y}}
+\def\cZ{\mathcal{Z}}
+
+\def\sA{\mathscr{A}}
+\def\sB{\mathscr{B}}
+\def\sC{\mathscr{C}}
+\def\sD{\mathscr{D}}
+\def\sE{\mathscr{E}}
+\def\sF{\mathscr{F}}
+\def\sG{\mathscr{G}}
+\def\sH{\mathscr{H}}
+\def\sI{\mathscr{I}}
+\def\sJ{\mathscr{J}}
+\def\sK{\mathscr{K}}
+\def\sL{\mathscr{L}}
+\def\sM{\mathscr{M}}
+\def\sN{\mathscr{N}}
+\def\sO{\mathscr{O}}
+\def\sP{\mathscr{P}}
+\def\sQ{\mathscr{Q}}
+\def\sR{\mathscr{R}}
+\def\sS{\mathscr{S}}
+\def\sT{\mathscr{T}}
+\def\sU{\mathscr{U}}
+\def\sV{\mathscr{V}}
+\def\sW{\mathscr{W}}
+\def\sX{\mathscr{X}}
+\def\sY{\mathscr{Y}}
+\def\sZ{\mathscr{Z}}
+
+\def\fA{\mathfrak{A}}
+\def\fB{\mathfrak{B}}
+\def\fC{\mathfrak{C}}
+\def\fD{\mathfrak{D}}
+\def\fE{\mathfrak{E}}
+\def\fF{\mathfrak{F}}
+\def\fG{\mathfrak{G}}
+\def\fH{\mathfrak{H}}
+\def\fI{\mathfrak{I}}
+\def\fJ{\mathfrak{J}}
+\def\fK{\mathfrak{K}}
+\def\fL{\mathfrak{L}}
+\def\fM{\mathfrak{M}}
+\def\fN{\mathfrak{N}}
+\def\fO{\mathfrak{O}}
+\def\fP{\mathfrak{P}}
+\def\fQ{\mathfrak{Q}}
+\def\fR{\mathfrak{R}}
+\def\fS{\mathfrak{S}}
+\def\fT{\mathfrak{T}}
+\def\fU{\mathfrak{U}}
+\def\fV{\mathfrak{V}}
+\def\fW{\mathfrak{W}}
+\def\fX{\mathfrak{X}}
+\def\fY{\mathfrak{Y}}
+\def\fZ{\mathfrak{Z}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{.15in}
+
+\maketitle
+
+%\begin{abstract}
+%
+%Place abstract here.
+%
+%\noindent{\bf AMS subject classifications:} Primary 60F05;
+%secondary 60G10, 60H10, 60J05
+%
+%\noindent{\bf Keywords and phrases:} Weak Convergence, Stochastic
+%Differential Equations, Stationary Distributions, TCP/IP,
+%Congestion Avoidance
+%
+%\end{abstract}
+
+% $\bA,\bB,\bC,\bD,\bE,\bF,\bG,\bH,\bI,\bJ,\bK,\bL,\bM,
+% \bN,\bO,\bP,\bQ,\bR,\bS,\bT,\bU,\bV,\bW,\bX,\bY,\bZ$
+% 
+% $\bfA,\bfB,\bfC,\bfD,\bfE,\bfF,\bfG,\bfH,\bfI,\bfJ,\bfK,\bfL,\bfM,
+% \bfN,\bfO,\bfP,\bfQ,\bfR,\bfS,\bfT,\bfU,\bfV,\bfW,\bfX,\bfY,\bfZ$
+% 
+% $\cA,\cB,\cC,\cD,\cE,\cF,\cG,\cH,\cI,\cJ,\cK,\cL,\cM,
+% \cN,\cO,\cP,\cQ,\cR,\cS,\cT,\cU,\cV,\cW,\cX,\cY,\cZ$
+% 
+% $\sA,\sB,\sC,\sD,\sE,\sF,\sG,\sH,\sI,\sJ,\sK,\sL,\sM,
+% \sN,\sO,\sP,\sQ,\sR,\sS,\sT,\sU,\sV,\sW,\sX,\sY,\sZ$
+% 
+% $\fA,\fB,\fC,\fD,\fE,\fF,\fG,\fH,\fI,\fJ,\fK,\fL,\fM,
+% \fN,\fO,\fP,\fQ,\fR,\fS,\fT,\fU,\fV,\fW,\fX,\fY,\fZ$
+
+\pagebreak
+
+\section*{Character Sheet}\label{charSheet}
+
+\hrule
+
+\begin{multicols}{2}
+\raggedcolumns
+\def\columnseprule{0.4pt}
+
+\textbf{Name:} Rick Miller\\
+\textbf{Class:} Professor of Engineering\\
+\textbf{Class Specialties:}
+\begin{itemize}[noitemsep]
+\item \textit{Thinking on your toes}
+\item \textit{Being a real-life MacGyver}
+\item \textit{Deductive reasoning}
+\end{itemize}
+
+\bigskip
+\begin{tabular}{|c|c|c|}\hline
+\textbf{STAT} & \textbf{MOD} & \textbf{NOTES} \\\hline
+STR   & $-1$ &                     \\\hline
+INT   & $+2$ & mark XP             \\\hline
+WIS   & $+1$ &                     \\\hline
+DEX   &  $0$ & mark XP             \\\hline
+CHA   & $+1$ &                     \\\hline
+REL   &  $0$ & NPCs                \\\hline
+HP    &  $6$ &                     \\\hline
+XP    &  $0$ &                     \\\hline
+Level &  $1$ & 5 XP/Level          \\\hline
+\end{tabular}
+\bigskip
+
+\textbf{REL adjustment:} Whenever two characters have a special scene together, their scores go up by 1. Whenever two characters work against one another publicly, their scores go down by 1.
+
+\columnbreak
+
+\subsection*{Starting Moves}
+\begin{description}
+\item[Field engineer.] When you \textbf{rig together a makeshift piece of technology}, add +1.
+\item[Investigator.] When you \textbf{examine something, looking for clues}, mark XP.
+\end{description}
+
+\subsection*{Inventory}
+\begin{itemize}
+\item Smart phone (+1 INT, +1 WIS)
+\end{itemize}
+
+\end{multicols}
+
+\hrule
+
+\subsection*{Advanced Moves}
+
+\begin{description}
+\item[Sharp under pressure.] (take at Level 2) When you \textbf{use your intellect during a time of crisis}, add +1.
+\item[Expert in your field.] (take at Level 3) Add +1 to INT.
+\end{description}
+
+\hrule
+
+\pagebreak
+
+\section{Start}
+
+\textcolor{blue}{\texttt{Bear has 4 HP}}
+
+You finish teaching your night class. You're new and the semester just started last week. You aren't very familiar with this building. Your students leave and the engineering building is empty. Your wife calls. She's out in the parking lot. You head from the classroom to your office to gather your things. In the hallway is a bear! Wait, is it a bear? That's the weirdest looking bear you've ever seen. It looks like a cross between a bear and a dog. It sees you and roars. There's 30 feet of hallway between you and the bear. The hallway behind you is very long. The door to the faculty lounge is behind you on your left. A janitor's cart with a mop and cleaning supplies is against the wall on your right.
+
+\textit{Calmly stand still and try to remember something about how to survive a bear encounter.} (go to \ref{bearCharges})
+
+\textit{Turn around and run down the hall.} (go to \ref{bearChases})
+
+\textit{Run to the faculty lounge.} (go to \ref{bearChases})
+
+\section{Bear chases}\label{bearChases}
+
+\textcolor{blue}{\texttt{roll+DEX, result:~7 (mixed), +1 XP}}
+
+You run. The bear chases. He's much faster than you. You won't make it. He's about to catch you.
+
+\textit{Dive to the side to avoid him.} (go to \ref{caught})
+
+\textit{Stop, turn around, and shout at him.}\\
+\textcolor{blue}{\texttt{roll+CHA, reroll if mixed}}\\
+(if success, go to \ref{scareBear}; if fail, go to \ref{blinded})
+
+\section{Scare bear}\label{scareBear}
+
+It works. He stops, hesitating but unconvinced. You have only a moment to take advantage of this.
+
+\textit{Run to the faculty lounge.} (go to \ref{escaped})
+
+\textit{Grab the mop and attack it.} (go to \ref{stabBear})
+
+\section{Blinded}\label{blinded}
+
+\textcolor{blue}{\texttt{-2 HP, -1 ongoing to anything requiring sight}}
+
+He doesn't care. He roars and paws you across the face. You can't see out of your left eye.
+
+\textit{Run into the faculty lounge.} (go to \ref{escaped})
+
+\textit{Grab the mop and attack it.} (go to \ref{stabBear})
+
+\section{Caught}\label{caught}
+
+\textcolor{blue}{\texttt{roll+DEX, reroll if mixed, +1 XP}}\\
+(if fail) \textcolor{blue}{\texttt{-2 HP}}
+
+\subsection{Caught (fail)}\label{caughtFail}
+
+\textcolor{blue}{\texttt{-2 HP}}
+
+You're not fast enough. He paws your shoulder, cutting a big gash with his claws and knocking you sideways into the open doorway to the lounge. You are on the floor, half in the lounge and half in the hall.
+
+(go to \ref{caughtChoices})
+
+\subsection{Caught (success)}\label{caughtSuccess}
+
+You dive and land in the open doorway to the lounge. You are on the floor, half in the lounge and half in the hall.
+
+(go to \ref{caughtChoices})
+
+\subsection{Choices}\label{caughtChoices}
+
+\textit{Scan the lounge for a way out of this.} (go to \ref{findParts})
+
+\textit{Quickly crawl into the lounge.} (go to \ref{escaped})
+
+\section{Bear charges}\label{bearCharges}
+
+\textcolor{blue}{\texttt{roll+INT, result:~8 (mixed), +1 XP}}\\
+\textcolor{blue}{\texttt{+1 forward when acting on knowledge of pepper spray}}
+
+You read an article on bear attacks last year. The most effective deterrent is pepper spray. Prof.~Rossi keeps some in the faculty lounge. Suddenly, your phone rings. The bear charges.
+
+\textit{Run to the faculty lounge.} (go to \ref{blocked})
+
+\textit{Grab the mop and hold your ground.} (go to \ref{stabBear})
+
+\section{Stab bear}\label{stabBear}
+
+\textcolor{blue}{\texttt{get Thing:~Mop (+1 STR);}}\\
+\textcolor{blue}{\texttt{roll+STR+1, result:~8 (mixed);}}\\
+\textcolor{blue}{\texttt{lose Thing:~Mop (+1 STR);}}\\
+\textcolor{blue}{\texttt{Bear loses 1 HP}}
+
+You break the mop head off, making a spear. You stab the bear in the shoulder. It yelps and backs off, taking the mop handle with it, then removes the mop with its teeth, breaking it into splinters. It roars at you.
+
+\textit{Run to the lounge.} (go to \ref{escaped})
+
+\textit{Scan the area.} (go to \ref{seeAlarm})
+
+\section{See alarm}\label{seeAlarm}
+
+\textcolor{blue}{\texttt{Investigator, roll+INT, result:~8 (mixed), +2 XP}}\\
+\textcolor{blue}{\texttt{+1 forward when acting on knowledge of alarm}}
+
+You see the fire alarm on the ceiling. It's wailing siren may be enough to incapacitate the bear. The nearest switch to activate it is in the faculty lounge. The bear lunges at you. You try to jump out of the way.
+
+(go to \ref{caughtFail})
+
+\section{Blocked}\label{blocked}
+
+\textcolor{blue}{\texttt{roll+DEX, result:~7 (mixed), +1 XP}}
+
+The bear catches up to you, dives at you. You jump out of the way. The bear is now blocking your path to the lounge, growling at you.
+
+\textit{Grab the mop and brandish it, goading the bear away from the lounge door.} (go to \ref{lounge})
+
+\textit{Scan the area.} (go to \ref{seeAlarm})
+
+\section{Bad leg}\label{badLeg}
+
+\subsection{Lounge}\label{lounge}
+
+\textcolor{blue}{\texttt{roll+CHA, result:~7 (mixed), -3 HP;}}\\
+\textcolor{blue}{\texttt{get Thing:~Mop (+1 STR)}}
+
+It works. The bear backs off. You slowly back into the lounge. As you pass into the lounge, the bear lunges at you, swiping your left leg. You fall back into the lounge with the mop and kick the door closed with your right leg. Your left leg is badly hurt and you're bleeding all over the floor.
+
+(go to \ref{badLegChoices})
+
+\subsection{Find parts}\label{findParts}
+
+\textcolor{blue}{\texttt{Investigator, roll+INT, result:~7 (mixed), +2 XP, -3 HP}}\\
+\textcolor{blue}{\texttt{+1 forward when acting on knowledge of parts}}
+
+(if $\text{HP} \le 0$, go to \ref{legBite})
+
+You find chemical cleaning supplies, cans of compressed air, and copper wiring. You could use all this, together with your phone, to make a bomb with a timer.
+
+The bear lunges at you and bites your left leg. You kick it in the snout
+with your right foot. It lets go and backs off. You close the lounge door with your foot. The bear claws at the door. The door won't hold long. Your left leg is hurt badly and you're bleeding all over the floor.
+
+(go to \ref{badLegChoices})
+
+\subsection{Escaped}\label{escaped}
+
+\textcolor{blue}{\texttt{roll+DEX, result:~9 (mixed), +1 XP, -3 HP}}
+
+(if $\text{HP} \le 0$, go to \ref{legBite})
+
+You make it into the lounge, but not before the bear lunges at you, swiping your left leg. You fall back into the lounge and kick the door closed with your right leg. Your left leg is badly hurt and you're bleeding all over the floor.
+
+(go to \ref{badLegChoices})
+
+\subsection{Choices}\label{badLegChoices}
+
+(If you know about the alarm) \textit{Look for the alarm activation switch.} (go to \ref{trapped})
+
+(If you know about the pepper spray) \textit{Look for Prof. Rossi's pepper spray.}
+(go to \ref{findSpray})
+
+(If you don't know about the pepper spray) \textit{Search the lockers.} (go to
+\ref{findSpray})
+
+(If you found the parts and haven't tried this already) \textit{Rig together a bomb with a timer.}\\
+(if Level 1) \texttt{\textcolor{blue}{roll+INT+1, reroll if mixed, +1 XP}}\\
+(if Level 2) \texttt{\textcolor{blue}{roll+INT+2, reroll if mixed, +1 XP}}\\
+(if success) \texttt{\textcolor{blue}{get Thing:~Bomb}}\\
+(if fail) \texttt{\textcolor{blue}{get Thing:~Dud}}\\
+(go to \ref{makeBomb})
+
+(if you haven't tried this already) \textit{Push the refrigerator in front of the door.}\\
+\textcolor{blue}{\texttt{roll+STR, reroll if mixed}}\\
+(if success, go to \ref{blockDoor}; if fail, go to \ref{trapped})
+
+\section{Make bomb}\label{makeBomb}
+
+You rig together a bomb with a timer. You hear the bear pawing at the door. You can plant the bomb at the door, but you'll have to be fast in case the bear breaks through. Or you can plant it farther from the door and take cover, but you'll have to judge the blast radius accurately.
+
+\textit{Quickly plant the bomb at the door.}\\
+(if you have the Dud, go to \ref{dudAtDoor}; if you have the Bomb:)\\
+\texttt{\textcolor{blue}{roll+DEX, reroll if mixed, +1 XP}}\\
+(if success, go to \ref{blownDoor}; if fail, go to \ref{caughtInBlast})
+
+\textit{Plant the bomb and take cover.}\\
+(if you have the Dud, go to \ref{trapped}; if you have the Bomb:)\\
+\texttt{\textcolor{blue}{roll+WIS, result:~7 (mixed), -1 HP}}\\
+(if $\text{HP} \le 0$, go to \ref{shrapnelDie}; otherwise, go to \ref{shrapnelLive})
+
+\textit{Pick something from \ref{badLegChoices}.}
+
+\section{Trapped}\label{trapped}
+
+\texttt{\textcolor{blue}{-2 HP}}\\
+(if looking for alarm switch) \texttt{\textcolor{blue}{Investigator, roll+WIS, result:~8 (mixed), +1 XP}}
+
+(if $\text{HP} \le 0$, go to \ref{deepGash})
+
+(if moving the fridge) It's no use, you're not strong enough. The bear carves a deep gash in your side, knocking you back.
+
+(if looking for alarm switch) While you look, the bear bursts in. You jump to the side to avoid it.
+
+(if you've placed the bomb) It sniffs the bomb. The bomb is dud. The bear turns to you.
+
+It's between you and the other side of the room, blocking the door and the lockers. It's moving toward you. You notice the fire alarm switch on the wall about 20 feet away.
+
+(If you don't know about the alarm) It's wailing siren may be enough to
+incapacitate the bear.
+
+With your bad leg, you're not sure you can make it there before the bear gets you.
+
+\textit{Run to the alarm switch.}\\
+\texttt{\textcolor{blue}{roll+DEX, reroll if mixed, +1 XP}}\\
+(if success, go to \ref{pullAlarm}; if fail, go to \ref{tooSlow})
+
+\textit{Shout angrily at the bear.}\\
+\texttt{\textcolor{blue}{roll+CHA, result:~8 (mixed), -1 HP}}\\
+(if $\text{HP} \le 0$, go to \ref{brokenNeck}; otherwise go to \ref{pullAlarm})
+
+(if you have the mop) \textit{Stab the bear with the mop handle.}\\
+\texttt{\textcolor{blue}{roll+STR+1, result:~8 (mixed), -1 HP, Bear loses 2 HP}}\\
+(if $\text{HP} \le 0$, go to \ref{brokenNeck}; otherwise, go to \ref{pullAlarm})
+
+\section{Block door}\label{blockDoor}
+
+You manage to get the fridge in front of the door. That'll slow him down.
+
+(if you didn't find the parts)\\
+\textcolor{blue}{\texttt{+1 forward when acting on knowledge of parts}}\\
+You take the opportunity to scan the area. You find chemical cleaning supplies, cans of compressed air, and copper wiring. You could use all this, together with your phone, to make a bomb with a timer.
+
+(If you don't know about the alarm)\\
+\textcolor{blue}{\texttt{+1 forward when acting on knowledge of alarm}}\\
+You see the fire alarm on the ceiling. It's wailing siren may be enough to incapacitate the bear. The switch to activate it should be in here somewhere.
+
+(go to \ref{badLegChoices})
+
+\section{Find spray}\label{findSpray}
+
+(without +1 to pepper spray) \texttt{\textcolor{blue}{roll+WIS, result:~9 (mixed)}}\\
+(with +1 to pepper spray) \texttt{\textcolor{blue}{roll+WIS+1, result:~10 (success)}}\\
+\textcolor{blue}{\texttt{get Thing:~Pepper spray (+1 DEX)}}
+
+Find Prof. Rossi's pepper spray. Bear busts in and charges at you. (if mixed:) He's almost on top of you by the time you get the pepper spray out of the locker.
+
+\textit{Spray it in the eyes.}\\
+(if success, go to \ref{stunAndEscape}; if mixed:)\\
+\texttt{\textcolor{blue}{roll+DEX+1, result:~7 (mixed), +1 XP, -1 HP (broken rib)}}\\
+(If $\text{HP} \le 0$, go to \ref{crushed}; if $\text{HP} > 0$, go to \ref{stunAndEscape}.)
+
+\textit{Dive out of the way.}\\
+\textcolor[rgb]{0,0,0}{\texttt{\textcolor{blue}{roll+DEX, reroll if mixed, +1 XP}}}\\
+(if success, goto \ref{diveAndRun}; if fail, goto \ref{eatenAlive}.)
+
+\section{Endings}
+
+\subsection{Leg bite}\label{legBite}
+
+The bear lunges at you and bites your left leg. You kick it in the snout with your right foot. It doesn't let go, but thrashes you about, moving its head left and right. It hit an artery and you bleed out and die.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Crushed}\label{crushed}
+You hit its eyes and stun it. Its momentum carries it forward, crushing you between itself and the lockers. You die.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Stun and escape}\label{stunAndEscape}
+
+\texttt{\textcolor{blue}{Bear loses 1 HP}}
+
+You hit its eyes and stun it. Its momentum carries it forward, 
+
+(if broken rib:) knocking you into the lockers. You break a rib.
+
+(if no broken rib:) but you jump out of the way.
+
+You seize the opportunity to escape and get help.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Deep gash}\label{deepGash}
+
+The bear busts in and takes a swipe at you, carving a deep gash in your side. You fall to the ground unable to breath. He eats you.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Pull alarm}\label{pullAlarm}
+
+(if shouting) It swats your head, injuring your neck, but you stand your ground. It looks confused. You seize the opportunity to run to the alarm switch.
+
+(if stabbing) You stab the bear. It swats your head. You shove the mop handle deeper. It howls in pain and backs off. You seize the opportunity to run to the alarm switch.
+
+You make it to the switch and pull the alarm. The siren incapacitates the bear. The seize the opportunity to flee.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Too slow}\label{tooSlow}
+
+You're too slow. The bear pounces on you and rips out your guts with its teeth.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Broken neck}\label{brokenNeck}
+
+(if stabbing bear) You shove the mop handle into its chest.
+
+It swats your head, breaking your neck. You die.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Caught in blast}\label{caughtInBlast}
+
+\texttt{\textcolor{blue}{roll+DEX, result:~6 (fail), +1 XP}}
+
+You're too slow. Bear busts in just as you set the timer. It pins you. Bomb goes off and blows you both up.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Shrapnel die}\label{shrapnelDie}
+
+You misjudge the blast radius. Shrapnel hits your head. You die.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Shrapnel live}\label{shrapnelLive}
+
+You misjudge the blast radius. Shrapnel hits your head. You survive. The bear is blown to smithereens.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Dud at door}\label{dudAtDoor}
+
+You place it in time. Bomb is a dud. Bear bursts in and eats.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Blown door}\label{blownDoor}
+
+You place the bomb, and run back. The bomb explodes. The door is blown away, and all is silent. In the hall, the bear is dead.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Dive and run}\label{diveAndRun}
+
+You dive out of the way and the bear crashes into the lockers. You seize the opportunity to flee.
+\textbf{\begin{center}THE END\end{center}}
+
+\subsection{Eaten alive}\label{eatenAlive}
+
+You're not fast enough. Bear catches your other leg. Incapacitated, it eats you alive.
+\textbf{\begin{center}THE END\end{center}}
+
+%\section*{Acknowledgments}
+%\addcontentsline{toc}{section}{Acknowledgments}
+
+%  ----------  Bibliography Style #1  ----------
+%\nocite{*} % uncomment this to see all references, including those not cited
+%\bibliographystyle{plain}
+%\bibliography{master}
+%\addcontentsline{toc}{section}{References}
+%  ---------------------------------------------
+
+%  ----------  Bibliography Style #2  ----------
+%
+%\begin{thebibliography}{9}
+%\addcontentsline{toc}{section}{References}
+%
+%\bibitem{F} Gerald B. Folland, {\it Real Analysis: Modern
+%Techniques and Their Applications}. Wiley-Interscience, 1999.
+%
+%\bibitem{S} E. R. Grannan and G. H. Swindle,
+%Minimizing Transaction Costs of Option Hedging Strategies. {\it
+%Mathematical Finance}, {\bf 6(4)} (1996), 341--364.
+%
+%\end{thebibliography}
+%  ---------------------------------------------
+
+%\theendnotes
+%\addcontentsline{toc}{section}{Notes}
+%  By moving the above two lines, the content of the endnotes
+%  can be placed anywhere in the document.
+
+\end{document}
+
