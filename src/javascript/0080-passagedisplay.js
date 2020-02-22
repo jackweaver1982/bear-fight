@@ -28,32 +28,6 @@ s.insertTextSubstitutions = function(passage) {
     return;
 }
 
-$(document).on(':passagedisplay', function(ev) {
-    s.insertTextSubstitutions(ev.passage.title);
-    return;
-});
-
-//----------------------------------------------------------------------
-
-s.insertActionDiv = function(psgObject) {
-    /*
-    Insert a container to hold the action links.
-
-    @param {SugarCube Passage object} psgObject - The passage object
-    corresponding to the incoming passage.
-    */
-    $.wiki(
-        '<<append "#' + psgObject.domId + '">>' +
-            '<div id="actions"></div>' +
-        '<</append>>'
-    );
-}
-
-$(document).on(':passagedisplay', function(ev) {
-    s.insertActionDiv(ev.passage);
-    return;
-});
-
 //----------------------------------------------------------------------
 
 s.refreshActionLinks = function(passage) {
@@ -84,8 +58,10 @@ s.refreshActionLinks = function(passage) {
     }
 }
 
+//----------------------------------------------------------------------
+
 $(document).on(':passagedisplay', function(ev) {
+    s.insertTextSubstitutions(ev.passage.title);
     s.refreshActionLinks(ev.passage.title);
     return;
 });
-

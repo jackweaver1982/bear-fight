@@ -6,7 +6,7 @@ Story Title
 {
 	"ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
 	"format": "SugarCube",
-	"format-version": "2.29.0",
+	"format-version": "2.30.0",
 	"start": "Start",
 	"zoom": 1
 }
@@ -422,6 +422,9 @@ s.Action = function() {
     display text for the link, and some additional methods available. As
     such, it is implemented as a subclass of `List`.
 
+    Action links will be placed in a div with id `actions`, which should
+    be placed at the top of the special passage, `PassageFooter`.
+
     @property {String} _displayText - The text to appear in the link.
     Defaults to an empty string.
     */
@@ -724,32 +727,6 @@ s.insertTextSubstitutions = function(passage) {
     return;
 }
 
-$(document).on(':passagedisplay', function(ev) {
-    s.insertTextSubstitutions(ev.passage.title);
-    return;
-});
-
-//----------------------------------------------------------------------
-
-s.insertActionDiv = function(psgObject) {
-    /*
-    Insert a container to hold the action links.
-
-    @param {SugarCube Passage object} psgObject - The passage object
-    corresponding to the incoming passage.
-    */
-    $.wiki(
-        '<<append "#' + psgObject.domId + '">>' +
-            '<div id="actions"></div>' +
-        '<</append>>'
-    );
-}
-
-$(document).on(':passagedisplay', function(ev) {
-    s.insertActionDiv(ev.passage);
-    return;
-});
-
 //----------------------------------------------------------------------
 
 s.refreshActionLinks = function(passage) {
@@ -780,13 +757,15 @@ s.refreshActionLinks = function(passage) {
     }
 }
 
+//----------------------------------------------------------------------
+
 $(document).on(':passagedisplay', function(ev) {
+    s.insertTextSubstitutions(ev.passage.title);
     s.refreshActionLinks(ev.passage.title);
     return;
 });
-
 /* twine-user-script #9: "9000-main.js" */
-v.version.set(0,1,2);
+v.version.set(0,1,3);
 
 /*
 Sample code demonstrating the node system.
@@ -876,8 +855,23 @@ Story Caption
 
 :: PassageHeader
 <<if !tags().includes("no-header")>>
-    XP: $XP, knowledge: <<if $knowledge.length === 0>>none<<else>>$knowledge<</if>>
+    This is the header.
     <hr>
+    <p>(XP: $XP, knowledge:
+        <<if $knowledge.length === 0>>
+            none)
+        <<else>>
+            $knowledge)
+        <</if>>
+    </p>
+<</if>>
+
+
+:: PassageFooter
+<div id='actions'></div>
+<<if !tags().includes("no-header")>>
+    <hr>
+    This is the footer.
 <</if>>
 
 

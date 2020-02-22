@@ -48,8 +48,22 @@ a {
 
 :: PassageHeader
 <<if !tags().includes("no-header")>>
-    XP: $XP, knowledge: <<if $knowledge.length === 0>>none<<else>>$knowledge<</if>>
+    This is the header.
     <hr>
+    <p>(XP: $XP, knowledge:
+        <<if $knowledge.length === 0>>
+            none)
+        <<else>>
+            $knowledge)
+        <</if>>
+    </p>
+<</if>>
+
+:: PassageFooter
+<div id='actions'></div>
+<<if !tags().includes("no-header")>>
+    <hr>
+    This is the footer.
 <</if>>
 
 :: Start [no-header]

@@ -9,6 +9,9 @@ s.Action = function() {
     display text for the link, and some additional methods available. As
     such, it is implemented as a subclass of `List`.
 
+    Action links will be placed in a div with id `actions`, which should
+    be placed at the top of the special passage, `PassageFooter`.
+
     @property {String} _displayText - The text to appear in the link.
     Defaults to an empty string.
     */
