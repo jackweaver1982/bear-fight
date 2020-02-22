@@ -1,4 +1,4 @@
-v.version.set(0,1,1);
+v.version.set(0,1,2);
 
 /*
 Sample code demonstrating the node system.
@@ -6,11 +6,6 @@ Sample code demonstrating the node system.
 
 v.XP = 0;
 v.knowledge = [];
-
-$(document).on(':passagedisplay', function(ev) {
-    console.log('XP: ' + v.XP);
-    console.log('knowledge: ' + v.knowledge);
-});
 
 f.build('root', 'Node');
 v.root.setPassage('Intro');

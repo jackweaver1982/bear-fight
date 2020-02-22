@@ -46,7 +46,13 @@ a {
 
 :: StoryInit
 
-:: Start
+:: PassageHeader
+<<if !tags().includes("no-header")>>
+    XP: $XP, knowledge: <<if $knowledge.length === 0>>none<<else>>$knowledge<</if>>
+    <hr>
+<</if>>
+
+:: Start [no-header]
 <div align="center">
     <h1><<= Story.title>></h1>
     by<br>

@@ -786,7 +786,7 @@ $(document).on(':passagedisplay', function(ev) {
 });
 
 /* twine-user-script #9: "9000-main.js" */
-v.version.set(0,1,1);
+v.version.set(0,1,2);
 
 /*
 Sample code demonstrating the node system.
@@ -794,11 +794,6 @@ Sample code demonstrating the node system.
 
 v.XP = 0;
 v.knowledge = [];
-
-$(document).on(':passagedisplay', function(ev) {
-    console.log('XP: ' + v.XP);
-    console.log('knowledge: ' + v.knowledge);
-});
 
 f.build('root', 'Node');
 v.root.setPassage('Intro');
@@ -879,7 +874,14 @@ Story Caption
 :: StoryInit
 
 
-:: Start
+:: PassageHeader
+<<if !tags().includes("no-header")>>
+    XP: $XP, knowledge: <<if $knowledge.length === 0>>none<<else>>$knowledge<</if>>
+    <hr>
+<</if>>
+
+
+:: Start [no-header]
 <div align="center">
     <h1><<= Story.title>></h1>
     by<br>
