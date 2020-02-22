@@ -34,7 +34,7 @@ s.List.prototype.toJSON = function () {
 
 s.List.prototype._check = function(obj) {
     /*
-    Checks if `obj` qualifies to be in the list. Should be overridden
+    Checks if `obj` qualifies to be in the list. Should be overwritten
     by subclasses.
 
     @param {Object} obj - The object to check.

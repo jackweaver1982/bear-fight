@@ -193,3 +193,17 @@ s.getNode = function(passage) {
         'No node corresponds to passage, "' + passage + '"'
     );
 }
+
+s.makeNode = function(id, passage) {
+    /*
+    Uses the factory to build a node with the given `id`, and sets the
+    passage to `passage`. If the `passage` parameter is omitted, sets
+    the passage to `id`. Returns the new node object. (There is no need
+    to assign the new node object. Recall that the factory automatically
+    assigns it to v[id].)
+    */
+    var node = f.build(id, 'Node');
+    passage = passage || id;
+    node.setPassage(passage);
+    return node;
+}

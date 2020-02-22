@@ -43,8 +43,10 @@ s.Factory.prototype.build = function(id, class_) {
     method. The newly created object is assigned to the variable
     `v[id]`, and `id` is added to the catalog. Returns the newly created
     instance. Throws an error if `id` is not a nonempty string, or if it
-    is already in the catalog.
-
+    is already in the catalog. Also throws an error if `id` does not
+    conform to the following rules: `id` must contain only lowercase or
+    uppercase letters, digits from 0 to 9, and `_` and `$`; it must not
+    begin with a digit.
 
     @param {String} id - The _id property of the newly created object.
     @param (String) class_ - The name of the class of the newly created
@@ -58,6 +60,14 @@ s.Factory.prototype.build = function(id, class_) {
             'Factory.build():\n' +
             '`id` must be a nonempty string that does not match any ' +
             'previously used ids'
+        );
+    }
+    if (id !== id.match('[a-zA-Z_$][0-9a-zA-Z_$]*')[0]) {
+        throw new Error(
+            'Factory.build():\n' +
+            '"' + id + '" is an invalid `id`; ' +
+            '`id` must contain only letters, numbers, _, and $; ' +
+            '`id` cannot begin with a number'
         );
     }
     v[id] = new s[class_]();

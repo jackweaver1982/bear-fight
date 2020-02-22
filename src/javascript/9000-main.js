@@ -1,4 +1,4 @@
-v.version.set(0,1,3);
+v.version.set(0,1,4);
 
 /*
 Sample code demonstrating the node system.
@@ -7,8 +7,7 @@ Sample code demonstrating the node system.
 v.XP = 0;
 v.knowledge = [];
 
-f.build('root', 'Node');
-v.root.setPassage('Intro');
+s.makeNode('root');
 
     f.build('remember', 'Action');
     v.remember.setText(
@@ -53,9 +52,7 @@ v.root.setPassage('Intro');
         }
         v.runToLounge.push('tooSlow2');
 
-f.build('bearCharges', 'Node');
-v.bearCharges.setPassage('Bear charges');
+s.makeNode('bearCharges');
 
-f.build('bearChases', 'Node');
-v.bearChases.setPassage('Bear chases');
+s.makeNode('bearChases');
 v.bearChases.setSubCount(1);

@@ -102,7 +102,7 @@ s.List.prototype.toJSON = function () {
 
 s.List.prototype._check = function(obj) {
     /*
-    Checks if `obj` qualifies to be in the list. Should be overridden
+    Checks if `obj` qualifies to be in the list. Should be overwritten
     by subclasses.
 
     @param {Object} obj - The object to check.
@@ -216,8 +216,10 @@ s.Factory.prototype.build = function(id, class_) {
     method. The newly created object is assigned to the variable
     `v[id]`, and `id` is added to the catalog. Returns the newly created
     instance. Throws an error if `id` is not a nonempty string, or if it
-    is already in the catalog.
-
+    is already in the catalog. Also throws an error if `id` does not
+    conform to the following rules: `id` must contain only lowercase or
+    uppercase letters, digits from 0 to 9, and `_` and `$`; it must not
+    begin with a digit.
 
     @param {String} id - The _id property of the newly created object.
     @param (String) class_ - The name of the class of the newly created
@@ -231,6 +233,14 @@ s.Factory.prototype.build = function(id, class_) {
             'Factory.build():\n' +
             '`id` must be a nonempty string that does not match any ' +
             'previously used ids'
+        );
+    }
+    if (id !== id.match('[a-zA-Z_$][0-9a-zA-Z_$]*')[0]) {
+        throw new Error(
+            'Factory.build():\n' +
+            '"' + id + '" is an invalid `id`; ' +
+            '`id` must contain only letters, numbers, _, and $; ' +
+            '`id` cannot begin with a number'
         );
     }
     v[id] = new s[class_]();
@@ -696,6 +706,20 @@ s.getNode = function(passage) {
         'No node corresponds to passage, "' + passage + '"'
     );
 }
+
+s.makeNode = function(id, passage) {
+    /*
+    Uses the factory to build a node with the given `id`, and sets the
+    passage to `passage`. If the `passage` parameter is omitted, sets
+    the passage to `id`. Returns the new node object. (There is no need
+    to assign the new node object. Recall that the factory automatically
+    assigns it to v[id].)
+    */
+    var node = f.build(id, 'Node');
+    passage = passage || id;
+    node.setPassage(passage);
+    return node;
+}
 /* twine-user-script #8: "0080-passagedisplay.js" */
 /*
 This file records the `:passagedisplay` event handlers.
@@ -765,7 +789,7 @@ $(document).on(':passagedisplay', function(ev) {
     return;
 });
 /* twine-user-script #9: "9000-main.js" */
-v.version.set(0,1,3);
+v.version.set(0,1,4);
 
 /*
 Sample code demonstrating the node system.
@@ -774,8 +798,7 @@ Sample code demonstrating the node system.
 v.XP = 0;
 v.knowledge = [];
 
-f.build('root', 'Node');
-v.root.setPassage('Intro');
+s.makeNode('root');
 
     f.build('remember', 'Action');
     v.remember.setText(
@@ -820,11 +843,9 @@ v.root.setPassage('Intro');
         }
         v.runToLounge.push('tooSlow2');
 
-f.build('bearCharges', 'Node');
-v.bearCharges.setPassage('Bear charges');
+s.makeNode('bearCharges');
 
-f.build('bearChases', 'Node');
-v.bearChases.setPassage('Bear chases');
+s.makeNode('bearChases');
 v.bearChases.setSubCount(1);
 /* twine-user-script #10: "Story JavaScript" */
 
@@ -890,15 +911,15 @@ Story Caption
 </div>
 
 
-:: Intro
+:: root
 You finish teaching your night class. Your students leave and the engineering building is empty. You head from the classroom to your office to gather your things. In the hallway is a bear! It sees you and roars. There's thirty feet of hallway between you and the bear. The hallway behind you is very long. The door to the faculty lounge is behind you on your left. A janitor's cart with a mop and cleaning supplies is against the wall on your right.
 
 
-:: Bear charges
+:: bearCharges
 You read an article on bear attacks last year. The most effective deterrent is pepper spray. Prof. Rossi keeps some in the faculty lounge. Suddenly, your phone rings. The bear charges.
 
 
-:: Bear chases
+:: bearChases
 You run <span id='sub0'></span>. The bear chases. He's much faster than you. You won't make it. He's about to catch you.
 
 

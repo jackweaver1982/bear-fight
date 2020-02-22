@@ -80,11 +80,11 @@ a {
     <</link>></p>
 </div>
 
-:: Intro
+:: root
 You finish teaching your night class. Your students leave and the engineering building is empty. You head from the classroom to your office to gather your things. In the hallway is a bear! It sees you and roars. There's thirty feet of hallway between you and the bear. The hallway behind you is very long. The door to the faculty lounge is behind you on your left. A janitor's cart with a mop and cleaning supplies is against the wall on your right.
 
-:: Bear charges
+:: bearCharges
 You read an article on bear attacks last year. The most effective deterrent is pepper spray. Prof. Rossi keeps some in the faculty lounge. Suddenly, your phone rings. The bear charges.
 
-:: Bear chases
+:: bearChases
 You run <span id='sub0'></span>. The bear chases. He's much faster than you. You won't make it. He's about to catch you.
