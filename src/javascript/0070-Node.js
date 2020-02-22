@@ -156,15 +156,34 @@ s.Node.prototype.getTextSub = function(index) {
     return this._textSubs[index];
 }
 
-s.Node.prototype.load = function() {
+s.Node.prototype.addLink = function() {
     /*
-    By default, this method initiates a passage transition in SugarCube
-    to the passage whose title is `_passage`. This method should be
-    overwritten by instances and represents instructions for loading the
-    node.
+    Defined at the end of the definition of the `DirectedOutcome` class.
+    */
+    return;
+}
+
+s.Node.prototype._userScript = function() {
+    /*
+    This code is customizable via the `onLoad()` method. It runs when
+    the node is loaded. By default, it loads the passage associated with
+    the calling node.
     */
     Engine.play(this._passage);
     return;
+}
+
+s.Node.prototype.onLoad = function(func) {
+    /*
+    Use this method to set the `_userScript` function. Returns the
+    calling `Node` object.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Node.prototype.load = function() {
+    return this._userScript();
 }
 
 s.getNode = function(passage) {

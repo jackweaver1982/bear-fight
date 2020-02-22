@@ -72,18 +72,31 @@ s.Action.prototype.getText = function() {
     return this._displayText;
 }
 
-s.Action.prototype.choose = function() {
+s.Action.prototype._userScript = function() {
     /*
-    By default, this method returns the first outcome in the action, or
-    null if the action contains no outcome. This method should be
-    overwritten by instances and represents instructions for choosing
-    an outcome when the player selects this action.
-
-    @return {Outcome}
+    This code is customizable via the `onChoose()` method. It runs when
+    an outcome is chosen from the action. It should return an outcome
+    from the calling `Action` object. By default, it returns the first
+    outcome.
     */
     if (this.length() > 0) {
         return v[this.get(0)];
     } else {
         return null;
     }
+}
+
+s.Action.prototype.onChoose = function(func) {
+    /*
+    Use this method to set the `_userScript` function. The parameter
+    `func` should be a function that returns an `Outcome` from the
+    calling `Action` object. The method returns the calling `Action`
+    object.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Action.prototype.choose = function() {
+    return this._userScript();
 }

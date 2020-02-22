@@ -412,13 +412,25 @@ s.Outcome.prototype.toJSON = function () {
     return JSON.reviveWrapper('(new s.Outcome())._init($ReviveData$)', newObj);
 };
 
-s.Outcome.prototype.carryOut = function() {
+s.Outcome.prototype._userScript = function() {
     /*
-    By default this method does nothing and returns `undefined`. It
-    should be overwritten by instances and represents instructions for
-    carrying out the outcome.
+    This code is customizable via the `onCarryOut()` method. It runs
+    when the outcome is carried out.
     */
     return;
+}
+
+s.Outcome.prototype.onCarryOut = function(func) {
+    /*
+    Use this method to set the `_userScript` function. Returns the
+    calling `Outcome` object.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Outcome.prototype.carryOut = function() {
+    return this._userScript();
 }
 /* twine-user-script #6: "0060-Action.js" */
 s.Action = function() {
@@ -495,20 +507,33 @@ s.Action.prototype.getText = function() {
     return this._displayText;
 }
 
-s.Action.prototype.choose = function() {
+s.Action.prototype._userScript = function() {
     /*
-    By default, this method returns the first outcome in the action, or
-    null if the action contains no outcome. This method should be
-    overwritten by instances and represents instructions for choosing
-    an outcome when the player selects this action.
-
-    @return {Outcome}
+    This code is customizable via the `onChoose()` method. It runs when
+    an outcome is chosen from the action. It should return an outcome
+    from the calling `Action` object. By default, it returns the first
+    outcome.
     */
     if (this.length() > 0) {
         return v[this.get(0)];
     } else {
         return null;
     }
+}
+
+s.Action.prototype.onChoose = function(func) {
+    /*
+    Use this method to set the `_userScript` function. The parameter
+    `func` should be a function that returns an `Outcome` from the
+    calling `Action` object. The method returns the calling `Action`
+    object.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Action.prototype.choose = function() {
+    return this._userScript();
 }
 /* twine-user-script #7: "0070-Node.js" */
 s.Node = function() {
@@ -669,15 +694,34 @@ s.Node.prototype.getTextSub = function(index) {
     return this._textSubs[index];
 }
 
-s.Node.prototype.load = function() {
+s.Node.prototype.addLink = function() {
     /*
-    By default, this method initiates a passage transition in SugarCube
-    to the passage whose title is `_passage`. This method should be
-    overwritten by instances and represents instructions for loading the
-    node.
+    Defined at the end of the definition of the `DirectedOutcome` class.
+    */
+    return;
+}
+
+s.Node.prototype._userScript = function() {
+    /*
+    This code is customizable via the `onLoad()` method. It runs when
+    the node is loaded. By default, it loads the passage associated with
+    the calling node.
     */
     Engine.play(this._passage);
     return;
+}
+
+s.Node.prototype.onLoad = function(func) {
+    /*
+    Use this method to set the `_userScript` function. Returns the
+    calling `Node` object.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Node.prototype.load = function() {
+    return this._userScript();
 }
 
 s.getNode = function(passage) {
@@ -736,8 +780,7 @@ s.insertTextSubstitutions = function(passage) {
     */
     try {
         var node = s.getNode(passage);
-    }
-    catch (e) {
+    } catch (e) {
         return;
     }
     var subCount = node.getSubCount();
@@ -763,8 +806,7 @@ s.refreshActionLinks = function(passage) {
     */
     try {
         var node = s.getNode(passage);
-    }
-    catch (e) {
+    } catch (e) {
         return;
     }
     $.wiki('<<replace "#actions">><</replace>>');
@@ -788,8 +830,120 @@ $(document).on(':passagedisplay', function(ev) {
     s.refreshActionLinks(ev.passage.title);
     return;
 });
-/* twine-user-script #9: "9000-main.js" */
-v.version.set(0,1,4);
+/* twine-user-script #9: "0090-DirectedOutcome.js" */
+s.DirectedOutcome = function() {
+    /*
+    `DirectedOutcome` is a subclass of `Outcome`. A directed outcome is
+    an outcome with a target node that is automatically loaded after the
+    outcome is carried out.
+    */
+    s.Outcome.call(this);
+    this._targetNodeId = ''
+    return this;
+};
+
+s.DirectedOutcome.prototype = Object.create(s.Outcome.prototype);
+
+Object.defineProperty(s.DirectedOutcome.prototype, 'constructor', {
+    value: s.DirectedOutcome,
+    enumerable: false,
+    writable: true
+});
+
+s.DirectedOutcome.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.DirectedOutcome())._init(this);
+};
+
+s.DirectedOutcome.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper(
+        '(new s.DirectedOutcome())._init($ReviveData$)', newPC
+    );
+};
+
+s.DirectedOutcome.prototype.setTarget = function(id) {
+    /*
+    Sets `_targetNodeId` to `id`. Throws an error if `id` doesn't match
+    an id in the factory. Returns the calling directed outcome.
+
+    @param {String} id - The id of the target node.
+    */
+    if (f.indexOf(id) == -1) {
+        throw new Error(
+            'DirectedOutcome.setTargetNodeId():\n' +
+            '"' + id + '" is not a valid node id'
+        );
+    }
+    this._targetNodeId = id;
+    return this;
+}
+
+s.DirectedOutcome.prototype.getTarget = function() {
+    return this._targetNodeId;
+}
+
+s.DirectedOutcome.prototype.carryOut = function() {
+    this._userScript();
+    if (this._targetNodeId === '') {
+        return;
+    } else {
+        return v[this._targetNodeId].load();
+    }
+}
+
+s.Node.prototype.addLink = function(text, targetNodeId, func) {
+    /*
+    A link is an action that has only one outcome which is a directed
+    outcome.
+
+    Creates a directed outcome with the given targetNodeId and sets its
+    user script to `func`. Then creates an action with the given text
+    for its display text. Pushes the outcome into the action, and the
+    action into the calling node. Returns the calling node.
+
+    @param {String} text - The text to be displayed on the link.
+    @param {String} targetNodeId - After executing `func`, loads the
+    node with this id. If no such node exists, the method will create
+    one with `makeNode`.
+    @param {Function} func - (Optional) Executes this function when
+    clicking the link. Defaults to a function that returns undefined.
+    */
+    if (func === undefined) {
+        func = function() {
+            return;
+        }
+    }
+    if (typeof(func) !== 'function') {
+        throw new Error(
+            'Node.addLink():\n' +
+            'third parameter must be a function'
+        );
+    }
+    if (f.indexOf(targetNodeId) === -1) {
+        s.makeNode(targetNodeId);
+    }
+
+    var actionId = this._id + 'Action' + this.length();
+    var outcomeId = actionId + 'Outcome';
+
+    f.build(actionId, 'Action');
+    v[actionId].setText(text);
+    this.push(actionId);
+
+    f.build(outcomeId, 'DirectedOutcome');
+    v[outcomeId].setTarget(targetNodeId);
+    v[outcomeId].onCarryOut(func);
+    v[actionId].push(outcomeId);
+
+    return this;
+}
+/* twine-user-script #10: "9000-main.js" */
+v.version.set(0,1,5);
 
 /*
 Sample code demonstrating the node system.
@@ -800,54 +954,41 @@ v.knowledge = [];
 
 s.makeNode('root');
 
-    f.build('remember', 'Action');
-    v.remember.setText(
-        'Calmly stand still and try to remember something ' +
-        'about how to survive a bear encounter'
-    );
-    v.root.push('remember');
+v.root.addLink(
+    'Calmly stand still and try to remember something ' +
+    'about how to survive a bear encounter',
 
-        f.build('rememberSpray', 'Outcome');
-        v.rememberSpray.carryOut = function() {
-            v.XP += 1;
-            v.knowledge.push('spray');
-            v.bearCharges.load();
-        }
-        v.remember.push('rememberSpray');
+    'bearCharges',
 
-    f.build('runAway', 'Action');
-    v.runAway.setText(
-        'Turn around and run down the hall'
-    );
-    v.root.push('runAway');
+    function() {
+        v.XP += 1;
+        v.knowledge.push('spray');
+    }
+);
 
-        f.build('tooSlow', 'Outcome');
-        v.tooSlow.carryOut = function() {
-            v.XP += 1;
-            v.bearChases.setTextSubs(['down the hall']);
-            v.bearChases.load();
-        }
-        v.runAway.push('tooSlow');
+v.root.addLink(
+    'Turn around and run down the hall',
 
-    f.build('runToLounge', 'Action');
-    v.runToLounge.setText(
-        'Run to the faculty lounge'
-    );
-    v.root.push('runToLounge');
+    'bearChases',
 
-        f.build('tooSlow2', 'Outcome');
-        v.tooSlow2.carryOut = function() {
-            v.XP += 1;
-            v.bearChases.setTextSubs(['toward the lounge']);
-            v.bearChases.load();
-        }
-        v.runToLounge.push('tooSlow2');
-
-s.makeNode('bearCharges');
-
-s.makeNode('bearChases');
+    function() {
+        v.XP += 1;
+        v.bearChases.setTextSubs(['down the hall']);
+    }
+);
 v.bearChases.setSubCount(1);
-/* twine-user-script #10: "Story JavaScript" */
+
+v.root.addLink(
+    'Run to the faculty lounge',
+
+    'bearChases',
+
+    function() {
+        v.XP += 1;
+        v.bearChases.setTextSubs(['toward the lounge']);
+    }
+);
+/* twine-user-script #11: "Story JavaScript" */
 
 
 :: StorySubtitle

@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.1.5
+
+* Added `_userScript()` and related methods to outcomes, actions, and nodes, for greater flexibility in making subclasses.
+* Made a `DirectedOutcome` subclass that contains a target node and automatically loads it after being carried out.
+* Added an `addLink()` method to `Node` to automate the creation of a simple link (an action with one directed outcome).
+
 ## Version 0.1.4
 
 * Added a change log.

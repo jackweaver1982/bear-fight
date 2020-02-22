@@ -27,11 +27,23 @@ s.Outcome.prototype.toJSON = function () {
     return JSON.reviveWrapper('(new s.Outcome())._init($ReviveData$)', newObj);
 };
 
-s.Outcome.prototype.carryOut = function() {
+s.Outcome.prototype._userScript = function() {
     /*
-    By default this method does nothing and returns `undefined`. It
-    should be overwritten by instances and represents instructions for
-    carrying out the outcome.
+    This code is customizable via the `onCarryOut()` method. It runs
+    when the outcome is carried out.
     */
     return;
+}
+
+s.Outcome.prototype.onCarryOut = function(func) {
+    /*
+    Use this method to set the `_userScript` function. Returns the
+    calling `Outcome` object.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Outcome.prototype.carryOut = function() {
+    return this._userScript();
 }

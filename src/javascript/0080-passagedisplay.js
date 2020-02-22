@@ -13,8 +13,7 @@ s.insertTextSubstitutions = function(passage) {
     */
     try {
         var node = s.getNode(passage);
-    }
-    catch (e) {
+    } catch (e) {
         return;
     }
     var subCount = node.getSubCount();
@@ -40,8 +39,7 @@ s.refreshActionLinks = function(passage) {
     */
     try {
         var node = s.getNode(passage);
-    }
-    catch (e) {
+    } catch (e) {
         return;
     }
     $.wiki('<<replace "#actions">><</replace>>');
