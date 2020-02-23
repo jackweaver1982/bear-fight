@@ -847,7 +847,64 @@ s.makeNode = function(id, passage) {
     node.setPassage(passage);
     return node;
 }
-/* twine-user-script #8: "0080-passagedisplay.js" */
+/* twine-user-script #8: "0073-passagestart.js" */
+/*
+This file records the `:passagestart` event handlers.
+*/
+
+//----------------------------------------------------------------------
+
+s.insertHeader = function(content) {
+    /*
+    Inserts the custom header passage, `:: NodeHeader`.
+    */
+    if (Story.has('NodeHeader')) {
+        $(content).wiki(
+            '<<include "NodeHeader">>'
+        );
+    }
+    return;
+}
+
+$(document).on(':passagestart', function(ev) {
+    s.insertHeader(ev.content);
+    return;
+});
+/* twine-user-script #9: "0076-passagerender.js" */
+/*
+This file records the `:passagerender` event handlers.
+*/
+
+//----------------------------------------------------------------------
+
+s.insertActionsDiv = function(content) {
+    /*
+    Inserts the container into which action links will be placed.
+    */
+    $(content).wiki(
+        '<div id="actions"></div>'
+    );
+    return;
+}
+
+s.insertFooter = function(content) {
+    /*
+    Inserts the custom header passage, `:: NodeFooter`.
+    */
+    if (Story.has('NodeFooter')) {
+        $(content).wiki(
+            '<<include "NodeFooter">>'
+        );
+    }
+    return;
+}
+
+$(document).on(':passagerender', function(ev) {
+    s.insertActionsDiv(ev.content);
+    s.insertFooter(ev.content);
+    return;
+});
+/* twine-user-script #10: "0080-passagedisplay.js" */
 /*
 This file records the `:passagedisplay` event handlers.
 */
@@ -913,7 +970,7 @@ $(document).on(':passagedisplay', function(ev) {
     s.refreshActionLinks(ev.passage.title);
     return;
 });
-/* twine-user-script #9: "0090-DirectedOutcome.js" */
+/* twine-user-script #11: "0090-DirectedOutcome.js" */
 s.DirectedOutcome = function() {
     /*
     `DirectedOutcome` is a subclass of `Outcome`. A directed outcome is
@@ -1025,8 +1082,8 @@ s.Node.prototype.addLink = function(text, targetNodeId, func) {
 
     return this;
 }
-/* twine-user-script #10: "9000-main.js" */
-v.version.set(0,1,5);
+/* twine-user-script #12: "9000-main.js" */
+v.version.set(0,1,6);
 
 /*
 Sample code demonstrating the node system.
@@ -1071,9 +1128,9 @@ v.root.addLink(
         v.bearChases.setTextSubs(['toward the lounge']);
     }
 );
-/* twine-user-script #11: "Story JavaScript" */
+/* twine-user-script #13: "Story JavaScript" */
 </script><tw-passagedata pid="1" name="StorySubtitle" tags="" position="100,100" size="100,100">Story Subtitle</tw-passagedata><tw-passagedata pid="2" name="StoryAuthor" tags="" position="225,100" size="100,100">Story Author</tw-passagedata><tw-passagedata pid="3" name="StoryBanner" tags="" position="350,100" size="100,100">Story Banner</tw-passagedata><tw-passagedata pid="4" name="StoryCaption" tags="" position="475,100" size="100,100">Story Caption</tw-passagedata><tw-passagedata pid="5" name="StoryMenu" tags="" position="600,100" size="100,100">&lt;&lt;link &#39;menu item 1&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;link &#39;menu item 2&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="StoryInit" tags="" position="725,100" size="100,100"></tw-passagedata><tw-passagedata pid="7" name="PassageHeader" tags="" position="850,100" size="100,100">&lt;&lt;if !tags().includes(&quot;no-header&quot;)&gt;&gt;
+&lt;&lt;link &#39;menu item 2&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="StoryInit" tags="" position="725,100" size="100,100"></tw-passagedata><tw-passagedata pid="7" name="NodeHeader" tags="" position="850,100" size="100,100">&lt;&lt;if !tags().includes(&quot;no-header&quot;)&gt;&gt;
     This is the header.
     &lt;hr&gt;
     &lt;p&gt;(XP: $XP, knowledge:
@@ -1083,8 +1140,7 @@ v.root.addLink(
             $knowledge)
         &lt;&lt;/if&gt;&gt;
     &lt;/p&gt;
-&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="PassageFooter" tags="" position="975,100" size="100,100">&lt;div id=&#39;actions&#39;&gt;&lt;/div&gt;
-&lt;&lt;if !tags().includes(&quot;no-header&quot;)&gt;&gt;
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="NodeFooter" tags="" position="975,100" size="100,100">&lt;&lt;if !tags().includes(&quot;no-header&quot;)&gt;&gt;
     &lt;hr&gt;
     This is the footer.
 &lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="9" name="Start" tags="no-header" position="1100,100" size="100,100">&lt;div align=&quot;center&quot;&gt;

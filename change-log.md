@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.1.6
+
+* Added custom header and footer passages for greater control over managing the rendering of passages.
+
 ## Version 0.1.5
 
 * Added `_userScript()` and related methods to outcomes, actions, and nodes, for greater flexibility in making subclasses.

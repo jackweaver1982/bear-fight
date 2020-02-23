@@ -764,7 +764,64 @@ s.makeNode = function(id, passage) {
     node.setPassage(passage);
     return node;
 }
-/* twine-user-script #8: "0080-passagedisplay.js" */
+/* twine-user-script #8: "0073-passagestart.js" */
+/*
+This file records the `:passagestart` event handlers.
+*/
+
+//----------------------------------------------------------------------
+
+s.insertHeader = function(content) {
+    /*
+    Inserts the custom header passage, `:: NodeHeader`.
+    */
+    if (Story.has('NodeHeader')) {
+        $(content).wiki(
+            '<<include "NodeHeader">>'
+        );
+    }
+    return;
+}
+
+$(document).on(':passagestart', function(ev) {
+    s.insertHeader(ev.content);
+    return;
+});
+/* twine-user-script #9: "0076-passagerender.js" */
+/*
+This file records the `:passagerender` event handlers.
+*/
+
+//----------------------------------------------------------------------
+
+s.insertActionsDiv = function(content) {
+    /*
+    Inserts the container into which action links will be placed.
+    */
+    $(content).wiki(
+        '<div id="actions"></div>'
+    );
+    return;
+}
+
+s.insertFooter = function(content) {
+    /*
+    Inserts the custom header passage, `:: NodeFooter`.
+    */
+    if (Story.has('NodeFooter')) {
+        $(content).wiki(
+            '<<include "NodeFooter">>'
+        );
+    }
+    return;
+}
+
+$(document).on(':passagerender', function(ev) {
+    s.insertActionsDiv(ev.content);
+    s.insertFooter(ev.content);
+    return;
+});
+/* twine-user-script #10: "0080-passagedisplay.js" */
 /*
 This file records the `:passagedisplay` event handlers.
 */
@@ -830,7 +887,7 @@ $(document).on(':passagedisplay', function(ev) {
     s.refreshActionLinks(ev.passage.title);
     return;
 });
-/* twine-user-script #9: "0090-DirectedOutcome.js" */
+/* twine-user-script #11: "0090-DirectedOutcome.js" */
 s.DirectedOutcome = function() {
     /*
     `DirectedOutcome` is a subclass of `Outcome`. A directed outcome is
@@ -942,8 +999,8 @@ s.Node.prototype.addLink = function(text, targetNodeId, func) {
 
     return this;
 }
-/* twine-user-script #10: "9000-main.js" */
-v.version.set(0,1,5);
+/* twine-user-script #12: "9000-main.js" */
+v.version.set(0,1,6);
 
 /*
 Sample code demonstrating the node system.
@@ -988,7 +1045,7 @@ v.root.addLink(
         v.bearChases.setTextSubs(['toward the lounge']);
     }
 );
-/* twine-user-script #11: "Story JavaScript" */
+/* twine-user-script #13: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1015,7 +1072,7 @@ Story Caption
 :: StoryInit
 
 
-:: PassageHeader
+:: NodeHeader
 <<if !tags().includes("no-header")>>
     This is the header.
     <hr>
@@ -1029,8 +1086,7 @@ Story Caption
 <</if>>
 
 
-:: PassageFooter
-<div id='actions'></div>
+:: NodeFooter
 <<if !tags().includes("no-header")>>
     <hr>
     This is the footer.

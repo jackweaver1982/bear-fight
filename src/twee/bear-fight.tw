@@ -1,3 +1,9 @@
+/*
+Don't use `<<goto>>` or `[[...|...]]` or any other passage navigation methods.
+Use `Node.prototype.load()` instead. Don't use `:: PassageHeader` or
+`:: PassageFooter`. Use `:: NodeHeader` and `:: NodeFooter` instead.
+*/
+
 :: StoryTitle
 Story Title
 
@@ -46,7 +52,7 @@ a {
 
 :: StoryInit
 
-:: PassageHeader
+:: NodeHeader
 <<if !tags().includes("no-header")>>
     This is the header.
     <hr>
@@ -59,8 +65,7 @@ a {
     </p>
 <</if>>
 
-:: PassageFooter
-<div id='actions'></div>
+:: NodeFooter
 <<if !tags().includes("no-header")>>
     <hr>
     This is the footer.
