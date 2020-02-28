@@ -4,6 +4,19 @@ title: Change Log
 
 # Change Log
 
+## Version 0.1.7
+
+* Added a list of reserved HTML element ids in a comment in the main Twee file.
+* Reordered JS files.
+* Added a `NodeHistory` class for greater control over history tracking.
+* Added event handlers that wrap the narrative content of the passage in a `div`.
+* Added an event handler that pushes the node's narrative content to the history object.
+* Added a Python script to renumber JS files.
+* Renumbered JS files.
+* Added an `info` folder to project, for text files with useful information.
+* Added to `info` an example of the markup parsing I have planned for the node system.
+* Added to `info` a list of SugarCube's special passage names, for when I make code that avoids applying certain markup parsing to those passages.
+
 ## Version 0.1.6
 
 * Added custom header and footer passages for greater control over managing the rendering of passages.

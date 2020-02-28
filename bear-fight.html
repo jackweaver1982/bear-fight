@@ -847,130 +847,7 @@ s.makeNode = function(id, passage) {
     node.setPassage(passage);
     return node;
 }
-/* twine-user-script #8: "0073-passagestart.js" */
-/*
-This file records the `:passagestart` event handlers.
-*/
-
-//----------------------------------------------------------------------
-
-s.insertHeader = function(content) {
-    /*
-    Inserts the custom header passage, `:: NodeHeader`.
-    */
-    if (Story.has('NodeHeader')) {
-        $(content).wiki(
-            '<<include "NodeHeader">>'
-        );
-    }
-    return;
-}
-
-$(document).on(':passagestart', function(ev) {
-    s.insertHeader(ev.content);
-    return;
-});
-/* twine-user-script #9: "0076-passagerender.js" */
-/*
-This file records the `:passagerender` event handlers.
-*/
-
-//----------------------------------------------------------------------
-
-s.insertActionsDiv = function(content) {
-    /*
-    Inserts the container into which action links will be placed.
-    */
-    $(content).wiki(
-        '<div id="actions"></div>'
-    );
-    return;
-}
-
-s.insertFooter = function(content) {
-    /*
-    Inserts the custom header passage, `:: NodeFooter`.
-    */
-    if (Story.has('NodeFooter')) {
-        $(content).wiki(
-            '<<include "NodeFooter">>'
-        );
-    }
-    return;
-}
-
-$(document).on(':passagerender', function(ev) {
-    s.insertActionsDiv(ev.content);
-    s.insertFooter(ev.content);
-    return;
-});
-/* twine-user-script #10: "0080-passagedisplay.js" */
-/*
-This file records the `:passagedisplay` event handlers.
-*/
-
-//----------------------------------------------------------------------
-
-s.insertTextSubstitutions = function(passage) {
-    /*
-    Inserts the text substitutions for the node corresponding to the
-    incoming passage. Silently fails if there is no such node.
-
-    @param {String} passage - Title of the incoming passage.
-    */
-    try {
-        var node = s.getNode(passage);
-    } catch (e) {
-        return;
-    }
-    var subCount = node.getSubCount();
-    for (var i = 0; i < subCount; i++) {
-        $.wiki(
-            '<<append "#sub' + i.toString() + '">>' +
-            node.getTextSub(i) +
-            '<</append>>'
-        );
-    }
-    return;
-}
-
-//----------------------------------------------------------------------
-
-s.refreshActionLinks = function(passage) {
-    /*
-    Deletes the contents of the action container, then inserts links for
-    the actions contained in the node corresponding to the incoming
-    passage. Silently fails if there is no such node.
-
-    @param {String} passage - Title of the incoming passage.
-    */
-    try {
-        var node = s.getNode(passage);
-    } catch (e) {
-        return;
-    }
-    $.wiki('<<replace "#actions">><</replace>>');
-    for (var i = 0; i < node.length(); i++) {
-        var actionId = node.get(i);
-        var text = v[actionId].getText();
-        $.wiki(
-            '<<append "#actions">>' +
-                '<p><<link "' + text + '">>' +
-                    '<<run v["' + actionId + '"].choose().carryOut()>>' + 
-                '<</link>></p>' +
-            '<</append>>'
-        );
-    }
-}
-
-//----------------------------------------------------------------------
-
-$(document).on(':passagedisplay', function(ev) {
-    s.insertTextSubstitutions(ev.passage.title);
-    s.refreshActionLinks(ev.passage.title);
-    return;
-});
-/* twine-user-script #11: "0090-DirectedOutcome.js" */
+/* twine-user-script #8: "0080-DirectedOutcome.js" */
 s.DirectedOutcome = function() {
     /*
     `DirectedOutcome` is a subclass of `Outcome`. A directed outcome is
@@ -1082,8 +959,208 @@ s.Node.prototype.addLink = function(text, targetNodeId, func) {
 
     return this;
 }
+/* twine-user-script #9: "0090-NodeHistory.js" */
+s.NodeHistory = function() {
+    /*
+    `NodeHistory` keeps track of the player's choices and their
+    consequences. There is one predefined instance, `nodeHistory`. (See
+    below.) Other classes will use this instance, so there should not be
+    any other instances created.
+
+    @property {String array} _textHistory - An array of the displayed
+    text of nodes the player has visited, without action links.
+    */
+    this._narrativeHistory = [];
+    return this;    
+};
+
+s.NodeHistory.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.NodeHistory.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.NodeHistory())._init(this);
+};
+
+s.NodeHistory.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper(
+        '(new s.NodeHistory())._init($ReviveData$)', newPC
+    );
+};
+
+s.NodeHistory.prototype.pushNarrative = function(text) {
+    this._narrativeHistory.push(text);
+    return this;
+}
+
+f.build('nodeHistory', 'NodeHistory');
+
+/*
+Established `h` as a shorthand alias for `v.nodeHistory`.
+*/
+Object.defineProperty(window, "h", {
+    get: function() {
+        return v.nodeHistory;
+    }
+});
+/* twine-user-script #10: "0100-onProcess.js" */
+/*
+This files records the `onProcess` event handlers, which are triggered
+just before SugarCube processes the raw text of an incoming passage.
+*/
+
+//----------------------------------------------------------------------
+
+s.addContainers = function(text) {
+    /*
+    Take the given text, which represents the raw text of a passage, and
+    wraps it in a container for grabbing the narrative content later. It
+    then adds containers for the header, the footer, and the action
+    links.
+
+    Returns the modified text.
+    */
+    console.log('Original:\n' + text);
+    var modifiedText = (
+        '<div id="header"></div>' +
+        '<div id="narrative">' + text + '</div>' +
+        '<div id="actions"></div>' +
+        '<div id="footer"></div>'
+    );
+    console.log('Modified:\n' + modifiedText);
+    return modifiedText;
+}
+
+//----------------------------------------------------------------------
+
+Config.passages.onProcess = function(passage) {
+    return s.addContainers(passage.text);
+};
+/* twine-user-script #11: "0110-passagedisplay.js" */
+/*
+This file records the `:passagedisplay` event handlers.
+*/
+
+//----------------------------------------------------------------------
+
+s.insertTextSubstitutions = function(passage) {
+    /*
+    Inserts the text substitutions for the node corresponding to the
+    incoming passage. Silently fails if there is no such node.
+
+    @param {String} passage - Title of the incoming passage.
+    */
+    try {
+        var node = s.getNode(passage);
+    } catch (e) {
+        return;
+    }
+    var subCount = node.getSubCount();
+    for (var i = 0; i < subCount; i++) {
+        $.wiki(
+            '<<append "#sub' + i.toString() + '">>' +
+                node.getTextSub(i) +
+            '<</append>>'
+        );
+    }
+    return;
+}
+
+//----------------------------------------------------------------------
+
+s.pushToHistory = function(passage) {
+    /*
+    Adds the passage's narrative portion to the history. Silently fails
+    if the passage does not correspond to a node.
+
+    @param {String} passage - Title of the incoming passage.
+    */
+    try {
+        s.getNode(passage);
+    } catch (e) {
+        return;
+    }
+    h.pushNarrative(document.getElementById('narrative').textContent);
+    return;
+}
+
+//----------------------------------------------------------------------
+
+s.insertHeader = function(passage) {
+    /*
+    Inserts the header into its container.
+    */
+    $.wiki(
+        '<<append "#header">>' +
+            '<<include "NodeHeader">>' +
+        '<</append>>'
+    );
+}
+
+//----------------------------------------------------------------------
+
+s.insertFooter = function(passage) {
+    /*
+    Inserts the footer into its container.
+    */
+    $.wiki(
+        '<<append "#footer">>' +
+            '<<include "NodeFooter">>' +
+        '<</append>>'
+    );
+}
+
+//----------------------------------------------------------------------
+
+s.refreshActionLinks = function(passage) {
+    /*
+    Deletes the contents of the action container, then inserts links for
+    the actions contained in the node corresponding to the incoming
+    passage. Silently fails if there is no such node.
+
+    @param {String} passage - Title of the incoming passage.
+    */
+    try {
+        var node = s.getNode(passage);
+    } catch (e) {
+        return;
+    }
+    $.wiki('<<replace "#actions">><</replace>>');
+    for (var i = 0; i < node.length(); i++) {
+        var actionId = node.get(i);
+        var text = v[actionId].getText();
+        $.wiki(
+            '<<append "#actions">>' +
+                '<p><<link "' + text + '">>' +
+                    '<<run v["' + actionId + '"].choose().carryOut()>>' + 
+                '<</link>></p>' +
+            '<</append>>'
+        );
+    }
+}
+
+//----------------------------------------------------------------------
+
+// $(document).on(':passageend', function(ev) {
+//     s.insertTextSubstitutions(ev.passage.title);
+//     s.pushToHistory(ev.passage.title);
+//     s.insertHeader(ev.passage.title);
+//     s.insertFooter(ev.passage.title);
+//     s.refreshActionLinks(ev.passage.title);
+//     return;
+// });
 /* twine-user-script #12: "9000-main.js" */
-v.version.set(0,1,6);
+v.version.set(0,1,7);
 
 /*
 Sample code demonstrating the node system.

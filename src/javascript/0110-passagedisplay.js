@@ -20,11 +20,55 @@ s.insertTextSubstitutions = function(passage) {
     for (var i = 0; i < subCount; i++) {
         $.wiki(
             '<<append "#sub' + i.toString() + '">>' +
-            node.getTextSub(i) +
+                node.getTextSub(i) +
             '<</append>>'
         );
     }
     return;
+}
+
+//----------------------------------------------------------------------
+
+s.pushToHistory = function(passage) {
+    /*
+    Adds the passage's narrative portion to the history. Silently fails
+    if the passage does not correspond to a node.
+
+    @param {String} passage - Title of the incoming passage.
+    */
+    try {
+        s.getNode(passage);
+    } catch (e) {
+        return;
+    }
+    h.pushNarrative(document.getElementById('narrative').textContent);
+    return;
+}
+
+//----------------------------------------------------------------------
+
+s.insertHeader = function(passage) {
+    /*
+    Inserts the header into its container.
+    */
+    $.wiki(
+        '<<append "#header">>' +
+            '<<include "NodeHeader">>' +
+        '<</append>>'
+    );
+}
+
+//----------------------------------------------------------------------
+
+s.insertFooter = function(passage) {
+    /*
+    Inserts the footer into its container.
+    */
+    $.wiki(
+        '<<append "#footer">>' +
+            '<<include "NodeFooter">>' +
+        '<</append>>'
+    );
 }
 
 //----------------------------------------------------------------------
@@ -58,8 +102,11 @@ s.refreshActionLinks = function(passage) {
 
 //----------------------------------------------------------------------
 
-$(document).on(':passagedisplay', function(ev) {
-    s.insertTextSubstitutions(ev.passage.title);
-    s.refreshActionLinks(ev.passage.title);
-    return;
-});
+// $(document).on(':passageend', function(ev) {
+//     s.insertTextSubstitutions(ev.passage.title);
+//     s.pushToHistory(ev.passage.title);
+//     s.insertHeader(ev.passage.title);
+//     s.insertFooter(ev.passage.title);
+//     s.refreshActionLinks(ev.passage.title);
+//     return;
+// });

@@ -2,6 +2,13 @@
 Don't use `<<goto>>` or `[[...|...]]` or any other passage navigation methods.
 Use `Node.prototype.load()` instead. Don't use `:: PassageHeader` or
 `:: PassageFooter`. Use `:: NodeHeader` and `:: NodeFooter` instead.
+
+Reserved HTML element ids:
+'header'
+'narrative'
+'sub' followed by a positive integer
+'actions'
+'footer'
 */
 
 :: StoryTitle
@@ -27,7 +34,7 @@ Story Caption
 {
     "ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
     "format": "SugarCube",
-    "format-version": "2.29.0",
+    "format-version": "2.30.0",
     "start": "Start",
     "zoom": 1
 }
