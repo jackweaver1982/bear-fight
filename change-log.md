@@ -4,6 +4,14 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.0
+
+* Local storage is a problem. Decided to completely redo the object structure. Nodes, Actions, and Outcomes will be stored on `setup`. I will need to surgically included certain things in `v` so that loading save files and reloading the browser work correctly. Since these objects will not be put in `v` and will not be written to JSON, they do not need the `clone()` and `toJSON()` methods, and they can contain shared references.
+* Moved the contents of `_archive` (ignored by git) to a subarchive, making a fresh space for all the things I'm about to delete.
+* Deleted all JS files but `0010-standard.js`.
+* Deleted the UML diagram and made a new blank one.
+* Changed the main Twee file to contain only the bare-bones basic.
+
 ## Version 0.1.7
 
 * Added a list of reserved HTML element ids in a comment in the main Twee file.

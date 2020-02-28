@@ -1,16 +1,3 @@
-/*
-Don't use `<<goto>>` or `[[...|...]]` or any other passage navigation methods.
-Use `Node.prototype.load()` instead. Don't use `:: PassageHeader` or
-`:: PassageFooter`. Use `:: NodeHeader` and `:: NodeFooter` instead.
-
-Reserved HTML element ids:
-'header'
-'narrative'
-'sub' followed by a positive integer
-'actions'
-'footer'
-*/
-
 :: StoryTitle
 Story Title
 
@@ -59,44 +46,4 @@ a {
 
 :: StoryInit
 
-:: NodeHeader
-<<if !tags().includes("no-header")>>
-    This is the header.
-    <hr>
-    <p>(XP: $XP, knowledge:
-        <<if $knowledge.length === 0>>
-            none)
-        <<else>>
-            $knowledge)
-        <</if>>
-    </p>
-<</if>>
-
-:: NodeFooter
-<<if !tags().includes("no-header")>>
-    <hr>
-    This is the footer.
-<</if>>
-
-:: Start [no-header]
-<div align="center">
-    <h1><<= Story.title>></h1>
-    by<br>
-    <<= Story.get("StoryAuthor").text>><br>
-    version <<= v.version.asString()>><br>
-    <br>
-    <br>
-    <br>
-    <p><<link "begin">>
-        <<run $root.load()>>
-    <</link>></p>
-</div>
-
-:: root
-You finish teaching your night class. Your students leave and the engineering building is empty. You head from the classroom to your office to gather your things. In the hallway is a bear! It sees you and roars. There's thirty feet of hallway between you and the bear. The hallway behind you is very long. The door to the faculty lounge is behind you on your left. A janitor's cart with a mop and cleaning supplies is against the wall on your right.
-
-:: bearCharges
-You read an article on bear attacks last year. The most effective deterrent is pepper spray. Prof. Rossi keeps some in the faculty lounge. Suddenly, your phone rings. The bear charges.
-
-:: bearChases
-You run <span id='sub0'></span>. The bear chases. He's much faster than you. You won't make it. He's about to catch you.
+:: Start

@@ -265,6 +265,15 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-020">Version 0.2.0</h2>
+
+<ul>
+<li>Local storage is a problem. Decided to completely redo the object structure. Nodes, Actions, and Outcomes will be stored on <code>setup</code>. I will need to surgically included certain things in <code>v</code> so that loading save files and reloading the browser work correctly. Since these objects will not be put in <code>v</code> and will not be written to JSON, they do not need the <code>clone()</code> and <code>toJSON()</code> methods, and they can contain shared references.</li>
+<li>Moved the contents of <code>_archive</code> (ignored by git) to a subarchive, making a fresh space for all the things I&apos;m about to delete.</li>
+<li>Deleted all JS files but <code>0010-standard.js</code>.</li>
+<li>Deleted the UML diagram and made a new blank one.</li>
+<li>Changed the main Twee file to contain only the bare-bones basic.</li>
+</ul>
 <h2 class="mume-header" id="version-017">Version 0.1.7</h2>
 
 <ul>
