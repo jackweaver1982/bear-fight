@@ -65,7 +65,298 @@ Object.defineProperty(window, "t", {
 });
 
 Config.passages.nobr = true; // sets all passages to `nobr`
-/* twine-user-script #2: "Story JavaScript" */
+/* twine-user-script #2: "0020-List.js" */
+s.List = function() {
+    /*
+    A wrapper around an array with methods for controlling manipulation
+    and access of elements.
+    */
+    this._array = [];
+    return this;
+}
+
+s.List.prototype._verify = function(obj) {
+    /*
+    Checks if `obj` qualifies to be in the list. Should be overwritten
+    by subclasses.
+    */
+    return true;
+}
+
+s.List.prototype.push = function() {
+    /*
+    Takes any number of objects as parameters. If any given object
+    fails the `_verify` test, throws an error. Otherwise, adds all
+    objects to `_array` and returns the calling `List` object.
+    */
+    if (arguments.length > 0) {
+        var args = Array.prototype.slice.call(arguments);
+        var arg = args.shift();
+        if (this._verify(arg)) {
+            this._array.push(arg);
+        } else {
+            throw new Error(
+                'List.push():\n' +
+                'object does not qualify for list'
+            );
+        }
+        this.push.apply(this, args);
+    }
+    return this;
+}
+
+s.List.prototype.delete = function(index) {
+    /*
+    Deletes the list element at the given index and returns the modified
+    `List` object. Throws an error if index is out of range. Returns the
+    calling `List` object.
+    */
+    if (index !== parseInt(index, 10) || index < 0 ||
+        index >= this._array.length) {
+        throw new Error(
+            'List.delete():\n' +
+            'invalid index'
+        );
+    }
+    this._array.splice(index, 1);
+    return this;
+}
+
+s.List.prototype.get = function(index) {
+    return this._array[index];
+}
+
+s.List.prototype.indexOf = function(obj) {
+    return this._array.indexOf(obj);
+}
+
+s.List.prototype.length = function() {
+    return this._array.length;
+}
+/* twine-user-script #3: "0030-Outcome.js" */
+s.Outcome = function(func) {
+    /*
+    Represents one possible result of a player action.
+
+    @param {Function} func - The function to call when the outcome is
+    carried out.
+    */
+    this._userScript = func;
+    return this;
+}
+
+s.Outcome.prototype.carryOut = function() {
+    return this._userScript();
+}
+/* twine-user-script #4: "0040-Action.js" */
+s.Action = function(text, chooseFunc, checkFunc) {
+    /*
+    In a given passage, the reader will choose from a list of actions.
+    Each action can be displayed as a link, and when it is selected,
+    the story will choose from a list of that action's possible
+    outcomes. An `Action` object represents one of these actions.
+
+    Structurally, an action object is a list of outcomes with a display
+    text for the link, and some additional methods available. As such,
+    it is implemented as a subclass of `List`.
+
+    @param {String} text - The text to appear in the link.
+    @param {Function} chooseFunc (optional) - The function to call when
+    choosing an outcome. Should return an outcome from the action. If
+    not provided, the first outcome in the list will be chosen.
+    @param {Function} checkFunc (optional) - The function to call when
+    checking if the action should be displayed. Should return a boolean.
+    If not provided, simply returns true.
+    */
+    s.List.call(this);
+    this._displayText = text;
+    this._userScriptChoose = chooseFunc || function() {
+        if (this.length() > 0) {
+            return this._array[0];
+        } else {
+            return null;
+        }
+    }
+    this._userScriptCheck = checkFunc || function() {
+        return true;
+    }
+    return this;
+};
+
+s.Action.prototype = Object.create(s.List.prototype);
+
+Object.defineProperty(s.Action.prototype, 'constructor', {
+    value: s.Action,
+    enumerable: false,
+    writable: true
+});
+
+s.Action.prototype._verify = function(obj) {
+    /*
+    @override
+
+    Members of an `Action` must be Outcome objects.
+    */
+    return (obj instanceof s.Outcome);
+}
+
+s.Action.prototype.getText = function() {
+    return this._displayText;
+}
+
+s.Action.prototype.check = function() {
+    return this._userScriptCheck();
+}
+
+s.Action.prototype.choose = function() {
+    return this._userScriptChoose();
+}
+/* twine-user-script #5: "0050-Node.js" */
+s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
+                      // `Node` objects
+
+s.specialPassages = [
+    'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
+    'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
+    'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
+    'StorySubtitle', 'StoryTitle'
+]
+
+s.Node = function(psgTitle, subCount, func) {
+    /*
+    A `Node` object is like a wrapper around a passage. It contains the
+    passage which holds the narrative description of the situation, as
+    well as a list of possible actions for the reader to choose from.
+
+    Structurally, a node is a list of actions with a passage for the
+    narrative description, and some additional methods. As such, it is
+    implemented as a subclass of `List`.
+
+    The associated passage may have slots available for dynamically
+    generated text substitutions. The node object has properties and
+    methods for managing this. The `subCount` property should match the
+    number of available text substitutions. It is there for a redundancy
+    check to prevent the error of sending the wrong number of text
+    substitutions when loading a node.
+
+    Node objects, and their associated Action and Outcome objects,
+    should be built on `s` so they are not stored in the player's local
+    storage. As such, they will not be saved from session to session, so
+    they should not be changed dynamically during gameplay.
+
+    @param {String} psgTitle - The title of the associated passage.
+    @param {Integer} subCount - The number of expected text
+    substitutions. Defaults to 0.
+    @param {Function} func (optional) - The function to call when the
+    node is loaded. By default, it loads the passage associated with the
+    calling node.
+
+    @property passage - The SugarCube `Passage` object whose title is
+    `psgTitle`
+    */
+    s.List.call(this);
+    if (!Story.has(psgTitle)) {
+        throw new Error(
+            'Node():\n' +
+            'there is no passage titled "' + psgTitle + '"'
+        );
+    }
+    if (s.specialPassages.indexOf(psgTitle) >= 0) {
+        throw new Error(
+            'Node():\n' +
+            'cannot assign a special passage other than `Start` to a node'
+        );
+    }
+    var passage = Story.get(psgTitle);
+    if (s.nodes.has(passage)) {
+        throw new Error(
+            'Node():\n' +
+            'the passage "' + psgTitle + '" already belongs to a node'
+        );
+    }
+    this._passage = passage;
+    s.nodes.set(passage, this);
+    this._subCount = subCount || 0;
+    this._userScript = func || function() {
+        Engine.play(this._passage.title);
+    }
+    return this;
+};
+
+s.Node.prototype = Object.create(s.List.prototype);
+
+Object.defineProperty(s.Node.prototype, 'constructor', {
+    value: s.Node,
+    enumerable: false,
+    writable: true
+});
+
+s.Node.prototype._verify = function(obj) {
+    /*
+    @override
+
+    Members of a `Node` must be actions that are registered with the
+    factory.
+    */
+    return (obj instanceof s.Action);
+}
+
+s.Node.prototype.getPassage = function() {
+    return this._passage;
+}
+
+s.Node.prototype.getSubCount = function() {
+    return this._subCount;
+}
+
+s.Node.prototype.load = function() {
+    return this._userScript();
+}
+/* twine-user-script #6: "0060-node-markup.js" */
+/*
+This file encodes the special text processing done by the node system on
+the passage text. The text substitutions are stored in `v` so that they
+are saved to the history. SugarCube's `onProcess` method triggers after
+the `:passagestart` event, to the text substitutions should be loaded in
+before the node text processing takes places.
+*/
+
+v.textSubstitutions = []; // the string array used in text substitutions
+                          // for the current passage
+
+s.processNodeMarkup = function(passage) {
+    /*
+    Processes the special node markup in the given passage. Does nothing
+    if the given passage is any special passage other that `Start`.
+    Returns the processed text.
+
+    @param passage - An abbreviated instance of SC's `Passage` object,
+    containing only the `tags`, `text`, and `title` properties.
+    */
+    if (s.specialPassages.indexOf(passage.title) >= 0) {
+        return passage.text;
+    }
+
+    var processedText = passage.text; // a placeholder for now, while I
+                                      // work on this function
+
+    return processedText;
+}
+
+Config.passages.onProcess = function (passage) {
+    return s.processNodeMarkup(passage);
+};
+/* twine-user-script #7: "9000-main.js" */
+s.start = (new s.Node('Start')).push(
+    (new s.Action('begin')).push(
+        new s.Outcome(function() {
+            s.intro.load()
+        })
+    )
+);
+
+s.intro = new s.Node('Intro')
+/* twine-user-script #8: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -93,5 +384,8 @@ Story Caption
 
 
 :: Start
+
+
+:: Intro
 
 

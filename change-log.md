@@ -4,6 +4,20 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.1
+
+* Copied and revised `List.js` from version 0.1.6.
+* Copied old UML diagram from version 0.1.6 for piecemeal pasting into new, blank UML diagram.
+* Added `List` to UML diagram.
+* Copied and revised `Outcome.js` from version 0.1.6.
+* Added `Outcome` to UML diagram.
+* Copied and revised `Action.js` from `_archive`.
+* Added `Action` to UML diagram.
+* Copied and revised `Node.js` from `_archive`.
+* Added `Node` and `Global` to UML diagram.
+* Created a JS file that will process the special markup unique to this node system. For now, the file does nothing. It is just a placeholder for future code.
+* Added some example code for using and testing what is here so far.
+
 ## Version 0.2.0
 
 * Local storage is a problem. Decided to completely redo the object structure. Nodes, Actions, and Outcomes will be stored on `setup`. I will need to surgically included certain things in `v` so that loading save files and reloading the browser work correctly. Since these objects will not be put in `v` and will not be written to JSON, they do not need the `clone()` and `toJSON()` methods, and they can contain shared references.

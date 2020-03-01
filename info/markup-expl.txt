@@ -14,9 +14,7 @@ AFTER:
 
 :: Cops bust in
 
-<div id='passage-cops-bust-in-header'></div>
-
-<div id='passage-cops-bust-in-main'>
+<div id='passage-cops-bust-in-body'>
 
 <p>You stare at the dead man on the floor. You are trying to remember something—anything—about what happened and how you got here. The last thing you remember was doing shots at the Fireplace Tavern. You were playing pool with a woman you'd met that night. She had this weird tattoo on the top of her hand, above the base of her thumb. It might have been a letter, but it wasn't from our alphabet. Maybe this is her house.</p>
 
@@ -29,5 +27,3 @@ AFTER:
 <div id='passage-cops-bust-in-actions'></div>
 
 <div id='passage-cops-bust-in-next'></div>
-
-<div id='passage-cops-bust-in-footer'></div>
