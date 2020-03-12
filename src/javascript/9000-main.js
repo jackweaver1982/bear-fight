@@ -1,9 +1,1 @@
-s.start = (new s.Node('Start')).push(
-    (new s.Action('begin')).push(
-        new s.Outcome(function() {
-            s.intro.load()
-        })
-    )
-);
-
-s.intro = new s.Node('Intro')
+s.copsBustIn = new s.Node('Cops bust in', 2);

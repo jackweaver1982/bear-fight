@@ -1,5 +1,5 @@
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
-                      // `Node` objects
+                     // `Node` objects
 
 s.specialPassages = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',

@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.2
+
+* Developed the node markup system. Edited `9000-main.js` and `bear-fight.tw` to lay out an example of using it.
+
 ## Version 0.2.1
 
 * Copied and revised `List.js` from version 0.1.6.
