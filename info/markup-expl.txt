@@ -8,8 +8,6 @@ BEFORE:
 
 {?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
 
-<p>\{2321}\\{87832}\{75}</p>
-
 ----
 
 AFTER:
@@ -23,8 +21,6 @@ AFTER:
 <p><span id='passage-cops-bust-in-sub-1'></span>Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another. <</if>>They all have their guns trained on you. The bald man in the center looks like a police <<link "detective">><<run setup.examine("The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.", "passage-cops-bust-in-examine-A")>><</link>>. The other two are uniformed cops.</p>
 
 <p><span id='passage-cops-bust-in-examine-A' class='description'></span></p>
-
-<p>{2321}\{87832}{75}</p>
 
 </div>
 

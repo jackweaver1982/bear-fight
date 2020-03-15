@@ -1,14 +1,18 @@
 /*
 This file encodes the special text processing done by the node system on
-the passage text.
+the passage text. The text substitutions are stored in `v` so that they
+are saved in SC's history. They should be set before the incoming node
+is loaded.
 */
+
+v.textSubs = [] // The array of text subs for the incoming node.
 
 s.procTextSubContainers = function(psgTitle, psgText) {
     /*
-    Replaces instances of `{<number>}` in the passage text with span
-    containers for inserting the passages text substitutions. Throws an
-    error if any index is out of bounds, if any index is repeated, or if
-    there are not enough indices. Returns the processed text.
+    Replaces instances of `{<number>}` in the passage text with
+    `v.textSubs[<number]`. Throws an error if any index is out of
+    bounds, if any index is repeated, or if there are not enough
+    indices. Returns the processed text.
 
     @param {String} psgTitle - The title of the passage being processed.
     @param {String} psgText - The text of the passage being processed.
@@ -23,7 +27,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
     var regex = /\{(\d+?)\}/;
 
     var processedText = psgText;
-    var result, spanText;
+    var result, index;
     while (true) {
         result = regex.exec(processedText);
 
@@ -38,18 +42,16 @@ s.procTextSubContainers = function(psgTitle, psgText) {
             return processedText;
         }
 
-        if (parseInt(result[1], 10) >= subCount) {
+        index = parseInt(result[1], 10);
+
+        if (index >= subCount) {
             throw new Error(
                 'text substitution index out of range in passage, "' +
                 psgTitle + '"'
             );
         }
 
-        spanText = (
-            '<span id="' + psgId + '-sub-' + result[1] + '"></span>'
-        );
-
-        if (processedText.indexOf(spanText) >= 0) {
+        if (processedText.indexOf(v.textSubs[index]) >= 0) {
             throw new Error(
                 'duplicate text substitution index in passage, "' +
                 passage.title + '"'
@@ -59,7 +61,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
         subsFound += 1;
         processedText = (
             processedText.slice(0, result.index) +
-            spanText +
+            v.textSubs[index] +
             processedText.slice(result.index + result[0].length)
         );
     }
@@ -180,13 +182,18 @@ s.procExamineLinks = function(psgTitle, psgText) {
 }
 
 s.addNodeContainers = function(psgTitle, psgText) {
+    /*
+    Wraps the passage text in a `body` container; adds an `action`
+    container for the action links; adds a `next` container in case the
+    next node is to be loaded without a passage transition.
+    */
     var passage = Story.get(psgTitle);
     return (
-        '<div id="' + passage.domId + '-body">\n' +
-            psgText + '\n' +
-        '</div>\n' + 
-        '<div id="' + passage.domId + '-actions"></div>\n' +
-        '<div id="' + passage.domId + '-next"></div>\n'
+        '<div id="' + passage.domId + '-body">\n\n' +
+            psgText + '\n\n' +
+        '</div>\n\n' + 
+        '<div id="' + passage.domId + '-actions"></div>\n\n' +
+        '<div id="' + passage.domId + '-next"></div>'
     );
 }
 

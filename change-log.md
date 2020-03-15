@@ -4,6 +4,13 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.3
+
+* Edited `node-markup.js` so that it inserts the text subs directly, rather than creating spans for later insertion.
+* Edited example in `bear-fight.tw` to match the new text subs.
+* Added a `window.onerror` function so that errors appear as pop-ups. Doesn't work in Safari. Need to develop in Firefox.
+* Edited `addNodeContainers` so that they are added with more white space for human readability.
+
 ## Version 0.2.2
 
 * Developed the node markup system. Edited `9000-main.js` and `bear-fight.tw` to lay out an example of using it.
