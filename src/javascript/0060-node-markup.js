@@ -22,7 +22,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
 
     var node = s.nodes.get(passage);
     var subCount = node.getSubCount();
-    var subsFound = 0;
+    var subsFound = new Set();
 
     var regex = /\{(\d+?)\}/;
 
@@ -32,7 +32,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
         result = regex.exec(processedText);
 
         if (result === null) {
-            if (subsFound < subCount) {
+            if (subsFound.size < subCount) {
                 throw new Error(
                     'too few text substitutions in passage, "' +
                     psgTitle + '"'
@@ -51,14 +51,14 @@ s.procTextSubContainers = function(psgTitle, psgText) {
             );
         }
 
-        if (processedText.indexOf(v.textSubs[index]) >= 0) {
+        if (subsFound.has(index)) {
             throw new Error(
                 'duplicate text substitution index in passage, "' +
                 passage.title + '"'
             );
         }
 
-        subsFound += 1;
+        subsFound.add(index);
         processedText = (
             processedText.slice(0, result.index) +
             v.textSubs[index] +
@@ -173,8 +173,8 @@ s.procExamineLinks = function(psgTitle, psgText) {
         );
 
         part[3-j] = (
-            '<p><span id="' + elementId + '" class="description">' +
-            '</span></p>'
+            '<div id="' + elementId + '" class="description">' +
+            '</div>'
         );
 
         processedText = part.join('');

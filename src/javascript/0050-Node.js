@@ -1,6 +1,14 @@
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
 
+s.getNode = function(psgTitle) {
+    /*
+    Returns the Node object associate with the passage titled,
+    `psgTitle`.
+    */
+    return s.nodes.get(Story.get(psgTitle));
+}
+
 s.specialPassages = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
@@ -34,8 +42,9 @@ s.Node = function(psgTitle, subCount, func) {
     @param {Integer} subCount - The number of expected text
     substitutions. Defaults to 0.
     @param {Function} func (optional) - The function to call when the
-    node is loaded. By default, it loads the passage associated with the
-    calling node.
+    node is loaded. It runs immediately before the loading of the
+    passage associated with the calling node. By default, it does
+    nothing.
 
     @property passage - The SugarCube `Passage` object whose title is
     `psgTitle`
@@ -64,7 +73,7 @@ s.Node = function(psgTitle, subCount, func) {
     s.nodes.set(passage, this);
     this._subCount = subCount || 0;
     this._userScript = func || function() {
-        Engine.play(this._passage.title);
+        return;
     }
     return this;
 };
@@ -96,5 +105,54 @@ s.Node.prototype.getSubCount = function() {
 }
 
 s.Node.prototype.load = function() {
-    return this._userScript();
+    this._userScript();
+    Engine.play(this._passage.title);
+}
+
+s.Node.prototype.addLink = function(text, psgTitle, func) {
+    /*
+    Creates a new Outcome that runs the given function, then loads the
+    node associated with the given passage title. Then adds that Outcome
+    to a new Action with the given text as its link text. Then adds that
+    Action to the node.
+
+    If there is no node associated with the given passage title, one
+    will be created.
+
+    Returns the newly created action.
+    */
+    var targetNode = s.nodes.get(Story.get(psgTitle));
+    if (targetNode === undefined) {
+        targetNode = new s.Node(psgTitle);
+    }
+
+    var outcome;
+    if (func === undefined) {
+        outcome = new s.Outcome(function() {
+            targetNode.load();
+        });
+    } else {
+        outcome = new s.Outcome(function() {
+            func();
+            targetNode.load();
+        });
+    }
+
+    var action = new s.Action(text).push(outcome);
+    this.push(action);
+    return action;
+}
+
+s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
+    /*
+    Calls the `addLink` method of the node associated with
+    `startPsgTitle`, passing it the other parameters. If no such node
+    exists, one is created.
+    */
+    var startNode = s.nodes.get(Story.get(startPsgTitle));
+    if (startNode === undefined) {
+        startNode = new s.Node(startPsgTitle);
+    }
+
+    return startNode.addLink(text, endPsgTitle, func);
 }

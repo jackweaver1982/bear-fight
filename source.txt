@@ -166,7 +166,7 @@ s.Outcome.prototype.carryOut = function() {
     return this._userScript();
 }
 /* twine-user-script #4: "0040-Action.js" */
-s.Action = function(text, chooseFunc, checkFunc) {
+s.Action = function(text, checkFunc, chooseFunc) {
     /*
     In a given passage, the reader will choose from a list of actions.
     Each action can be displayed as a link, and when it is selected,
@@ -178,15 +178,36 @@ s.Action = function(text, chooseFunc, checkFunc) {
     it is implemented as a subclass of `List`.
 
     @param {String} text - The text to appear in the link.
+    @param {Function|Boolean} checkFunc (optional) - The function to
+    call when checking if the action should be displayed. Should return
+    a boolean. If a boolean is provided, simply returns that boolean.
+    Defaults to true.
     @param {Function} chooseFunc (optional) - The function to call when
     choosing an outcome. Should return an outcome from the action. If
     not provided, the first outcome in the list will be chosen.
-    @param {Function} checkFunc (optional) - The function to call when
-    checking if the action should be displayed. Should return a boolean.
-    If not provided, simply returns true.
+    @param {String} align (optional) - The CSS text-align value for the
+    link associated with this action. Defaults to 'left'.
     */
     s.List.call(this);
     this._displayText = text;
+
+    if (checkFunc === undefined || checkFunc === true)  {
+        this._userScriptCheck = function() {
+            return true;
+        }
+    } else if (checkFunc === false) {
+        this._userScriptCheck = function() {
+            return false;
+        }
+    } else {
+        this._userScriptCheck = checkFunc;
+    }
+    if (typeof(checkFunc) === 'boolean') {
+        checkFunc = function() {
+            return checkFunc;
+        }
+    }
+
     this._userScriptChoose = chooseFunc || function() {
         if (this.length() > 0) {
             return this._array[0];
@@ -194,9 +215,7 @@ s.Action = function(text, chooseFunc, checkFunc) {
             return null;
         }
     }
-    this._userScriptCheck = checkFunc || function() {
-        return true;
-    }
+    this._align = 'left';
     return this;
 };
 
@@ -221,6 +240,15 @@ s.Action.prototype.getText = function() {
     return this._displayText;
 }
 
+s.Action.prototype.getAlign = function() {
+    return this._align;
+}
+
+s.Action.prototype.setAlign = function(align) {
+    this._align = align;
+    return this;
+}
+
 s.Action.prototype.check = function() {
     return this._userScriptCheck();
 }
@@ -231,6 +259,14 @@ s.Action.prototype.choose = function() {
 /* twine-user-script #5: "0050-Node.js" */
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
+
+s.getNode = function(psgTitle) {
+    /*
+    Returns the Node object associate with the passage titled,
+    `psgTitle`.
+    */
+    return s.nodes.get(Story.get(psgTitle));
+}
 
 s.specialPassages = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
@@ -265,8 +301,9 @@ s.Node = function(psgTitle, subCount, func) {
     @param {Integer} subCount - The number of expected text
     substitutions. Defaults to 0.
     @param {Function} func (optional) - The function to call when the
-    node is loaded. By default, it loads the passage associated with the
-    calling node.
+    node is loaded. It runs immediately before the loading of the
+    passage associated with the calling node. By default, it does
+    nothing.
 
     @property passage - The SugarCube `Passage` object whose title is
     `psgTitle`
@@ -295,7 +332,7 @@ s.Node = function(psgTitle, subCount, func) {
     s.nodes.set(passage, this);
     this._subCount = subCount || 0;
     this._userScript = func || function() {
-        Engine.play(this._passage.title);
+        return;
     }
     return this;
 };
@@ -327,7 +364,56 @@ s.Node.prototype.getSubCount = function() {
 }
 
 s.Node.prototype.load = function() {
-    return this._userScript();
+    this._userScript();
+    Engine.play(this._passage.title);
+}
+
+s.Node.prototype.addLink = function(text, psgTitle, func) {
+    /*
+    Creates a new Outcome that runs the given function, then loads the
+    node associated with the given passage title. Then adds that Outcome
+    to a new Action with the given text as its link text. Then adds that
+    Action to the node.
+
+    If there is no node associated with the given passage title, one
+    will be created.
+
+    Returns the newly created action.
+    */
+    var targetNode = s.nodes.get(Story.get(psgTitle));
+    if (targetNode === undefined) {
+        targetNode = new s.Node(psgTitle);
+    }
+
+    var outcome;
+    if (func === undefined) {
+        outcome = new s.Outcome(function() {
+            targetNode.load();
+        });
+    } else {
+        outcome = new s.Outcome(function() {
+            func();
+            targetNode.load();
+        });
+    }
+
+    var action = new s.Action(text).push(outcome);
+    this.push(action);
+    return action;
+}
+
+s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
+    /*
+    Calls the `addLink` method of the node associated with
+    `startPsgTitle`, passing it the other parameters. If no such node
+    exists, one is created.
+    */
+    var startNode = s.nodes.get(Story.get(startPsgTitle));
+    if (startNode === undefined) {
+        startNode = new s.Node(startPsgTitle);
+    }
+
+    return startNode.addLink(text, endPsgTitle, func);
 }
 /* twine-user-script #6: "0060-node-markup.js" */
 /*
@@ -354,7 +440,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
 
     var node = s.nodes.get(passage);
     var subCount = node.getSubCount();
-    var subsFound = 0;
+    var subsFound = new Set();
 
     var regex = /\{(\d+?)\}/;
 
@@ -364,7 +450,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
         result = regex.exec(processedText);
 
         if (result === null) {
-            if (subsFound < subCount) {
+            if (subsFound.size < subCount) {
                 throw new Error(
                     'too few text substitutions in passage, "' +
                     psgTitle + '"'
@@ -383,14 +469,14 @@ s.procTextSubContainers = function(psgTitle, psgText) {
             );
         }
 
-        if (processedText.indexOf(v.textSubs[index]) >= 0) {
+        if (subsFound.has(index)) {
             throw new Error(
                 'duplicate text substitution index in passage, "' +
                 passage.title + '"'
             );
         }
 
-        subsFound += 1;
+        subsFound.add(index);
         processedText = (
             processedText.slice(0, result.index) +
             v.textSubs[index] +
@@ -505,8 +591,8 @@ s.procExamineLinks = function(psgTitle, psgText) {
         );
 
         part[3-j] = (
-            '<p><span id="' + elementId + '" class="description">' +
-            '</span></p>'
+            '<div id="' + elementId + '" class="description">' +
+            '</div>'
         );
 
         processedText = part.join('');
@@ -554,9 +640,76 @@ s.procNodeMarkup = function(psgTitle, psgText) {
 Config.passages.onProcess = function (p) {
     return s.procNodeMarkup(p.title, p.text);
 };
-/* twine-user-script #7: "9000-main.js" */
-s.copsBustIn = new s.Node('Cops bust in', 2);
-/* twine-user-script #8: "Story JavaScript" */
+/* twine-user-script #7: "0070-passagedisplay.js" */
+/*
+This file encodes the passage post-processing of the node system,
+including inserting action links for the corresponding node.
+*/
+
+s.insertActionLinks = function(passage) {
+    /*
+    For each action in the node corresponding to the incoming passage,
+    this function checks if the action should be displayed. If it passes
+    the check, it adds a link for the corresponding action. Does nothing
+    if the incoming passage does not correspond to a node.
+
+    @param {SC passage object} passage - the incoming passage
+    */
+    var node = s.nodes.get(passage);
+    if (node === undefined) {
+        return;
+    }
+
+    var psgTitle = passage.title;
+    var psgId = passage.domId;
+    var action;
+    for (var i = 0; i < node.length(); i++) {
+        action = node.get(i);
+        if (action.check()) {
+            $('#' + psgId + '-actions').wiki(
+                '<p style="text-align:' + action.getAlign() + '">' +
+                    '<<link "' + action.getText() + '">>'+
+                        '<<run s.nodes.get(Story.get("' + psgTitle + '"))' +
+                        '.get(' + i + ').choose().carryOut()>>' +
+                    '<</link>>' +
+                '</p>'
+            );
+        }
+    }
+}
+
+$(document).on(':passagedisplay', function (ev) {
+    s.insertActionLinks(ev.passage);
+});
+/* twine-user-script #8: "9000-main.js" */
+s.makeLink('Start', 'begin', 'intro').setAlign('center');
+s.makeLink('intro', 'continue', 'RNG warning');
+s.makeLink('RNG warning', 'got it', 'who you are');
+s.makeLink('who you are', 'take a look around', 'bedroom');
+
+s.searchBody = new s.Action(
+    'search the body',
+    function() {
+        return !v.body.searched;
+    }
+).push(new s.Outcome(function() {
+    v.body.searched = true;
+    v.textSubs = [
+        '',
+
+        'As you bend down to take a closer look at the body, the bedroom ' +
+        'door bursts open. ' 
+    ];
+    s.copsBustIn.load();
+}));
+
+s.getNode('bedroom').push(s.searchBody);
+
+s.copsBustIn = new s.Node('Cops bust in', 2, function() {
+    v.detective.discovered = true;
+    return;
+});
+/* twine-user-script #9: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -581,42 +734,70 @@ Story Caption
 
 
 :: StoryInit
-<<set $knife = true>>
+<<set $pounding = true>>
+<<set $crowbar = false>>
+<<set $knowledge = new Set()>>
+<<set $containedIn = new Map()>>
+<<run $containedIn.set("knife", "bedroom")>>
+<<set $body = {
+    searched: false
+}>>
+<<set $detective = {
+    discovered: false
+}>>
+<<set $inventory = new Set()>>
 
 
 :: Start
-<<link 'Cops bust in'>>
-    <<set $textSubs = [
-        "<p>You stare at the dead man on the floor. You are trying to remember something—//anything//—about what happened and how you got here. The last thing you remember was doing shots at the Fireplace Tavern. You were playing pool with a woman you'd met that night. She had this weird tattoo on the top of her hand, above the base of her thumb. It might have been a letter, but it wasn't from our alphabet. Maybe this is her {house|A0}.</p>\n\n" +
+<div style='text-align:center'>
+    <h1><<= Story.title>></h1>
+    by<br>
+    <<= Story.get('StoryAuthor').text>><br>
+    <br>
+    <br>
+    <br>
+</div>
 
-        "{?A0|This house is a dump.}",
 
-        "Suddenly, the door bursts open and you jump to your feet. "
-    ]>>
-    <<goto 'Cops bust in'>>
-<</link>>
+:: intro
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+
+:: RNG warning
+<p>In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character's traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
+
+
+:: who you are
+<p>Scott Allen Brady. Scotty, to your friends. That's your name. You have to remind yourself, just to make sure you haven't forgotten //everything//. The last thing you remember is leaving work. You'd finished packing the motherboards into their shipping crates. Then you clocked out and left the plant. You were still wearing your Hewlett-Packard shirt when you got in your truck. You met some friends at the bar. Then...</p>
+
+<p>Nothing. You can't remember. Now here you are, in some surreal nightmare, looking at a dead guy. The pounding on the door makes it hard to concentrate.</p>
+
+
+:: bedroom
+<p>You are in what has to be the master bedroom. You reek of alcohol, your mouth is dry and tastes like vomit, and your head is throbbing. There's blood on your clothes, in your hair, and on your face and hands. You've had better days.</p>
+
+<p>You're wearing a white T-shirt with the Seattle Seahawks logo on the front. But you can hardly see the logo under all the blood. Your jeans are also caked with dried blood.</p>
+
+<p>On your left, the {bedroom door|A} is closed. <<if $pounding>>You can hear the pounding on the front door coming from that direction. <<elseif $crowbar>>Outside the bedroom, <<if $knowledge.has("policeAtDoor")>>the police are<<else>>someone is<</if>> breaking into the house with a crowbar. <</if>>To your right, the {door|B} to the adjoining bathroom is ajar. On the floor is a {dead man|C}, lying on his back in a pool of blood. <<if $containedIn.get("knife") == "bedroom">>What looks like a heavy-duty {chef's knife|D} is sticking out of his chest.<</if>></p>
+
+{?A|<p>The bedroom door is white, like the walls of the room. Blood is spattered on the left side near the door handle.</p>}
+
+{?B|<p>The bathroom door is made of cheap plywood and won't even close all the way.</p>}
+
+{?C|<p>You've never seen the dead man before, as far as you can remember. He must be in his mid-thirties.</p>}
+
+{?D|<p>The murder weapon looks like the kind of knife they have hanging on the wall in a restaurant kitchen--the kind they use to cut meat or chop big vegetables. It has a wide blade and is about a foot long.</p>}
 
 
 :: Cops bust in
-{0}
+<p>{0}</p>
 
-<p>{1}Three men rush in. "Get down on the ground!" one shouts. <<if $knife>>"He's got a knife!" yells another. <</if>>They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are {uniformed cops|B}.</p>
+<p>{1}Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another.<</if>> They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are uniformed cops.</p>
 
 {?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
-
-{?B|The uniformed cops look like bumbling stooges.}
-
-"Get on the {ground|C}!" the detective shouts.
-
-{?C|You loathe the idea of lying down in all that blood.}
-
-<p><<link 'View modifed passage text in console'>>
-    <<script>>
-        var p = Story.get(passage());
-        console.log(
-            s.procNodeMarkup(p.title, p.text)
-        );
-    <</script>>
-<</link>></p>
 
 

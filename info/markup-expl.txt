@@ -1,12 +1,25 @@
 BEFORE:
 
+:: <previous passage>
+
+<<link 'Cops bust in'>>
+    <<set $textSubs = [
+        "<p>You stare at the dead man on the floor. You are trying to remember something—//anything//—about what happened and how you got here. The last thing you remember was doing shots at the Fireplace Tavern. You were playing pool with a woman you'd met that night. She had this weird tattoo on the top of her hand, above the base of her thumb. It might have been a letter, but it wasn't from our alphabet. Maybe this is her {house|A0}.</p>\n\n" +
+
+        "{?A0|<p>This house is a dump.</p>}",
+
+        "Suddenly, the door bursts open and you jump to your feet. "
+    ]>>
+    <<goto 'Cops bust in'>>
+<</link>>
+
 :: Cops bust in
 
-<p>{0}</p>
+{0}
 
 <p>{1}Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another. <</if>>They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are uniformed cops.</p>
 
-{?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
+{?A|<p>The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.</p>}
 
 ----
 
@@ -14,16 +27,24 @@ AFTER:
 
 :: Cops bust in
 
-<div id='passage-cops-bust-in-body'>
+<div id="passage-cops-bust-in-body">
 
-<p><span id='passage-cops-bust-in-sub-0'></span></p>
+<p>You stare at the dead man on the floor. You are trying to remember something—//anything//—about what happened and how you got here. The last thing you remember was doing shots at the Fireplace Tavern. You were playing pool with a woman you'd met that night. She had this weird tattoo on the top of her hand, above the base of her thumb. It might have been a letter, but it wasn't from our alphabet. Maybe this is her <<link "house">><<run s.examine("This house is a dump.", "passage-cops-bust-in-examine-A0")>><</link>>.</p>
 
-<p><span id='passage-cops-bust-in-sub-1'></span>Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another. <</if>>They all have their guns trained on you. The bald man in the center looks like a police <<link "detective">><<run setup.examine("The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.", "passage-cops-bust-in-examine-A")>><</link>>. The other two are uniformed cops.</p>
+<div id="passage-cops-bust-in-examine-A0" class="description"></div>
 
-<p><span id='passage-cops-bust-in-examine-A' class='description'></span></p>
+<p>Suddenly, the door bursts open and you jump to your feet. Three men rush in. "Get down on the ground!" one shouts. <<if $knife>>"He's got a knife!" yells another. <</if>>They all have their guns trained on you. The bald man in the center looks like a police <<link "detective">><<run s.examine("The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.", "passage-cops-bust-in-examine-A")>><</link>>. The other two are <<link "uniformed cops">><<run s.examine("The uniformed cops look like bumbling stooges.", "passage-cops-bust-in-examine-B")>><</link>>.</p>
+
+<div id="passage-cops-bust-in-examine-A" class="description"></div>
+
+<div id="passage-cops-bust-in-examine-B" class="description"></div>
+
+"Get on the <<link "ground">><<run s.examine("You loathe the idea of lying down in all that blood.", "passage-cops-bust-in-examine-C")>><</link>>!" the detective shouts.
+
+<div id="passage-cops-bust-in-examine-C" class="description"></div>
 
 </div>
 
-<div id='passage-cops-bust-in-actions'></div>
+<div id="passage-cops-bust-in-actions"></div>
 
-<div id='passage-cops-bust-in-next'></div>
+<div id="passage-cops-bust-in-next"></div>

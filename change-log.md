@@ -4,6 +4,13 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.4
+
+* Added an `_align` property, with getter and setter, to `Action` for the display of its link. Edited `passagedisplay` to use this property.
+* Added an `s.getNode()` function for easier node retrieval.
+* Edited `s.Node.load()` to automatically include the loading of the passage, so it does not have to be included in the user script.
+* Created `s.Node.addLink()` and `s.makeLink()` to streamline the making of simple links.
+
 ## Version 0.2.3
 
 * Edited `node-markup.js` so that it inserts the text subs directly, rather than creating spans for later insertion.
