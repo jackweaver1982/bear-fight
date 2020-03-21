@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.5
+
+* Added an `embed` (Boolean) parameter to `Node.load()` to indicate that the incoming node's passage should be loading inside the current page.
+* Changed `textSubs` to a map, mapping passage titles to text substitution arrays. That way, more of them are stored in memory at a time, making embedded loading easier.
+* Added `s.embedPsgs()` to `:passagedisplay`, a function to re-embed passages when loading a save or refreshing the browser.
+
 ## Version 0.2.4
 
 * Added an `_align` property, with getter and setter, to `Action` for the display of its link. Edited `passagedisplay` to use this property.

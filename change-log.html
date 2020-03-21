@@ -265,6 +265,13 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-025">Version 0.2.5</h2>
+
+<ul>
+<li>Added an <code>embed</code> (Boolean) parameter to <code>Node.load()</code> to indicate that the incoming node&apos;s passage should be loading inside the current page.</li>
+<li>Changed <code>textSubs</code> to a map, mapping passage titles to text substitution arrays. That way, more of them are stored in memory at a time, making embedded loading easier.</li>
+<li>Added <code>s.embedPsgs()</code> to <code>:passagedisplay</code>, a function to re-embed passages when loading a save or refreshing the browser.</li>
+</ul>
 <h2 class="mume-header" id="version-024">Version 0.2.4</h2>
 
 <ul>

@@ -5,12 +5,10 @@ including inserting action links for the corresponding node.
 
 s.insertActionLinks = function(passage) {
     /*
-    For each action in the node corresponding to the incoming passage,
-    this function checks if the action should be displayed. If it passes
-    the check, it adds a link for the corresponding action. Does nothing
-    if the incoming passage does not correspond to a node.
-
-    @param {SC passage object} passage - the incoming passage
+    For each action in the node corresponding to the given SC passage
+    object, this function checks if the action should be displayed. If
+    it passes the check, it adds a link for the corresponding action.
+    Does nothing if the incoming passage does not correspond to a node.
     */
     var node = s.nodes.get(passage);
     if (node === undefined) {
@@ -35,6 +33,37 @@ s.insertActionLinks = function(passage) {
     }
 }
 
+s.reEmbedPsgs = function(passage) {
+    /*
+    Re-embeds embedded passages when the main containing passage
+    renders.
+    */
+    var currentPsg = passage;
+    var nextPsg;
+    for (var i = 0; i < v.embeddedPsgs.length; i++) {
+        nextPsg = Story.get(v.embeddedPsgs[i]);
+        $('#' + currentPsg.domId + '-next').wiki(
+            nextPsg.processText()
+        );
+        currentPsg = nextPsg;
+    }
+}
+
 $(document).on(':passagedisplay', function (ev) {
-    s.insertActionLinks(ev.passage);
+    s.reEmbedPsgs(ev.passage);
+
+    var len = v.embeddedPsgs.length;
+    var currentPsg;
+    if (len == 0) {
+        currentPsg = ev.passage;
+    } else {
+        currentPsg = Story.get(v.embeddedPsgs[len - 1]);
+    }
+    s.insertActionLinks(currentPsg);
+
+    $('html').animate({
+        scrollTop: $('#' + currentPsg.domId + '-body').position().top
+    }, 0);
+
+    return;
 });

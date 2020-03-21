@@ -273,7 +273,10 @@ s.specialPassages = [
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
     'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
     'StorySubtitle', 'StoryTitle'
-]
+];
+
+v.embeddedPsgs = []; // list of embedded passage titles (see
+                     // `s.Node.load()` below)
 
 s.Node = function(psgTitle, subCount, func) {
     /*
@@ -363,9 +366,47 @@ s.Node.prototype.getSubCount = function() {
     return this._subCount;
 }
 
-s.Node.prototype.load = function() {
+s.Node.prototype.load = function(embed) {
+    /*
+    Runs the `_userScript` function, then renders the node's passage. If
+    the optional parameter `embed` is true, then rather than rendering
+    the passage, the passage's contents are appended to the end of the
+    current passage and new moment is added to SC's history. A list of
+    titles of embedded passages is saved in `v` so that they can be
+    re-embedded upon loading a save or refreshing the browser. The
+    outermost passage is not included in the list. Its title can be
+    accessed by SC's built-in function, `passage()`.
+    */
     this._userScript();
-    Engine.play(this._passage.title);
+    if (embed) {
+        if (this._passage.title === passage() ||
+            v.embeddedPsgs.indexOf(this._passage.title) >= 0) {
+            throw new Error(
+                'Node.load():\n' +
+                'cannot embed a passage in itself'
+            );
+        }
+
+        var currentPsg;
+        if (v.embeddedPsgs.length === 0) {
+            currentPsg = passage();
+        } else {
+            currentPsg = v.embeddedPsgs[v.embeddedPsgs.length - 1];
+        }
+
+        $('#' + Story.get(currentPsg).domId + '-actions').empty();
+        $('#' + Story.get(currentPsg).domId + '-next').wiki(
+            this._passage.processText()
+        );
+        s.insertActionLinks(this._passage);
+        v.embeddedPsgs.push(this._passage.title);
+        State.create(State.passage);
+        return;
+    } else {
+        v.embeddedPsgs = [];
+        Engine.play(this._passage.title);
+        return;
+    }
 }
 
 s.Node.prototype.addLink = function(text, psgTitle, func) {
@@ -423,7 +464,7 @@ are saved in SC's history. They should be set before the incoming node
 is loaded.
 */
 
-v.textSubs = [] // The array of text subs for the incoming node.
+v.textSubs = new Map(); // Maps passage titles to arrays of text subs.
 
 s.procTextSubContainers = function(psgTitle, psgText) {
     /*
@@ -435,11 +476,23 @@ s.procTextSubContainers = function(psgTitle, psgText) {
     @param {String} psgTitle - The title of the passage being processed.
     @param {String} psgText - The text of the passage being processed.
     */
+    var subArray = (v.textSubs.get(psgTitle) || []);
+
     var passage = Story.get(psgTitle);
     var psgId = passage.domId;
 
     var node = s.nodes.get(passage);
     var subCount = node.getSubCount();
+
+    if (subCount === 0) {
+        return psgText;
+    }
+    if (subArray.length !== subCount) {
+        throw new Error(
+            'length of textSubs array does not match node\'s subCount'
+        );
+    }
+
     var subsFound = new Set();
 
     var regex = /\{(\d+?)\}/;
@@ -479,7 +532,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
         subsFound.add(index);
         processedText = (
             processedText.slice(0, result.index) +
-            v.textSubs[index] +
+            subArray[index] +
             processedText.slice(result.index + result[0].length)
         );
     }
@@ -638,7 +691,8 @@ s.procNodeMarkup = function(psgTitle, psgText) {
 }
 
 Config.passages.onProcess = function (p) {
-    return s.procNodeMarkup(p.title, p.text);
+    var processedText = s.procNodeMarkup(p.title, p.text);
+    return processedText;
 };
 /* twine-user-script #7: "0070-passagedisplay.js" */
 /*
@@ -648,12 +702,10 @@ including inserting action links for the corresponding node.
 
 s.insertActionLinks = function(passage) {
     /*
-    For each action in the node corresponding to the incoming passage,
-    this function checks if the action should be displayed. If it passes
-    the check, it adds a link for the corresponding action. Does nothing
-    if the incoming passage does not correspond to a node.
-
-    @param {SC passage object} passage - the incoming passage
+    For each action in the node corresponding to the given SC passage
+    object, this function checks if the action should be displayed. If
+    it passes the check, it adds a link for the corresponding action.
+    Does nothing if the incoming passage does not correspond to a node.
     */
     var node = s.nodes.get(passage);
     if (node === undefined) {
@@ -678,8 +730,39 @@ s.insertActionLinks = function(passage) {
     }
 }
 
+s.reEmbedPsgs = function(passage) {
+    /*
+    Re-embeds embedded passages when the main containing passage
+    renders.
+    */
+    var currentPsg = passage;
+    var nextPsg;
+    for (var i = 0; i < v.embeddedPsgs.length; i++) {
+        nextPsg = Story.get(v.embeddedPsgs[i]);
+        $('#' + currentPsg.domId + '-next').wiki(
+            nextPsg.processText()
+        );
+        currentPsg = nextPsg;
+    }
+}
+
 $(document).on(':passagedisplay', function (ev) {
-    s.insertActionLinks(ev.passage);
+    s.reEmbedPsgs(ev.passage);
+
+    var len = v.embeddedPsgs.length;
+    var currentPsg;
+    if (len == 0) {
+        currentPsg = ev.passage;
+    } else {
+        currentPsg = Story.get(v.embeddedPsgs[len - 1]);
+    }
+    s.insertActionLinks(currentPsg);
+
+    $('html').animate({
+        scrollTop: $('#' + currentPsg.domId + '-body').position().top
+    }, 0);
+
+    return;
 });
 /* twine-user-script #8: "9000-main.js" */
 s.makeLink('Start', 'begin', 'intro').setAlign('center');
@@ -687,28 +770,53 @@ s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
 s.makeLink('who you are', 'take a look around', 'bedroom');
 
-s.searchBody = new s.Action(
+s.getNode('bedroom').push((new s.Action(
+    'take the knife',
+    function() {
+        return (v.containedIn.get('knife') === 'bedroom');
+    }
+)).push(new s.Outcome(function() {
+    v.containedIn.delete('knife');
+    v.inventory.add('knife');
+    v.textSubs.set('Taking knife', [' You may need this for later.']);
+    s.takingKnife.load(true);
+    return;
+})));
+
+s.getNode('bedroom').push((new s.Action(
     'search the body',
     function() {
         return !v.body.searched;
     }
-).push(new s.Outcome(function() {
+)).push(new s.Outcome(function() {
     v.body.searched = true;
-    v.textSubs = [
+    v.textSubs.set('Cops bust in', [
         '',
 
         'As you bend down to take a closer look at the body, the bedroom ' +
         'door bursts open. ' 
-    ];
-    s.copsBustIn.load();
-}));
+    ]);
+    s.copsBustIn.load(true);
+    return;
+})));
 
-s.getNode('bedroom').push(s.searchBody);
+
 
 s.copsBustIn = new s.Node('Cops bust in', 2, function() {
     v.detective.discovered = true;
     return;
 });
+
+
+
+s.takingKnife = new s.Node('Taking knife', 1);
+
+s.bedroom = s.getNode('bedroom')
+for (var i = 0; i < s.bedroom.length(); i++) {
+    s.takingKnife.push(s.bedroom.get(i));
+}
+
+s.makeLink('Cops bust in', 'continue', 'Next');
 /* twine-user-script #9: "Story JavaScript" */
 
 
@@ -799,5 +907,13 @@ Story Caption
 <p>{1}Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another.<</if>> They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are uniformed cops.</p>
 
 {?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
+
+
+:: Taking knife
+<p>You take the knife and carefully slide it under your belt.{0}</p>
+
+
+:: Next
+To be continued.
 
 

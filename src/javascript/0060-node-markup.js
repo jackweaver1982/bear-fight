@@ -5,7 +5,7 @@ are saved in SC's history. They should be set before the incoming node
 is loaded.
 */
 
-v.textSubs = [] // The array of text subs for the incoming node.
+v.textSubs = new Map(); // Maps passage titles to arrays of text subs.
 
 s.procTextSubContainers = function(psgTitle, psgText) {
     /*
@@ -17,11 +17,23 @@ s.procTextSubContainers = function(psgTitle, psgText) {
     @param {String} psgTitle - The title of the passage being processed.
     @param {String} psgText - The text of the passage being processed.
     */
+    var subArray = (v.textSubs.get(psgTitle) || []);
+
     var passage = Story.get(psgTitle);
     var psgId = passage.domId;
 
     var node = s.nodes.get(passage);
     var subCount = node.getSubCount();
+
+    if (subCount === 0) {
+        return psgText;
+    }
+    if (subArray.length !== subCount) {
+        throw new Error(
+            'length of textSubs array does not match node\'s subCount'
+        );
+    }
+
     var subsFound = new Set();
 
     var regex = /\{(\d+?)\}/;
@@ -61,7 +73,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
         subsFound.add(index);
         processedText = (
             processedText.slice(0, result.index) +
-            v.textSubs[index] +
+            subArray[index] +
             processedText.slice(result.index + result[0].length)
         );
     }
@@ -220,5 +232,6 @@ s.procNodeMarkup = function(psgTitle, psgText) {
 }
 
 Config.passages.onProcess = function (p) {
-    return s.procNodeMarkup(p.title, p.text);
+    var processedText = s.procNodeMarkup(p.title, p.text);
+    return processedText;
 };

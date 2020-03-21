@@ -14,7 +14,10 @@ s.specialPassages = [
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
     'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
     'StorySubtitle', 'StoryTitle'
-]
+];
+
+v.embeddedPsgs = []; // list of embedded passage titles (see
+                     // `s.Node.load()` below)
 
 s.Node = function(psgTitle, subCount, func) {
     /*
@@ -104,9 +107,47 @@ s.Node.prototype.getSubCount = function() {
     return this._subCount;
 }
 
-s.Node.prototype.load = function() {
+s.Node.prototype.load = function(embed) {
+    /*
+    Runs the `_userScript` function, then renders the node's passage. If
+    the optional parameter `embed` is true, then rather than rendering
+    the passage, the passage's contents are appended to the end of the
+    current passage and new moment is added to SC's history. A list of
+    titles of embedded passages is saved in `v` so that they can be
+    re-embedded upon loading a save or refreshing the browser. The
+    outermost passage is not included in the list. Its title can be
+    accessed by SC's built-in function, `passage()`.
+    */
     this._userScript();
-    Engine.play(this._passage.title);
+    if (embed) {
+        if (this._passage.title === passage() ||
+            v.embeddedPsgs.indexOf(this._passage.title) >= 0) {
+            throw new Error(
+                'Node.load():\n' +
+                'cannot embed a passage in itself'
+            );
+        }
+
+        var currentPsg;
+        if (v.embeddedPsgs.length === 0) {
+            currentPsg = passage();
+        } else {
+            currentPsg = v.embeddedPsgs[v.embeddedPsgs.length - 1];
+        }
+
+        $('#' + Story.get(currentPsg).domId + '-actions').empty();
+        $('#' + Story.get(currentPsg).domId + '-next').wiki(
+            this._passage.processText()
+        );
+        s.insertActionLinks(this._passage);
+        v.embeddedPsgs.push(this._passage.title);
+        State.create(State.passage);
+        return;
+    } else {
+        v.embeddedPsgs = [];
+        Engine.play(this._passage.title);
+        return;
+    }
 }
 
 s.Node.prototype.addLink = function(text, psgTitle, func) {
