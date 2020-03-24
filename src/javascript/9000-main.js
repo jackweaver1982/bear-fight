@@ -1,3 +1,5 @@
+v.page.setContinuous(true);
+
 s.makeLink('Start', 'begin', 'intro').setAlign('center');
 s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
@@ -11,8 +13,8 @@ s.getNode('bedroom').push((new s.Action(
 )).push(new s.Outcome(function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
-    v.textSubs.set('Taking knife', [' You may need this for later.']);
-    s.takingKnife.load(true);
+    v.parser.setSubs('Taking knife', [' You may need this for later.']);
+    v.page.load(s.takingKnife, true);
     return;
 })));
 
@@ -23,13 +25,13 @@ s.getNode('bedroom').push((new s.Action(
     }
 )).push(new s.Outcome(function() {
     v.body.searched = true;
-    v.textSubs.set('Cops bust in', [
+    v.parser.setSubs('Cops bust in', [
         '',
 
         'As you bend down to take a closer look at the body, the bedroom ' +
         'door bursts open. ' 
     ]);
-    s.copsBustIn.load(true);
+    v.page.load(s.copsBustIn, true);
     return;
 })));
 

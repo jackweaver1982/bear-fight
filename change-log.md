@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.6
+
+* Moved `load()` method to `Page` object. Added `onLoad()` method to `Node` for storing the user script.
+* Built `Parser` object to handle parsing markup.
+* Built `Page` object to handle managing the passage content on the screen.
+
 ## Version 0.2.5
 
 * Added an `embed` (Boolean) parameter to `Node.load()` to indicate that the incoming node's passage should be loading inside the current page.

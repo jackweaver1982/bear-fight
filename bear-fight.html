@@ -149,22 +149,6 @@ Object.defineProperty(window, "t", {
         return State.temporary;
     }
 });
-
-Config.passages.nobr = true; // sets all passages to `nobr`
-
-window.onerror = function(msg, url, linenumber) {
-    /*
-    Ensures that errors appear in a pop-up for greater visibility. Works
-    in Firefox, but doesn't seem to work in Safari. Be sure to do
-    testing in Firefox.
-    */
-    alert(
-        'Error message: ' + msg + '\n' +
-        'URL: ' + url + '\n' +
-        'Line Number: ' + linenumber
-    );
-    return true;
-}
 /* twine-user-script #2: "0020-List.js" */
 s.List = function() {
     /*
@@ -351,7 +335,7 @@ s.getNode = function(psgTitle) {
     return s.nodes.get(Story.get(psgTitle));
 }
 
-s.specialPassages = [
+s.specialPsgs = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
     'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
@@ -401,21 +385,21 @@ s.Node = function(psgTitle, subCount, func) {
             'there is no passage titled "' + psgTitle + '"'
         );
     }
-    if (s.specialPassages.indexOf(psgTitle) >= 0) {
+    if (s.specialPsgs.indexOf(psgTitle) >= 0) {
         throw new Error(
             'Node():\n' +
             'cannot assign a special passage other than `Start` to a node'
         );
     }
-    var passage = Story.get(psgTitle);
-    if (s.nodes.has(passage)) {
+    var psg = Story.get(psgTitle);
+    if (s.nodes.has(psg)) {
         throw new Error(
             'Node():\n' +
             'the passage "' + psgTitle + '" already belongs to a node'
         );
     }
-    this._passage = passage;
-    s.nodes.set(passage, this);
+    this._passage = psg;
+    s.nodes.set(psg, this);
     this._subCount = subCount || 0;
     this._userScript = func || function() {
         return;
@@ -449,47 +433,9 @@ s.Node.prototype.getSubCount = function() {
     return this._subCount;
 }
 
-s.Node.prototype.load = function(embed) {
-    /*
-    Runs the `_userScript` function, then renders the node's passage. If
-    the optional parameter `embed` is true, then rather than rendering
-    the passage, the passage's contents are appended to the end of the
-    current passage and new moment is added to SC's history. A list of
-    titles of embedded passages is saved in `v` so that they can be
-    re-embedded upon loading a save or refreshing the browser. The
-    outermost passage is not included in the list. Its title can be
-    accessed by SC's built-in function, `passage()`.
-    */
+s.Node.prototype.onLoad = function() {
     this._userScript();
-    if (embed) {
-        if (this._passage.title === passage() ||
-            v.embeddedPsgs.indexOf(this._passage.title) >= 0) {
-            throw new Error(
-                'Node.load():\n' +
-                'cannot embed a passage in itself'
-            );
-        }
-
-        var currentPsg;
-        if (v.embeddedPsgs.length === 0) {
-            currentPsg = passage();
-        } else {
-            currentPsg = v.embeddedPsgs[v.embeddedPsgs.length - 1];
-        }
-
-        $('#' + Story.get(currentPsg).domId + '-actions').empty();
-        $('#' + Story.get(currentPsg).domId + '-next').wiki(
-            this._passage.processText()
-        );
-        s.insertActionLinks(this._passage);
-        v.embeddedPsgs.push(this._passage.title);
-        State.create(State.passage);
-        return;
-    } else {
-        v.embeddedPsgs = [];
-        Engine.play(this._passage.title);
-        return;
-    }
+    return;
 }
 
 s.Node.prototype.addLink = function(text, psgTitle, func) {
@@ -512,12 +458,12 @@ s.Node.prototype.addLink = function(text, psgTitle, func) {
     var outcome;
     if (func === undefined) {
         outcome = new s.Outcome(function() {
-            targetNode.load();
+            v.page.load(targetNode);
         });
     } else {
         outcome = new s.Outcome(function() {
             func();
-            targetNode.load();
+            v.page.load(targetNode);
         });
     }
 
@@ -525,66 +471,124 @@ s.Node.prototype.addLink = function(text, psgTitle, func) {
     this.push(action);
     return action;
 }
-
-s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
-    /*
-    Calls the `addLink` method of the node associated with
-    `startPsgTitle`, passing it the other parameters. If no such node
-    exists, one is created.
-    */
-    var startNode = s.nodes.get(Story.get(startPsgTitle));
-    if (startNode === undefined) {
-        startNode = new s.Node(startPsgTitle);
-    }
-
-    return startNode.addLink(text, endPsgTitle, func);
-}
-/* twine-user-script #6: "0060-node-markup.js" */
+/* twine-user-script #6: "0060-Parser.js" */
 /*
-This file encodes the special text processing done by the node system on
-the passage text. The text substitutions are stored in `v` so that they
-are saved in SC's history. They should be set before the incoming node
-is loaded.
+A Parser object manages the conversion of the given passage text to the
+actual passage text used by SugarCube to display information.
+
+There is one instance (see Global.js), built on State.variables, so its
+state can be stored in SugarCube's history. (This is needed, because the
+parser tracks dynamically generated text substitutions.) The class must
+therefore be made compatible with SugarCube by having `clone()` and
+`toJSON()` methods, and no recursive objects or object sharing. To
+achieve this, we also require it to have a constructor with no arguments
+and to have all its properties be SC supported types.
+
+There are various methods for processing different kinds of markup. The
+method, `procMarkup()`, runs them all in the appropriate order. Through
+`Config.passages.onProcess`, we instruct SugarCube to apply
+`procMarkup()` to passage text whenever a passage is rendered.
 */
 
-v.textSubs = new Map(); // Maps passage titles to arrays of text subs.
+s.Parser = function() {
+    this._textSubMap = new Map(); // Maps passage titles to arrays of
+                                  // text subs.
+    return this;    
+};
 
-s.procTextSubContainers = function(psgTitle, psgText) {
+s.Parser.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.Parser.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Parser())._init(this);
+};
+
+s.Parser.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper(
+        '(new s.Parser())._init($ReviveData$)', newPC
+    );
+};
+
+s.Parser.prototype.getSubs = function(psgTitle) {
+    return this._textSubMap.get(psgTitle);
+}
+
+s.Parser.prototype.setSubs = function(psgTitle, subArray) {
     /*
-    Replaces instances of `{<number>}` in the passage text with
-    `v.textSubs[<number]`. Throws an error if any index is out of
-    bounds, if any index is repeated, or if there are not enough
-    indices. Returns the processed text.
-
-    @param {String} psgTitle - The title of the passage being processed.
-    @param {String} psgText - The text of the passage being processed.
+    Adds `psgTitle` key to `_textSubMap` with value `subArray`. Throws
+    an error if `psgTitle` doesn't correspond to a node, length of
+    `subArray` does match the sub count of the node, or `subArray` is
+    not a string array. Returns the calling Parser object.
     */
-    var subArray = (v.textSubs.get(psgTitle) || []);
-
-    var passage = Story.get(psgTitle);
-    var psgId = passage.domId;
-
-    var node = s.nodes.get(passage);
-    var subCount = node.getSubCount();
-
-    if (subCount === 0) {
-        return psgText;
-    }
-    if (subArray.length !== subCount) {
+    var node = s.getNode(psgTitle);
+    if (node === undefined) {
         throw new Error(
-            'length of textSubs array does not match node\'s subCount'
+            'Parser.setSubs():\n' +
+            '"' + psgTitle + '" does not correspond to a node.'
         );
     }
+    if (node.getSubCount() !== subArray.length) {
+        throw new Error(
+            'Parser.setSubs():\n' +
+            'unexpected number of text substitutions'
+        );
+    }
+    if (!subArray.every(function(element) {
+        return (typeof(element) === 'string');
+    })) {
+        throw new Error(
+            'Parser.setSubs():\n' +
+            'text substitutions must be strings'
+        );
+    }
+    this._textSubMap.set(psgTitle, subArray);
+    return this;
+}
 
+s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
+    /*
+    Fetches the array of text substitutions corresponding to `psgTitle`,
+    or `[]` if there is no such array, then replaces instances of
+    `{<number>}` in the given text with corresponding elements from that
+    array.
+
+    Does nothing if the node associated with `psgTitle` has a sub count
+    of 0. Throws an error if the sub count doesn't match the length of
+    the substitution array, if any index is out of bounds, if any index
+    is repeated, or if there are not enough indices. Returns the
+    processed text.
+
+    @param {String} psgTitle - The title of the passage being processed.
+    This passage title must correspond to a node. Passing a title that
+    does not correspond to a node could have unexpected behavior.
+    @param {String} text - The text to process.
+    */
+    var subArray = (this.getSubs(psgTitle) || []);
+    var psg = Story.get(psgTitle);
+    var node = s.nodes.get(psg);
+    var subCount = node.getSubCount();
+    if (subCount === 0) {
+        return text;
+    }
+
+    var psgId = psg.domId;
     var subsFound = new Set();
-
     var regex = /\{(\d+?)\}/;
-
-    var processedText = psgText;
+    var processedText = text;
     var result, index;
     while (true) {
         result = regex.exec(processedText);
-
         if (result === null) {
             if (subsFound.size < subCount) {
                 throw new Error(
@@ -592,26 +596,21 @@ s.procTextSubContainers = function(psgTitle, psgText) {
                     psgTitle + '"'
                 );
             }
-
             return processedText;
         }
-
         index = parseInt(result[1], 10);
-
         if (index >= subCount) {
             throw new Error(
                 'text substitution index out of range in passage, "' +
                 psgTitle + '"'
             );
         }
-
         if (subsFound.has(index)) {
             throw new Error(
                 'duplicate text substitution index in passage, "' +
                 passage.title + '"'
             );
         }
-
         subsFound.add(index);
         processedText = (
             processedText.slice(0, result.index) +
@@ -621,7 +620,7 @@ s.procTextSubContainers = function(psgTitle, psgText) {
     }
 }
 
-s.examine = function(description, id) {
+s.Parser.prototype.showDetails = function(description, id) {
     /*
     Inserts the given description into the element with the given id and
     clears all other elements with class `.description`. If the element
@@ -645,27 +644,29 @@ s.examine = function(description, id) {
     return;
 }
 
-s.procExamineLinks = function(psgTitle, psgText) {
+s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
     /*
-    Replaces instances of `{text|id}` with links that reveal a
-    description. The description is found in a corresponding instance of
-    `{?id|description}` which is replaced by a div element into which
-    the description appears. The appearance of the description is
-    controlled by the function `s.examine()`.
+    Replaces instances of `{<link text>|id}` in text with links that
+    reveal a description. The description is found in a corresponding
+    instance of `{?id|description}` which is replaced by a div element
+    into which the description appears. The html id of the div element
+    is determined by both the id in the markup and the given `psgTitle`.
+    The appearance of the description is controlled by the method
+    `Parser.showDetails()`.
 
-    The text in the link markup cannot begin with a `?` and cannot
-    contain a `|`. The id in the link markup must contain only letters,
-    numbers, and `_`, and must begin with a letter.
+    The link text cannot begin with a `?` and cannot contain a `|`. The
+    id must contain only letters, numbers, and `_`, and must begin with
+    a letter.
 
     @param {String} psgTitle - The title of the passage being processed.
-    @param {String} psgText - The text of the passage being processed.
+    @param {String} text - The text of the passage being processed.
     */
-    var passage = Story.get(psgTitle);
-    var psgId = passage.domId;
+    var psg = Story.get(psgTitle);
+    var psgId = psg.domId;
 
     var linkRegex = /\{(.+?)\|([a-zA-Z][0-9a-zA-Z_]*?)\}/;
 
-    var processedText = psgText;
+    var processedText = text;
 
     var cut = [0,0,0,0];         // indices at which to cut the given
                                  // text
@@ -720,7 +721,7 @@ s.procExamineLinks = function(psgTitle, psgText) {
 
         part[j+1] = (
             '<<link "' + linkText + '">>' +
-                '<<run s.examine(' + 
+                '<<run v.parser.showDetails(' + 
                     '"' + descText + '", "' + elementId + '"' +
                 ')>>' +
             '<</link>>'
@@ -735,68 +736,136 @@ s.procExamineLinks = function(psgTitle, psgText) {
     }
 }
 
-s.addNodeContainers = function(psgTitle, psgText) {
+s.Parser.prototype.addContainers = function(psgTitle, text) {
     /*
-    Wraps the passage text in a `body` container; adds an `action`
+    Wraps the given text in a `body` container; adds an `action`
     container for the action links; adds a `next` container in case the
-    next node is to be loaded without a passage transition.
-    */
-    var passage = Story.get(psgTitle);
-    return (
-        '<div id="' + passage.domId + '-body">\n\n' +
-            psgText + '\n\n' +
-        '</div>\n\n' + 
-        '<div id="' + passage.domId + '-actions"></div>\n\n' +
-        '<div id="' + passage.domId + '-next"></div>'
-    );
-}
-
-s.procNodeMarkup = function(psgTitle, psgText) {
-    /*
-    Processes the special node markup in the given passage. Does nothing
-    if the given passage is not associated with a node. Returns the
-    processed text.
+    next node is to be loaded without a passage transition. The html id
+    of the containers is determined by `psgTitle`.
 
     @param {String} psgTitle - The title of the passage being processed.
-    @param {String} psgText - The text of the passage being processed.
+    This passage title must correspond to a node. Passing a title that
+    does not correspond to a node could have unexpected behavior.
+    @param {String} text - The text to process.
+    */
+    var psg = Story.get(psgTitle);
+    return (
+        '<div id="' + psg.domId + '-body">\n\n' +
+            text + '\n\n' +
+        '</div>\n\n' + 
+        '<div id="' + psg.domId + '-actions"></div>\n\n' +
+        '<div id="' + psg.domId + '-next"></div>'
+    );
+
+}
+
+s.Parser.prototype.removeBreaks = function(text) {
+    /*
+    Removes line breaks from the given text.
+    */
+    var processedText = text.replace(/\r/g, '');
+    processedText = processedText.replace(/^\n+|\n+$/g, '');
+    processedText = processedText.replace(/\n+/g, ' ');
+    return processedText;
+}
+
+s.Parser.prototype.procAllMarkup = function(psgTitle, text) {
+    /*
+    Processes the special node markup in the given passage (inserts text
+    subs, processes the detail markup, adds the containers, and removes
+    breaks. Does nothing if the given passage is not associated with a
+    node. Returns the processed text.
+
+    @param {String} psgTitle - The title of the passage being processed.
+    @param {String} text - The text of the passage being processed.
     */
     var node = s.nodes.get(Story.get(psgTitle));
     if (node === undefined) {
-        return psgText;
+        return text;
     }
 
-    var processedText = psgText;
-    processedText = s.procTextSubContainers(psgTitle, processedText);
-    processedText = s.procExamineLinks(psgTitle, processedText);
-    processedText = s.addNodeContainers(psgTitle, processedText);
+    var processedText = text;
+    processedText = this.insertTextSubs(psgTitle, processedText);
+    processedText = this.procDetailMarkup(psgTitle, processedText);
+    processedText = this.addContainers(psgTitle, processedText);
+    processedText = this.removeBreaks(processedText);
 
     return processedText;
 }
-
-Config.passages.onProcess = function (p) {
-    var processedText = s.procNodeMarkup(p.title, p.text);
-    return processedText;
-};
-/* twine-user-script #7: "0070-passagedisplay.js" */
+/* twine-user-script #7: "0070-Page.js" */
 /*
-This file encodes the passage post-processing of the node system,
-including inserting action links for the corresponding node.
+A `Page` object represents the content which is displayed on the screen.
+Traditionally in SugarCube, this is just a passage. But with the node
+system, multiple passages can be displayed at a time, in order. The
+first passage is the main one and the one which SugarCube regards as
+being displayed. The other passages are displayed inside the first
+passage.
+
+There is one instance (`v.page`, see Global.js), built on
+State.variables, so its state can be stored in SugarCube's history.
+(This allows SugarCube to rebuild the page upon a browser refresh or
+upon loading a save file.) The class must therefore be made compatible
+with SugarCube by having `clone()` and `toJSON()` methods, and no
+recursive objects or object sharing. To achieve this, we also require it
+to have a constructor with no arguments and to have all its properties
+be SC supported types.
 */
 
-s.insertActionLinks = function(passage) {
+s.Page = function() {
+    this._embeddedPsgs = [];  // list of embedded passage titles; does
+                              // not include the first (main) passage
+    this._continuous = false; // set true to have passages embed by
+                              // default
+    return this;    
+};
+
+s.Page.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.Page.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Page())._init(this);
+};
+
+s.Page.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper(
+        '(new s.Page())._init($ReviveData$)', newPC
+    );
+};
+
+s.Page.prototype.isContinuous = function() {
+    return this._continuous;
+}
+
+s.Page.prototype.setContinuous = function(val) {
+    this._continuous = val;
+    return this;
+}
+
+s.Page.prototype.insertActions = function(psg) {
     /*
     For each action in the node corresponding to the given SC passage
     object, this function checks if the action should be displayed. If
     it passes the check, it adds a link for the corresponding action.
     Does nothing if the incoming passage does not correspond to a node.
     */
-    var node = s.nodes.get(passage);
+    var node = s.nodes.get(psg);
     if (node === undefined) {
         return;
     }
 
-    var psgTitle = passage.title;
-    var psgId = passage.domId;
+    var psgTitle = psg.title;
+    var psgId = psg.domId;
     var action;
     for (var i = 0; i < node.length(); i++) {
         action = node.get(i);
@@ -813,41 +882,182 @@ s.insertActionLinks = function(passage) {
     }
 }
 
-s.reEmbedPsgs = function(passage) {
+s.Page.prototype.innerPsg = function() {
     /*
-    Re-embeds embedded passages when the main containing passage
-    renders.
+    Returns the innermost passage on the page as a SC Passage object.
     */
-    var currentPsg = passage;
-    var nextPsg;
-    for (var i = 0; i < v.embeddedPsgs.length; i++) {
-        nextPsg = Story.get(v.embeddedPsgs[i]);
-        $('#' + currentPsg.domId + '-next').wiki(
-            nextPsg.processText()
+    var psg;
+    if (this._embeddedPsgs.length === 0) {
+        psg = Story.get(passage());
+    } else {
+        var title = this._embeddedPsgs[this._embeddedPsgs.length - 1];
+        psg = Story.get(title);
+    }
+    return psg;
+}
+
+s.Page.prototype.scrollToTop = function() {
+    /*
+    Scrolls to put the innermost passage at the top.
+    */
+    $('html').animate({
+        scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
+    }, 0);
+    return;
+}
+
+s.Page.prototype.insertPsg = function(psg, shellPsg) {
+    /*
+    Inserts the given passage into the given shell passage.
+
+    @param {<<SC Passage object>>} psg - The passage to embed.
+    @param {<<SC Passage object>>} shellPsg - The passage into which to
+    embed.
+    */
+    $('#' + shellPsg.domId + '-next').wiki(
+        '<p style="text-align:center">****</p>' +
+        v.parser.procAllMarkup(psg.title, psg.text)
+    );
+    return;
+}
+
+s.Page.prototype.embedPsg = function(node) {
+    /*
+    Removes the current actions from the page, inserts the given node
+    and its actions into the bottom of the page, scrolls to put the new
+    content at the top, appends the page's list of embedded passages,
+    and adds a new moment to SC's history.
+    */
+    var nodePsg = node.getPassage();
+    if (nodePsg.title === passage() ||
+        this._embeddedPsgs.indexOf(nodePsg.title) >= 0) {
+        throw new Error(
+            'Page.load():\n' +
+            'cannot embed a passage in itself'
         );
-        currentPsg = nextPsg;
+    }
+
+    var latestPsg = this.innerPsg();
+    $('#' + latestPsg.domId + '-actions').empty();
+    this.insertPsg(nodePsg, latestPsg);
+    this.insertActions(nodePsg);
+    this.scrollToTop();
+    this._embeddedPsgs.push(nodePsg.title);
+    State.create(State.passage);
+    return;
+}
+
+s.Page.prototype.load = function(node, embed) {
+    /*
+    Runs the given node's `onLoad` function, then renders the node's
+    passage. If the optional parameter `embed` is true, then rather than
+    rendering the passage, the passage's contents are appended to the
+    end of the last embedded passage, the page is scrolled to put the
+    new passage content at the top, and a new moment is added to SC's
+    history.
+    */
+    embed = embed || this._continuous;
+    node.onLoad();
+    var nodePsg = node.getPassage();
+    if (embed) {
+        this.embedPsg(node);
+        return;
+    } else {
+        this._embeddedPsgs = [];
+        Engine.play(nodePsg.title);
+        return;
     }
 }
 
-$(document).on(':passagedisplay', function (ev) {
-    s.reEmbedPsgs(ev.passage);
-
-    var len = v.embeddedPsgs.length;
-    var currentPsg;
-    if (len == 0) {
-        currentPsg = ev.passage;
-    } else {
-        currentPsg = Story.get(v.embeddedPsgs[len - 1]);
+s.Page.prototype.reEmbedPsgs = function(psg) {
+    /*
+    Re-embeds embedded passages when the given main containing passage
+    renders.
+    */
+    var currentPsg = psg;
+    var nextPsg;
+    for (var i = 0; i < this._embeddedPsgs.length; i++) {
+        nextPsg = Story.get(this._embeddedPsgs[i]);
+        this.insertPsg(nextPsg, currentPsg);
+        currentPsg = nextPsg;
     }
-    s.insertActionLinks(currentPsg);
-
-    $('html').animate({
-        scrollTop: $('#' + currentPsg.domId + '-body').position().top
-    }, 0);
-
     return;
-});
-/* twine-user-script #8: "9000-main.js" */
+}
+
+s.Page.prototype.rebuildPage = function(psg) {
+    /*
+    To be run after the main containing passage renders. Re-embeds
+    embedded passages.  Inserts action links into last embedded passage,
+    then scrolls so that the last embedded passage is the first thing
+    visible.
+
+    @param {SC Passage object} psg
+    */
+    var currentPsg = this.innerPsg();
+    this.reEmbedPsgs(psg);
+    this.insertActions(currentPsg);
+    this.scrollToTop();
+    return;
+}
+/* twine-user-script #8: "8000-Global.js" */
+/*
+Global objects scattered throughout code:
+----
+from Node.js:
+    s.nodes : Map(<<SC Passage obj>> : Node)
+    s.getNode(psgTitle: String): Node
+    s.specialPassages : String[]
+    v.embeddedPsgs : String[]
+*/
+
+Config.passages.nobr = true; // sets all passages to `nobr`
+
+window.onerror = function(msg, url, linenumber) {
+    /*
+    Ensures that errors appear in a pop-up for greater visibility. Works
+    in Firefox, but doesn't seem to work in Safari. Be sure to do
+    testing in Firefox.
+    */
+    alert(
+        'Error message: ' + msg + '\n' +
+        'URL: ' + url + '\n' +
+        'Line Number: ' + linenumber
+    );
+    return true;
+}
+
+s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
+    /*
+    Calls the `addLink` method of the node associated with
+    `startPsgTitle`, passing it the other parameters. If no such node
+    exists, one is created.
+    */
+    var startNode = s.nodes.get(Story.get(startPsgTitle));
+    if (startNode === undefined) {
+        startNode = new s.Node(startPsgTitle);
+    }
+
+    return startNode.addLink(text, endPsgTitle, func);
+}
+
+v.parser = new s.Parser();
+
+Config.passages.onProcess = function (p) {
+    var processedText = v.parser.procAllMarkup(p.title, p.text);
+    return processedText;
+};
+
+v.page = new s.Page();
+
+s.rebuildPage = function(ev) {
+    v.page.rebuildPage(ev.passage);
+    return;
+}
+
+$(document).on(':passagedisplay', s.rebuildPage);
+/* twine-user-script #9: "9000-Main.js" */
+v.page.setContinuous(true);
+
 s.makeLink('Start', 'begin', 'intro').setAlign('center');
 s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
@@ -861,8 +1071,8 @@ s.getNode('bedroom').push((new s.Action(
 )).push(new s.Outcome(function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
-    v.textSubs.set('Taking knife', [' You may need this for later.']);
-    s.takingKnife.load(true);
+    v.parser.setSubs('Taking knife', [' You may need this for later.']);
+    v.page.load(s.takingKnife, true);
     return;
 })));
 
@@ -873,13 +1083,13 @@ s.getNode('bedroom').push((new s.Action(
     }
 )).push(new s.Outcome(function() {
     v.body.searched = true;
-    v.textSubs.set('Cops bust in', [
+    v.parser.setSubs('Cops bust in', [
         '',
 
         'As you bend down to take a closer look at the body, the bedroom ' +
         'door bursts open. ' 
     ]);
-    s.copsBustIn.load(true);
+    v.page.load(s.copsBustIn, true);
     return;
 })));
 
@@ -900,7 +1110,7 @@ for (var i = 0; i < s.bedroom.length(); i++) {
 }
 
 s.makeLink('Cops bust in', 'continue', 'Next');
-/* twine-user-script #9: "Story JavaScript" */
+/* twine-user-script #10: "Story JavaScript" */
 </script><tw-passagedata pid="1" name="StorySubtitle" tags="" position="100,100" size="100,100">Story Subtitle</tw-passagedata><tw-passagedata pid="2" name="StoryAuthor" tags="" position="225,100" size="100,100">Story Author</tw-passagedata><tw-passagedata pid="3" name="StoryBanner" tags="" position="350,100" size="100,100">Story Banner</tw-passagedata><tw-passagedata pid="4" name="StoryCaption" tags="" position="475,100" size="100,100">Story Caption</tw-passagedata><tw-passagedata pid="5" name="StoryMenu" tags="" position="600,100" size="100,100">&lt;&lt;link &#39;menu item 1&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;link &#39;menu item 2&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="StoryInit" tags="" position="725,100" size="100,100">&lt;&lt;set $pounding = true&gt;&gt;
 &lt;&lt;set $crowbar = false&gt;&gt;

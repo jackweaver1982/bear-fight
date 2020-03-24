@@ -9,7 +9,7 @@ s.getNode = function(psgTitle) {
     return s.nodes.get(Story.get(psgTitle));
 }
 
-s.specialPassages = [
+s.specialPsgs = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
     'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
@@ -59,21 +59,21 @@ s.Node = function(psgTitle, subCount, func) {
             'there is no passage titled "' + psgTitle + '"'
         );
     }
-    if (s.specialPassages.indexOf(psgTitle) >= 0) {
+    if (s.specialPsgs.indexOf(psgTitle) >= 0) {
         throw new Error(
             'Node():\n' +
             'cannot assign a special passage other than `Start` to a node'
         );
     }
-    var passage = Story.get(psgTitle);
-    if (s.nodes.has(passage)) {
+    var psg = Story.get(psgTitle);
+    if (s.nodes.has(psg)) {
         throw new Error(
             'Node():\n' +
             'the passage "' + psgTitle + '" already belongs to a node'
         );
     }
-    this._passage = passage;
-    s.nodes.set(passage, this);
+    this._passage = psg;
+    s.nodes.set(psg, this);
     this._subCount = subCount || 0;
     this._userScript = func || function() {
         return;
@@ -107,47 +107,8 @@ s.Node.prototype.getSubCount = function() {
     return this._subCount;
 }
 
-s.Node.prototype.load = function(embed) {
-    /*
-    Runs the `_userScript` function, then renders the node's passage. If
-    the optional parameter `embed` is true, then rather than rendering
-    the passage, the passage's contents are appended to the end of the
-    current passage and new moment is added to SC's history. A list of
-    titles of embedded passages is saved in `v` so that they can be
-    re-embedded upon loading a save or refreshing the browser. The
-    outermost passage is not included in the list. Its title can be
-    accessed by SC's built-in function, `passage()`.
-    */
-    this._userScript();
-    if (embed) {
-        if (this._passage.title === passage() ||
-            v.embeddedPsgs.indexOf(this._passage.title) >= 0) {
-            throw new Error(
-                'Node.load():\n' +
-                'cannot embed a passage in itself'
-            );
-        }
-
-        var currentPsg;
-        if (v.embeddedPsgs.length === 0) {
-            currentPsg = passage();
-        } else {
-            currentPsg = v.embeddedPsgs[v.embeddedPsgs.length - 1];
-        }
-
-        $('#' + Story.get(currentPsg).domId + '-actions').empty();
-        $('#' + Story.get(currentPsg).domId + '-next').wiki(
-            this._passage.processText()
-        );
-        s.insertActionLinks(this._passage);
-        v.embeddedPsgs.push(this._passage.title);
-        State.create(State.passage);
-        return;
-    } else {
-        v.embeddedPsgs = [];
-        Engine.play(this._passage.title);
-        return;
-    }
+s.Node.prototype.onLoad = function() {
+    return this._userScript();
 }
 
 s.Node.prototype.addLink = function(text, psgTitle, func) {
@@ -170,30 +131,16 @@ s.Node.prototype.addLink = function(text, psgTitle, func) {
     var outcome;
     if (func === undefined) {
         outcome = new s.Outcome(function() {
-            targetNode.load();
+            v.page.load(targetNode);
         });
     } else {
         outcome = new s.Outcome(function() {
             func();
-            targetNode.load();
+            v.page.load(targetNode);
         });
     }
 
     var action = new s.Action(text).push(outcome);
     this.push(action);
     return action;
-}
-
-s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
-    /*
-    Calls the `addLink` method of the node associated with
-    `startPsgTitle`, passing it the other parameters. If no such node
-    exists, one is created.
-    */
-    var startNode = s.nodes.get(Story.get(startPsgTitle));
-    if (startNode === undefined) {
-        startNode = new s.Node(startPsgTitle);
-    }
-
-    return startNode.addLink(text, endPsgTitle, func);
 }
