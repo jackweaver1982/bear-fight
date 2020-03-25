@@ -265,6 +265,14 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-027">Version 0.2.7</h2>
+
+<ul>
+<li>Deleted unused variable <code>v.embeddedPsgs</code>.</li>
+<li>Changed <code>html</code> to <code>html, body</code> in scrolling animation to support Safari.</li>
+<li>Renamed <code>Page.scrollToTop</code> to <code>scrollToLast</code>.</li>
+<li>Added metadata to track if the page is being reloaded. If reloading, inserted a pause before rebuilding the page during the <code>:passagedisplay</code> event. This is to prevent the <code>scrollToLast</code> method from firing too early, and thereby having no effect.</li>
+</ul>
 <h2 class="mume-header" id="version-026">Version 0.2.6</h2>
 
 <ul>

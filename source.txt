@@ -259,9 +259,6 @@ s.specialPsgs = [
     'StorySubtitle', 'StoryTitle'
 ];
 
-v.embeddedPsgs = []; // list of embedded passage titles (see
-                     // `s.Node.load()` below)
-
 s.Node = function(psgTitle, subCount, func) {
     /*
     A `Node` object is like a wrapper around a passage. It contains the
@@ -351,8 +348,7 @@ s.Node.prototype.getSubCount = function() {
 }
 
 s.Node.prototype.onLoad = function() {
-    this._userScript();
-    return;
+    return this._userScript();
 }
 
 s.Node.prototype.addLink = function(text, psgTitle, func) {
@@ -797,6 +793,7 @@ s.Page.prototype.insertActions = function(psg) {
             );
         }
     }
+    return this;
 }
 
 s.Page.prototype.innerPsg = function() {
@@ -813,14 +810,14 @@ s.Page.prototype.innerPsg = function() {
     return psg;
 }
 
-s.Page.prototype.scrollToTop = function() {
+s.Page.prototype.scrollToLast = function() {
     /*
     Scrolls to put the innermost passage at the top.
     */
-    $('html').animate({
+    $('html, body').animate({
         scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
     }, 0);
-    return;
+    return this;
 }
 
 s.Page.prototype.insertPsg = function(psg, shellPsg) {
@@ -835,7 +832,7 @@ s.Page.prototype.insertPsg = function(psg, shellPsg) {
         '<p style="text-align:center">****</p>' +
         v.parser.procAllMarkup(psg.title, psg.text)
     );
-    return;
+    return this;
 }
 
 s.Page.prototype.embedPsg = function(node) {
@@ -858,10 +855,10 @@ s.Page.prototype.embedPsg = function(node) {
     $('#' + latestPsg.domId + '-actions').empty();
     this.insertPsg(nodePsg, latestPsg);
     this.insertActions(nodePsg);
-    this.scrollToTop();
+    this.scrollToLast();
     this._embeddedPsgs.push(nodePsg.title);
     State.create(State.passage);
-    return;
+    return this;
 }
 
 s.Page.prototype.load = function(node, embed) {
@@ -878,18 +875,18 @@ s.Page.prototype.load = function(node, embed) {
     var nodePsg = node.getPassage();
     if (embed) {
         this.embedPsg(node);
-        return;
+        return this;
     } else {
         this._embeddedPsgs = [];
         Engine.play(nodePsg.title);
-        return;
+        return this;
     }
 }
 
 s.Page.prototype.reEmbedPsgs = function(psg) {
     /*
     Re-embeds embedded passages when the given main containing passage
-    renders.
+    object renders.
     */
     var currentPsg = psg;
     var nextPsg;
@@ -898,23 +895,23 @@ s.Page.prototype.reEmbedPsgs = function(psg) {
         this.insertPsg(nextPsg, currentPsg);
         currentPsg = nextPsg;
     }
-    return;
+    return this;
 }
 
 s.Page.prototype.rebuildPage = function(psg) {
     /*
-    To be run after the main containing passage renders. Re-embeds
-    embedded passages.  Inserts action links into last embedded passage,
-    then scrolls so that the last embedded passage is the first thing
-    visible.
+    To be run after the given main containing passage object renders.
+    Re-embeds embedded passages.  Inserts action links into last
+    embedded passage, then scrolls so that the last embedded passage is
+    the first thing visible.
 
     @param {SC Passage object} psg
     */
     var currentPsg = this.innerPsg();
     this.reEmbedPsgs(psg);
     this.insertActions(currentPsg);
-    this.scrollToTop();
-    return;
+    this.scrollToLast();
+    return this;
 }
 /* twine-user-script #8: "8000-Global.js" */
 /*
@@ -924,7 +921,6 @@ from Node.js:
     s.nodes : Map(<<SC Passage obj>> : Node)
     s.getNode(psgTitle: String): Node
     s.specialPassages : String[]
-    v.embeddedPsgs : String[]
 */
 
 Config.passages.nobr = true; // sets all passages to `nobr`
@@ -966,8 +962,25 @@ Config.passages.onProcess = function (p) {
 
 v.page = new s.Page();
 
+$(window).on('beforeunload', function(){
+    State.metadata.set('reloading', true);
+    return;
+});
+
 s.rebuildPage = function(ev) {
-    v.page.rebuildPage(ev.passage);
+    /*
+    Pauses before rebuilding page if page was just reloaded. Otherwise,
+    the scrollToLast method executes too soon and has no effect.
+    */
+    if (State.metadata.get('reloading')) {
+        setTimeout(function() {
+            v.page.rebuildPage(ev.passage);
+            return;
+        }, 500);
+        State.metadata.set('reloading', false);
+    } else {
+        v.page.rebuildPage(ev.passage);
+    }
     return;
 }
 

@@ -16,9 +16,6 @@ s.specialPsgs = [
     'StorySubtitle', 'StoryTitle'
 ];
 
-v.embeddedPsgs = []; // list of embedded passage titles (see
-                     // `s.Node.load()` below)
-
 s.Node = function(psgTitle, subCount, func) {
     /*
     A `Node` object is like a wrapper around a passage. It contains the

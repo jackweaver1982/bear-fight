@@ -102,11 +102,11 @@ s.Page.prototype.innerPsg = function() {
     return psg;
 }
 
-s.Page.prototype.scrollToTop = function() {
+s.Page.prototype.scrollToLast = function() {
     /*
     Scrolls to put the innermost passage at the top.
     */
-    $('html').animate({
+    $('html, body').animate({
         scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
     }, 0);
     return this;
@@ -147,7 +147,7 @@ s.Page.prototype.embedPsg = function(node) {
     $('#' + latestPsg.domId + '-actions').empty();
     this.insertPsg(nodePsg, latestPsg);
     this.insertActions(nodePsg);
-    this.scrollToTop();
+    this.scrollToLast();
     this._embeddedPsgs.push(nodePsg.title);
     State.create(State.passage);
     return this;
@@ -202,6 +202,6 @@ s.Page.prototype.rebuildPage = function(psg) {
     var currentPsg = this.innerPsg();
     this.reEmbedPsgs(psg);
     this.insertActions(currentPsg);
-    this.scrollToTop();
+    this.scrollToLast();
     return this;
 }

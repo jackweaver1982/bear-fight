@@ -4,6 +4,13 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.7
+
+* Deleted unused variable `v.embeddedPsgs`.
+* Changed `html` to `html, body` in scrolling animation to support Safari.
+* Renamed `Page.scrollToTop` to `scrollToLast`.
+* Added metadata to track if the page is being reloaded. If reloading, inserted a pause before rebuilding the page during the `:passagedisplay` event. This is to prevent the `scrollToLast` method from firing too early, and thereby having no effect.
+
 ## Version 0.2.6
 
 * Moved `load()` method to `Page` object. Added `onLoad()` method to `Node` for storing the user script.

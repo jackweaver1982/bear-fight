@@ -5,7 +5,6 @@ from Node.js:
     s.nodes : Map(<<SC Passage obj>> : Node)
     s.getNode(psgTitle: String): Node
     s.specialPassages : String[]
-    v.embeddedPsgs : String[]
 */
 
 Config.passages.nobr = true; // sets all passages to `nobr`
@@ -47,8 +46,25 @@ Config.passages.onProcess = function (p) {
 
 v.page = new s.Page();
 
+$(window).on('beforeunload', function(){
+    State.metadata.set('reloading', true);
+    return;
+});
+
 s.rebuildPage = function(ev) {
-    v.page.rebuildPage(ev.passage);
+    /*
+    Pauses before rebuilding page if page was just reloaded. Otherwise,
+    the scrollToLast method executes too soon and has no effect.
+    */
+    if (State.metadata.get('reloading')) {
+        setTimeout(function() {
+            v.page.rebuildPage(ev.passage);
+            return;
+        }, 500);
+        State.metadata.set('reloading', false);
+    } else {
+        v.page.rebuildPage(ev.passage);
+    }
     return;
 }
 
