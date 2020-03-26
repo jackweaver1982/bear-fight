@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.9
+
+* Was scrolling to second-to-last passage upon following a link. Moved `scrollToLast()` call in `Page.embedPsg()` to fix this.
+
 ## Version 0.2.8
 
 * Added `nobreak` parameter to `Page.insertPsg()` to suppress the printing of the scene break.

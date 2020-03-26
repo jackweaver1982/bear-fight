@@ -945,9 +945,9 @@ s.Page.prototype.embedPsg = function(node, nobreak) {
     $('#' + latestPsg.domId + '-actions').empty();
     this.insertPsg(nodePsg, latestPsg, nobreak);
     this.insertActions(nodePsg);
-    this.scrollToLast();
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
+    this.scrollToLast();
     State.create(State.passage);
     return this;
 }
