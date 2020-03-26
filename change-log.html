@@ -265,6 +265,16 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-028">Version 0.2.8</h2>
+
+<ul>
+<li>Added <code>nobreak</code> parameter to <code>Page.insertPsg()</code> to suppress the printing of the scene break.</li>
+<li>Added <code>nobreak</code> parameter to <code>Page.embedPsg()</code> and the property <code>Page._noBreakFlags</code> to track which embedded passages were inserted without scene breaks.</li>
+<li>Added <code>nobreak</code> parameter to <code>Page.load()</code>.</li>
+<li>Edited <code>Page.reEmbedPsgs()</code> to take <code>this._noBreakFlags</code> into account when re-embedding the passages.</li>
+<li>Added <code>embed</code> and <code>nobreak</code> parameters to <code>Node.addLink()</code> and <code>makeLink()</code>.</li>
+<li>Added <code>none()</code> for convenience in passing an empty function as a parameter.</li>
+</ul>
 <h2 class="mume-header" id="version-027">Version 0.2.7</h2>
 
 <ul>

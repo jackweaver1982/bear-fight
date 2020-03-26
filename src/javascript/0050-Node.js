@@ -108,12 +108,13 @@ s.Node.prototype.onLoad = function() {
     return this._userScript();
 }
 
-s.Node.prototype.addLink = function(text, psgTitle, func) {
+s.Node.prototype.addLink = function(text, psgTitle, func, embed, nobreak) {
     /*
     Creates a new Outcome that runs the given function, then loads the
     node associated with the given passage title. Then adds that Outcome
     to a new Action with the given text as its link text. Then adds that
-    Action to the node.
+    Action to the node. The target node is loaded with the optional
+    `embed` and `nobreak` parameters.
 
     If there is no node associated with the given passage title, one
     will be created.
@@ -133,7 +134,7 @@ s.Node.prototype.addLink = function(text, psgTitle, func) {
     } else {
         outcome = new s.Outcome(function() {
             func();
-            v.page.load(targetNode);
+            v.page.load(targetNode, embed, nobreak);
         });
     }
 

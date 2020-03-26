@@ -19,6 +19,8 @@ be SC supported types.
 s.Page = function() {
     this._embeddedPsgs = [];  // list of embedded passage titles; does
                               // not include the first (main) passage
+    this._noBreakFlags = [];  // list of nobreak flags (true if passage
+                              // was embedded without a scene break)
     this._continuous = false; // set true to have passages embed by
                               // default
     return this;    
@@ -112,27 +114,31 @@ s.Page.prototype.scrollToLast = function() {
     return this;
 }
 
-s.Page.prototype.insertPsg = function(psg, shellPsg) {
+s.Page.prototype.insertPsg = function(psg, shellPsg, nobreak) {
     /*
-    Inserts the given passage into the given shell passage.
+    Inserts the given passage into the given shell passage, preceded by
+    a scene break ("****"). The scene break is omitted is `nobreak` is
+    true.
 
     @param {<<SC Passage object>>} psg - The passage to embed.
     @param {<<SC Passage object>>} shellPsg - The passage into which to
     embed.
     */
+    var sceneBreak = nobreak ? '' : '<p style="text-align:center">****</p>';
     $('#' + shellPsg.domId + '-next').wiki(
-        '<p style="text-align:center">****</p>' +
+        sceneBreak +
         v.parser.procAllMarkup(psg.title, psg.text)
     );
     return this;
 }
 
-s.Page.prototype.embedPsg = function(node) {
+s.Page.prototype.embedPsg = function(node, nobreak) {
     /*
     Removes the current actions from the page, inserts the given node
     and its actions into the bottom of the page, scrolls to put the new
     content at the top, appends the page's list of embedded passages,
-    and adds a new moment to SC's history.
+    and adds a new moment to SC's history. The embedded passage is
+    preceded by a scene break ("****") unless `nobreak` is true.
     */
     var nodePsg = node.getPassage();
     if (nodePsg.title === passage() ||
@@ -145,31 +151,36 @@ s.Page.prototype.embedPsg = function(node) {
 
     var latestPsg = this.innerPsg();
     $('#' + latestPsg.domId + '-actions').empty();
-    this.insertPsg(nodePsg, latestPsg);
+    this.insertPsg(nodePsg, latestPsg, nobreak);
     this.insertActions(nodePsg);
     this.scrollToLast();
     this._embeddedPsgs.push(nodePsg.title);
+    this._noBreakFlags.push(nobreak);
     State.create(State.passage);
     return this;
 }
 
-s.Page.prototype.load = function(node, embed) {
+s.Page.prototype.load = function(node, embed, nobreak) {
     /*
     Runs the given node's `onLoad` function, then renders the node's
     passage. If the optional parameter `embed` is true, then rather than
     rendering the passage, the passage's contents are appended to the
     end of the last embedded passage, the page is scrolled to put the
     new passage content at the top, and a new moment is added to SC's
-    history.
+    history. The appended content is preceded by a scene break ("****"),
+    unless the optional `nobreak` parameter is true.
     */
-    embed = embed || this._continuous;
+    if (embed === undefined) {
+        embed = this._continuous;
+    }
     node.onLoad();
     var nodePsg = node.getPassage();
     if (embed) {
-        this.embedPsg(node);
+        this.embedPsg(node, nobreak);
         return this;
     } else {
         this._embeddedPsgs = [];
+        this._noBreakFlags = [];
         Engine.play(nodePsg.title);
         return this;
     }
@@ -184,7 +195,7 @@ s.Page.prototype.reEmbedPsgs = function(psg) {
     var nextPsg;
     for (var i = 0; i < this._embeddedPsgs.length; i++) {
         nextPsg = Story.get(this._embeddedPsgs[i]);
-        this.insertPsg(nextPsg, currentPsg);
+        this.insertPsg(nextPsg, currentPsg, this._noBreakFlags[i]);
         currentPsg = nextPsg;
     }
     return this;

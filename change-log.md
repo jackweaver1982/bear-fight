@@ -4,6 +4,15 @@ title: Change Log
 
 # Change Log
 
+## Version 0.2.8
+
+* Added `nobreak` parameter to `Page.insertPsg()` to suppress the printing of the scene break.
+* Added `nobreak` parameter to `Page.embedPsg()` and the property `Page._noBreakFlags` to track which embedded passages were inserted without scene breaks.
+* Added `nobreak` parameter to `Page.load()`.
+* Edited `Page.reEmbedPsgs()` to take `this._noBreakFlags` into account when re-embedding the passages.
+* Added `embed` and `nobreak` parameters to `Node.addLink()` and `makeLink()`.
+* Added `none()` for convenience in passing an empty function as a parameter.
+
 ## Version 0.2.7
 
 * Deleted unused variable `v.embeddedPsgs`.

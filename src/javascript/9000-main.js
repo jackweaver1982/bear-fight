@@ -1,9 +1,11 @@
 v.page.setContinuous(true);
 
-s.makeLink('Start', 'begin', 'intro').setAlign('center');
+s.makeLink(
+    'Start', 'begin', 'intro', s.none, true, true
+).setAlign('center');
 s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
-s.makeLink('who you are', 'take a look around', 'bedroom');
+s.makeLink('who you are', 'take a look around', 'bedroom', s.none, false);
 
 s.getNode('bedroom').push((new s.Action(
     'take the knife',
@@ -14,7 +16,7 @@ s.getNode('bedroom').push((new s.Action(
     v.containedIn.delete('knife');
     v.inventory.add('knife');
     v.parser.setSubs('Taking knife', [' You may need this for later.']);
-    v.page.load(s.takingKnife, true);
+    v.page.load(s.takingKnife, true, true);
     return;
 })));
 

@@ -23,7 +23,8 @@ window.onerror = function(msg, url, linenumber) {
     return true;
 }
 
-s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
+s.makeLink = function(startPsgTitle, text, endPsgTitle,
+                      func, embed, nobreak) {
     /*
     Calls the `addLink` method of the node associated with
     `startPsgTitle`, passing it the other parameters. If no such node
@@ -34,8 +35,11 @@ s.makeLink = function(startPsgTitle, text, endPsgTitle, func) {
         startNode = new s.Node(startPsgTitle);
     }
 
-    return startNode.addLink(text, endPsgTitle, func);
+    return startNode.addLink(text, endPsgTitle, func, embed, nobreak);
 }
+
+s.none = function() { return; } // for convenience when passing an empty
+                                // function as a parameter
 
 v.parser = new s.Parser();
 
