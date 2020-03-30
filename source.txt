@@ -350,42 +350,35 @@ s.Node.prototype.getSubCount = function() {
 s.Node.prototype.onLoad = function() {
     return this._userScript();
 }
-
-s.Node.prototype.addLink = function(text, psgTitle, func, embed, nobreak) {
-    /*
-    Creates a new Outcome that runs the given function, then loads the
-    node associated with the given passage title. Then adds that Outcome
-    to a new Action with the given text as its link text. Then adds that
-    Action to the node. The target node is loaded with the optional
-    `embed` and `nobreak` parameters.
-
-    If there is no node associated with the given passage title, one
-    will be created.
-
-    Returns the newly created action.
-    */
-    var targetNode = s.nodes.get(Story.get(psgTitle));
-    if (targetNode === undefined) {
-        targetNode = new s.Node(psgTitle);
-    }
-
-    var outcome;
-    if (func === undefined) {
-        outcome = new s.Outcome(function() {
-            v.page.load(targetNode);
-        });
-    } else {
-        outcome = new s.Outcome(function() {
-            func();
-            v.page.load(targetNode, embed, nobreak);
-        });
-    }
-
-    var action = new s.Action(text).push(outcome);
-    this.push(action);
-    return action;
-}
 /* twine-user-script #6: "0060-Parser.js" */
+v.static = {};
+
+Object.defineProperty(window, "st", {
+    get: function() {
+        return State.variables.static;
+    }
+});
+
+s.loadVars = function(time) {
+    // Replaces `v` with a copy of `State.variables` from the moment
+    // with index `time`. Does not touch `v.static`.
+    //
+    // @param {Integer} time - A nonpositive integer representing the
+    // time from which to take the variable data. A value of 0 denotes
+    // the present.
+    var oldVars = State.peek(-time).variables;
+    Object.keys(v).forEach(function(pn) {
+        if (pn !== 'static') {
+            delete v[pn];
+        }
+    });
+    Object.keys(oldVars).forEach(function(pn) {
+        if (pn !== 'static') {
+            v[pn] = clone(oldVars[pn]);
+        }
+    });
+}
+
 /*
 A Parser object manages the conversion of the given passage text to the
 actual passage text used by SugarCube to display information.
@@ -406,7 +399,9 @@ method, `procMarkup()`, runs them all in the appropriate order. Through
 
 s.Parser = function() {
     this._textSubMap = new Map(); // Maps passage titles to arrays of
-                                  // text subs.
+                                  // text subs. A text subs can be a
+                                  // simple string or a functions
+                                  // returning a string.
     return this;    
 };
 
@@ -442,8 +437,9 @@ s.Parser.prototype.setSubs = function(psgTitle, subArray) {
     /*
     Adds `psgTitle` key to `_textSubMap` with value `subArray`. Throws
     an error if `psgTitle` doesn't correspond to a node, length of
-    `subArray` does match the sub count of the node, or `subArray` is
-    not a string array. Returns the calling Parser object.
+    `subArray` doesn't match the sub count of the node, or `subArray` is
+    not an array of strings or functions. Returns the calling Parser
+    object.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -459,11 +455,13 @@ s.Parser.prototype.setSubs = function(psgTitle, subArray) {
         );
     }
     if (!subArray.every(function(element) {
-        return (typeof(element) === 'string');
+        return (typeof(element) === 'string' ||
+                typeof(element) === 'function');
     })) {
         throw new Error(
             'Parser.setSubs():\n' +
-            'text substitutions must be strings'
+            'text substitutions must be strings or' +
+            'functions that return strings'
         );
     }
     this._textSubMap.set(psgTitle, subArray);
@@ -489,6 +487,14 @@ s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
     @param {String} text - The text to process.
     */
     var subArray = (this.getSubs(psgTitle) || []);
+    subArray = subArray.map(function(element) {
+        if (typeof(element) === 'function') {
+            return element();
+        } else {
+            return element;
+        }
+    });
+
     var psg = Story.get(psgTitle);
     var node = s.nodes.get(psg);
     var subCount = node.getSubCount();
@@ -597,13 +603,15 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
         linkResult = linkRegex.exec(processedText);
 
         if (linkResult === null) {
-            if (/\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/.test(processedText)) {
-                throw new Error(
-                    'description markup without link markup in passage, "' +
-                    psgTitle + '"'
-                );
-            }
-            return processedText;
+            // if (/\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/.test(processedText)) {
+            //     throw new Error(
+            //         'description markup without link markup in passage, "' +
+            //         psgTitle + '"'
+            //     );
+            // }
+            return processedText.replace(
+                /\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/g, ''
+            );
         }
         
         linkId = linkResult[2];
@@ -635,7 +643,7 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 
         part[j+1] = (
             '<<link "' + linkText + '">>' +
-                '<<run v.parser.showDetails(' + 
+                '<<run st.parser.showDetails(' + 
                     '"' + descText + '", "' + elementId + '"' +
                 ')>>' +
             '<</link>>'
@@ -683,19 +691,31 @@ s.Parser.prototype.removeBreaks = function(text) {
     return processedText;
 }
 
-s.Parser.prototype.procAllMarkup = function(psgTitle, text) {
+s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     /*
     Processes the special node markup in the given passage (inserts text
     subs, processes the detail markup, adds the containers, and removes
     breaks. Does nothing if the given passage is not associated with a
     node. Returns the processed text.
 
+    The optional `time` parameter is used to set the moment in SC's
+    history from which to draw the values of variables. It allows for
+    the use of variables in passage content. It should be a nonpositive
+    integer. A value of 0 denotes the current moment. Defaults to zero.
+
     @param {String} psgTitle - The title of the passage being processed.
     @param {String} text - The text of the passage being processed.
+    @param {Integer} time - (optional) A nonpositive integer that
+    defaults to zero. Sets the moment in history to use when parsing.
     */
     var node = s.nodes.get(Story.get(psgTitle));
     if (node === undefined) {
         return text;
+    }
+
+    time = time || 0;
+    if (time < 0) {
+        s.loadVars(time);
     }
 
     var processedText = text;
@@ -703,6 +723,10 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text) {
     processedText = this.procDetailMarkup(psgTitle, processedText);
     processedText = this.addContainers(psgTitle, processedText);
     processedText = this.removeBreaks(processedText);
+
+    if (time < 0) {
+        s.loadVars(0);
+    }
 
     return processedText;
 }
@@ -715,7 +739,7 @@ first passage is the main one and the one which SugarCube regards as
 being displayed. The other passages are displayed inside the first
 passage.
 
-There is one instance (`v.page`, see Global.js), built on
+There is one instance (`st.page`, see Global.js), built on
 State.variables, so its state can be stored in SugarCube's history.
 (This allows SugarCube to rebuild the page upon a browser refresh or
 upon loading a save file.) The class must therefore be made compatible
@@ -758,6 +782,18 @@ s.Page.prototype.toJSON = function () {
         '(new s.Page())._init($ReviveData$)', newPC
     );
 };
+
+s.Page.prototype.length = function() {
+    return this._embeddedPsgs.length;
+}
+
+s.Page.prototype.getPsg = function(index) {
+    return this._embeddedPsgs[index];
+}
+
+s.Page.prototype.getFlag = function(index) {
+    return this._noBreakFlags[index];
+}
 
 s.Page.prototype.isContinuous = function() {
     return this._continuous;
@@ -823,31 +859,54 @@ s.Page.prototype.scrollToLast = function() {
     return this;
 }
 
-s.Page.prototype.insertPsg = function(psg, shellPsg, nobreak) {
+s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     /*
     Inserts the given passage into the given shell passage, preceded by
     a scene break ("****"). The scene break is omitted is `nobreak` is
     true.
 
+    The optional `time` parameter is used to set the moment in SC's
+    history from which to draw the values of variables. It allows for
+    the use of variables in passage content. It should be a nonpositive
+    integer. A value of 0 denotes the current moment. Defaults to zero.
+
     @param {<<SC Passage object>>} psg - The passage to embed.
     @param {<<SC Passage object>>} shellPsg - The passage into which to
     embed.
+    @param {Integer} time - (optional) A nonpositive integer that
+    defaults to zero. Sets the moment in history to use when parsing.
+    @param {Boolean} nobreak - (optional) Defaults to false. Set to true
+    to omit the scene break marker.
     */
+    time = time || 0;
+    if (time < 0) {
+        s.loadVars(time);
+    }
+
     var sceneBreak = nobreak ? '' : '<p style="text-align:center">****</p>';
     $('#' + shellPsg.domId + '-next').wiki(
         sceneBreak +
-        v.parser.procAllMarkup(psg.title, psg.text)
+        st.parser.procAllMarkup(psg.title, psg.text)
     );
+
+    if (time < 0) {
+        s.loadVars(0);
+    }
+
     return this;
 }
 
-s.Page.prototype.embedPsg = function(node, nobreak) {
+s.Page.prototype.embedPsg = function(node, time, nobreak) {
     /*
     Removes the current actions from the page, inserts the given node
     and its actions into the bottom of the page, scrolls to put the new
     content at the top, appends the page's list of embedded passages,
     and adds a new moment to SC's history. The embedded passage is
     preceded by a scene break ("****") unless `nobreak` is true.
+
+    The time parameter is a nonpositive integer that defaults to zero
+    and sets the moment in history to use when parsing. See
+    `Page.insertPsgText` for details.
     */
     var nodePsg = node.getPassage();
     if (nodePsg.title === passage() ||
@@ -860,7 +919,7 @@ s.Page.prototype.embedPsg = function(node, nobreak) {
 
     var latestPsg = this.innerPsg();
     $('#' + latestPsg.domId + '-actions').empty();
-    this.insertPsg(nodePsg, latestPsg, nobreak);
+    this.insertPsgText(nodePsg, latestPsg, time, nobreak);
     this.insertActions(nodePsg);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
@@ -885,7 +944,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     node.onLoad();
     var nodePsg = node.getPassage();
     if (embed) {
-        this.embedPsg(node, nobreak);
+        this.embedPsg(node, 0, nobreak);
         return this;
     } else {
         this._embeddedPsgs = [];
@@ -895,22 +954,23 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     }
 }
 
-s.Page.prototype.reEmbedPsgs = function(psg) {
+// s.Page.prototype.reEmbedPsgs = function(psg) {
     /*
     Re-embeds embedded passages when the given main containing passage
     object renders.
     */
-    var currentPsg = psg;
-    var nextPsg;
-    for (var i = 0; i < this._embeddedPsgs.length; i++) {
-        nextPsg = Story.get(this._embeddedPsgs[i]);
-        this.insertPsg(nextPsg, currentPsg, this._noBreakFlags[i]);
-        currentPsg = nextPsg;
-    }
-    return this;
-}
+//     var currentPsg = psg;
+//     var nextPsg, time;
+//     for (var i = 0; i < this._embeddedPsgs.length; i++) {
+//         nextPsg = Story.get(this._embeddedPsgs[i]);
+//         time = i - (this._embeddedPsgs.length - 1)
+//         this.insertPsgText(nextPsg, currentPsg, time, this._noBreakFlags[i]);
+//         currentPsg = nextPsg;
+//     }
+//     return this;
+// }
 
-s.Page.prototype.rebuildPage = function(psg) {
+// s.Page.prototype.rebuildPage = function(psg) {
     /*
     To be run after the given main containing passage object renders.
     Re-embeds embedded passages.  Inserts action links into last
@@ -919,12 +979,13 @@ s.Page.prototype.rebuildPage = function(psg) {
 
     @param {SC Passage object} psg
     */
-    var currentPsg = this.innerPsg();
-    this.reEmbedPsgs(psg);
-    this.insertActions(currentPsg);
-    this.scrollToLast();
-    return this;
-}
+//     s.loadVars(0);
+//     var currentPsg = this.innerPsg();
+//     this.reEmbedPsgs(psg);
+//     this.insertActions(currentPsg);
+//     this.scrollToLast();
+//     return this;
+// }
 /* twine-user-script #8: "8000-Global.js" */
 /*
 Global objects scattered throughout code:
@@ -954,61 +1015,122 @@ window.onerror = function(msg, url, linenumber) {
 s.makeLink = function(startPsgTitle, text, endPsgTitle,
                       func, embed, nobreak) {
     /*
-    Calls the `addLink` method of the node associated with
-    `startPsgTitle`, passing it the other parameters. If no such node
-    exists, one is created.
+    Creates a new Outcome that runs `func`, then loads the node
+    associated with `endPsgTitle`. Then adds that Outcome to a new
+    Action with the given `text` as its link text. Then adds that Action
+    to the associated with `startPsgTitle`. The target node is loaded
+    with the optional `embed` and `nobreak` parameters.
+
+    If there are no nodes associated with the given passage titles, they
+    will be created.
+
+    Returns the newly created action.
     */
     var startNode = s.nodes.get(Story.get(startPsgTitle));
     if (startNode === undefined) {
         startNode = new s.Node(startPsgTitle);
     }
 
-    return startNode.addLink(text, endPsgTitle, func, embed, nobreak);
+    var targetNode = s.nodes.get(Story.get(endPsgTitle));
+    if (targetNode === undefined) {
+        targetNode = new s.Node(endPsgTitle);
+    }
+
+    var outcome;
+    if (func === undefined) {
+        outcome = new s.Outcome(function() {
+            st.page.load(targetNode);
+        });
+    } else {
+        outcome = new s.Outcome(function() {
+            func();
+            st.page.load(targetNode, embed, nobreak);
+        });
+    }
+
+    var action = new s.Action(text).push(outcome);
+    startNode.push(action);
+    return action;
 }
 
 s.none = function() { return; } // for convenience when passing an empty
                                 // function as a parameter
 
-v.parser = new s.Parser();
+st.parser = new s.Parser();
+st.page = new s.Page();
 
-Config.passages.onProcess = function (p) {
-    var processedText = v.parser.procAllMarkup(p.title, p.text);
+Config.passages.onProcess = function(p) {
+    /*
+    Rewinds variables to a previous moment to account for embedded
+    passages. Variables will be restored on `:passagedisplay`. Then
+    processes the node markup.
+    */
+    s.loadVars(-st.page.length());
+    var processedText = st.parser.procAllMarkup(
+        p.title, p.text
+    );
     return processedText;
 };
 
-v.page = new s.Page();
-
-$(window).on('beforeunload', function(){
-    State.metadata.set('reloading', true);
-    return;
-});
-
-s.rebuildPage = function(ev) {
+s.onPsgDisplay = function(ev) {
     /*
-    Pauses before rebuilding page if page was just reloaded. Otherwise,
-    the scrollToLast method executes too soon and has no effect.
+    Triggered by the `:passagedisplay` event. Rebuilds the current page.
     */
-    if (State.metadata.get('reloading')) {
-        setTimeout(function() {
-            v.page.rebuildPage(ev.passage);
-            return;
-        }, 500);
-        State.metadata.set('reloading', false);
-    } else {
-        v.page.rebuildPage(ev.passage);
+    s.loadVars(0); // resets variables to current time
+
+    var currentPsg = ev.passage;
+    var nextPsg, time;
+    for (var i = 0; i < st.page.length(); i++) {
+        /*
+        Re-inserts embedded passage text one at a time.
+        */
+        nextPsg = Story.get(st.page.getPsg(i));
+        time = i - (st.page.length() - 1)
+        st.page.insertPsgText(
+            nextPsg, currentPsg, time, st.page.getFlag(i)
+        );
+        currentPsg = nextPsg;
     }
+
+    st.page.insertActions(st.page.innerPsg());
+    st.page.scrollToLast();
     return;
 }
 
-$(document).on(':passagedisplay', s.rebuildPage);
+$(document).on(':passagedisplay', s.onPsgDisplay);
 /* twine-user-script #9: "9000-Main.js" */
-v.page.setContinuous(true);
+st.page.setContinuous(true);
 
 s.makeLink(
     'Start', 'begin', 'intro', s.none, true, true
 ).setAlign('center');
 s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
+
+// s.bedroom = (new s.Node('bedroom', 2))
+// v.parser.setSubs('bedroom', [
+//     function() {
+//         if (v.pounding) {
+//             return 'You can hear the pounding on the front door coming from ' +
+//                    'that direction. ';
+//         } else if (v.crowbar) {
+//             return 'Outside the bedroom, ' +
+//                    (v.knowledge.has('policeAtDoor') ?
+//                         'the police are' : 'someone is') +
+//                    ' breaking into the house with a crowbar. ';
+//         } else {
+//             return '';
+//         }
+//     },
+//     function() {
+//         return (
+//             v.containedIn.get('knife') == 'bedroom' ?
+//             "What looks like a heavy-duty {chef's knife|D} is sticking out of"
+//                 + 'his chest.' :
+//             ''
+//         );
+//     }
+// ]);
 s.makeLink('who you are', 'take a look around', 'bedroom', s.none, false);
 
 s.getNode('bedroom').push((new s.Action(
@@ -1019,8 +1141,8 @@ s.getNode('bedroom').push((new s.Action(
 )).push(new s.Outcome(function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
-    v.parser.setSubs('Taking knife', [' You may need this for later.']);
-    v.page.load(s.takingKnife, true, true);
+    st.parser.setSubs('Taking knife', [' You may need this for later.']);
+    st.page.load(s.takingKnife, true, true);
     return;
 })));
 
@@ -1031,13 +1153,14 @@ s.getNode('bedroom').push((new s.Action(
     }
 )).push(new s.Outcome(function() {
     v.body.searched = true;
-    v.parser.setSubs('Cops bust in', [
+    v.pounding = false;
+    st.parser.setSubs('Cops bust in', [
         '',
 
         'As you bend down to take a closer look at the body, the bedroom ' +
         'door bursts open. ' 
     ]);
-    v.page.load(s.copsBustIn, true);
+    st.page.load(s.copsBustIn, true);
     return;
 })));
 
@@ -1057,7 +1180,9 @@ for (var i = 0; i < s.bedroom.length(); i++) {
     s.takingKnife.push(s.bedroom.get(i));
 }
 
-s.makeLink('Cops bust in', 'continue', 'Next');
+s.makeLink('Cops bust in', 'continue', 'Next', function() {
+    v.inventory.delete('knife');
+});
 /* twine-user-script #10: "Story JavaScript" */
 
 

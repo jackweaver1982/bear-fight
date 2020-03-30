@@ -4,9 +4,22 @@ title: Change Log
 
 # Change Log
 
-## Version 0.2.9
+## Version 0.3.0
 
 * Was scrolling to second-to-last passage upon following a link. Moved `scrollToLast()` call in `Page.embedPsg()` to fix this.
+* Removed `Node.addLink()` and added its code to `s.makeLink()`.
+* Added the `v.static` namespace, with shortcut, `st`.
+* Added `s.loadVars()` for loading variables from earlier moments. Does not touch the `st` namespace.
+* Moved `v.parser` and `v.page` to `st.parser` and `st.page`.
+* Allowed text substitutions to be functions that return strings.
+* Allowed more description markups than link markups, to allow for link markups to appear in text substitutions.
+* Added a `time` parameter to `Parser.procAllMarkup()` so the method can rewind the variables to an earlier moment before doing its markup. At present, this is unnecessary, since the text subs are stored in `st.parser`, which is not rewound, and no other part of the markup processing relies on dynamically changing data.
+* Added `length()`, `getPsg()`, and `getFlag()` methods to `Page`.
+* Changed the name of `Page.insertPsg()` to `Page.insertPsgText()`.
+* Added a `time` parameter to `Page.insertPsgText()` so the method can rewind the variables to an earlier moment before doing its markup. This is necessary to allow SC markup in passage text which relies on variables, such as the `<<if>>` macro.
+* Added a `time` parameter to `Page.embedPsg()`, which uses `Page.insertPsgText()`.
+* Modified `Config.passages.onProcess` so that it rewinds variables. Does not reset variables to current time. Leaves them rewound for SC to use them as it renders the passage.
+* Removed the `reEmbedPsgs()` and `rebuildPage()` methods from `Page` and moved their code to the global function `s.onPsgDisplay()` which is triggered by the `:passagedisplay` event. `s.onPsgDisplay()` begins by resetting the variables to the current moment.
 
 ## Version 0.2.8
 

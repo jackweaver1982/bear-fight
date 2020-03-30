@@ -1,14 +1,44 @@
+v.static = {};
+
+Object.defineProperty(window, "st", {
+    get: function() {
+        return State.variables.static;
+    }
+});
+
+s.loadVars = function(time) {
+    // Replaces `v` with a copy of `State.variables` from the moment
+    // with index `time`. Does not touch `v.static`.
+    //
+    // @param {Integer} time - A nonpositive integer representing the
+    // time from which to take the variable data. A value of 0 denotes
+    // the present.
+    var oldVars = State.peek(-time).variables;
+    Object.keys(v).forEach(function(pn) {
+        if (pn !== 'static') {
+            delete v[pn];
+        }
+    });
+    Object.keys(oldVars).forEach(function(pn) {
+        if (pn !== 'static') {
+            v[pn] = clone(oldVars[pn]);
+        }
+    });
+    return;
+}
+
 /*
 A Parser object manages the conversion of the given passage text to the
 actual passage text used by SugarCube to display information.
 
-There is one instance (see Global.js), built on State.variables, so its
-state can be stored in SugarCube's history. (This is needed, because the
-parser tracks dynamically generated text substitutions.) The class must
-therefore be made compatible with SugarCube by having `clone()` and
-`toJSON()` methods, and no recursive objects or object sharing. To
-achieve this, we also require it to have a constructor with no arguments
-and to have all its properties be SC supported types.
+There is one instance (`st.parser`, see Page.js), built on
+State.variables, so its state can be stored in SugarCube's history.
+(This is needed, because the parser tracks dynamically generated text
+substitutions.) The class must therefore be made compatible with
+SugarCube by having `clone()` and `toJSON()` methods, and no recursive
+objects or object sharing. To achieve this, we also require it to have a
+constructor with no arguments and to have all its properties be SC
+supported types.
 
 There are various methods for processing different kinds of markup. The
 method, `procMarkup()`, runs them all in the appropriate order. Through
@@ -18,7 +48,9 @@ method, `procMarkup()`, runs them all in the appropriate order. Through
 
 s.Parser = function() {
     this._textSubMap = new Map(); // Maps passage titles to arrays of
-                                  // text subs.
+                                  // text subs. A text sub can be a
+                                  // simple string or a functions
+                                  // returning a string.
     return this;    
 };
 
@@ -54,8 +86,9 @@ s.Parser.prototype.setSubs = function(psgTitle, subArray) {
     /*
     Adds `psgTitle` key to `_textSubMap` with value `subArray`. Throws
     an error if `psgTitle` doesn't correspond to a node, length of
-    `subArray` does match the sub count of the node, or `subArray` is
-    not a string array. Returns the calling Parser object.
+    `subArray` doesn't match the sub count of the node, or `subArray` is
+    not an array of strings or functions. Returns the calling Parser
+    object.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -71,11 +104,13 @@ s.Parser.prototype.setSubs = function(psgTitle, subArray) {
         );
     }
     if (!subArray.every(function(element) {
-        return (typeof(element) === 'string');
+        return (typeof(element) === 'string' ||
+                typeof(element) === 'function');
     })) {
         throw new Error(
             'Parser.setSubs():\n' +
-            'text substitutions must be strings'
+            'text substitutions must be strings or' +
+            'functions that return strings'
         );
     }
     this._textSubMap.set(psgTitle, subArray);
@@ -101,6 +136,14 @@ s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
     @param {String} text - The text to process.
     */
     var subArray = (this.getSubs(psgTitle) || []);
+    subArray = subArray.map(function(element) {
+        if (typeof(element) === 'function') {
+            return element();
+        } else {
+            return element;
+        }
+    });
+
     var psg = Story.get(psgTitle);
     var node = s.nodes.get(psg);
     var subCount = node.getSubCount();
@@ -209,13 +252,9 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
         linkResult = linkRegex.exec(processedText);
 
         if (linkResult === null) {
-            if (/\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/.test(processedText)) {
-                throw new Error(
-                    'description markup without link markup in passage, "' +
-                    psgTitle + '"'
-                );
-            }
-            return processedText;
+            return processedText.replace(
+                /\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/g, ''
+            );
         }
         
         linkId = linkResult[2];
@@ -247,7 +286,7 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 
         part[j+1] = (
             '<<link "' + linkText + '">>' +
-                '<<run v.parser.showDetails(' + 
+                '<<run st.parser.showDetails(' + 
                     '"' + descText + '", "' + elementId + '"' +
                 ')>>' +
             '<</link>>'
@@ -295,19 +334,31 @@ s.Parser.prototype.removeBreaks = function(text) {
     return processedText;
 }
 
-s.Parser.prototype.procAllMarkup = function(psgTitle, text) {
+s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     /*
     Processes the special node markup in the given passage (inserts text
     subs, processes the detail markup, adds the containers, and removes
     breaks. Does nothing if the given passage is not associated with a
     node. Returns the processed text.
 
+    The optional `time` parameter is used to set the moment in SC's
+    history from which to draw the values of variables. It allows for
+    the use of variables in passage content. It should be a nonpositive
+    integer. A value of 0 denotes the current moment. Defaults to zero.
+
     @param {String} psgTitle - The title of the passage being processed.
     @param {String} text - The text of the passage being processed.
+    @param {Integer} time - (optional) A nonpositive integer that
+    defaults to zero. Sets the moment in history to use when parsing.
     */
     var node = s.nodes.get(Story.get(psgTitle));
     if (node === undefined) {
         return text;
+    }
+
+    time = time || 0;
+    if (time < 0) {
+        s.loadVars(time);
     }
 
     var processedText = text;
@@ -315,6 +366,10 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text) {
     processedText = this.procDetailMarkup(psgTitle, processedText);
     processedText = this.addContainers(psgTitle, processedText);
     processedText = this.removeBreaks(processedText);
+
+    if (time < 0) {
+        s.loadVars(0);
+    }
 
     return processedText;
 }

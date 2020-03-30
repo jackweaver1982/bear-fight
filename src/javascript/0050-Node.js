@@ -107,38 +107,3 @@ s.Node.prototype.getSubCount = function() {
 s.Node.prototype.onLoad = function() {
     return this._userScript();
 }
-
-s.Node.prototype.addLink = function(text, psgTitle, func, embed, nobreak) {
-    /*
-    Creates a new Outcome that runs the given function, then loads the
-    node associated with the given passage title. Then adds that Outcome
-    to a new Action with the given text as its link text. Then adds that
-    Action to the node. The target node is loaded with the optional
-    `embed` and `nobreak` parameters.
-
-    If there is no node associated with the given passage title, one
-    will be created.
-
-    Returns the newly created action.
-    */
-    var targetNode = s.nodes.get(Story.get(psgTitle));
-    if (targetNode === undefined) {
-        targetNode = new s.Node(psgTitle);
-    }
-
-    var outcome;
-    if (func === undefined) {
-        outcome = new s.Outcome(function() {
-            v.page.load(targetNode);
-        });
-    } else {
-        outcome = new s.Outcome(function() {
-            func();
-            v.page.load(targetNode, embed, nobreak);
-        });
-    }
-
-    var action = new s.Action(text).push(outcome);
-    this.push(action);
-    return action;
-}

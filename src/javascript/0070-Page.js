@@ -1,3 +1,5 @@
+st.parser = new s.Parser();
+
 /*
 A `Page` object represents the content which is displayed on the screen.
 Traditionally in SugarCube, this is just a passage. But with the node
@@ -6,7 +8,7 @@ first passage is the main one and the one which SugarCube regards as
 being displayed. The other passages are displayed inside the first
 passage.
 
-There is one instance (`v.page`, see Global.js), built on
+There is one instance (`st.page`, see Global.js), built on
 State.variables, so its state can be stored in SugarCube's history.
 (This allows SugarCube to rebuild the page upon a browser refresh or
 upon loading a save file.) The class must therefore be made compatible
@@ -49,6 +51,18 @@ s.Page.prototype.toJSON = function () {
         '(new s.Page())._init($ReviveData$)', newPC
     );
 };
+
+s.Page.prototype.length = function() {
+    return this._embeddedPsgs.length;
+}
+
+s.Page.prototype.getPsg = function(index) {
+    return this._embeddedPsgs[index];
+}
+
+s.Page.prototype.getFlag = function(index) {
+    return this._noBreakFlags[index];
+}
 
 s.Page.prototype.isContinuous = function() {
     return this._continuous;
@@ -114,31 +128,54 @@ s.Page.prototype.scrollToLast = function() {
     return this;
 }
 
-s.Page.prototype.insertPsg = function(psg, shellPsg, nobreak) {
+s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     /*
     Inserts the given passage into the given shell passage, preceded by
     a scene break ("****"). The scene break is omitted is `nobreak` is
     true.
 
+    The optional `time` parameter is used to set the moment in SC's
+    history from which to draw the values of variables. It allows for
+    the use of variables in passage content. It should be a nonpositive
+    integer. A value of 0 denotes the current moment. Defaults to zero.
+
     @param {<<SC Passage object>>} psg - The passage to embed.
     @param {<<SC Passage object>>} shellPsg - The passage into which to
     embed.
+    @param {Integer} time - (optional) A nonpositive integer that
+    defaults to zero. Sets the moment in history to use when parsing.
+    @param {Boolean} nobreak - (optional) Defaults to false. Set to true
+    to omit the scene break marker.
     */
+    time = time || 0;
+    if (time < 0) {
+        s.loadVars(time);
+    }
+
     var sceneBreak = nobreak ? '' : '<p style="text-align:center">****</p>';
     $('#' + shellPsg.domId + '-next').wiki(
         sceneBreak +
-        v.parser.procAllMarkup(psg.title, psg.text)
+        st.parser.procAllMarkup(psg.title, psg.text)
     );
+
+    if (time < 0) {
+        s.loadVars(0);
+    }
+
     return this;
 }
 
-s.Page.prototype.embedPsg = function(node, nobreak) {
+s.Page.prototype.embedPsg = function(node, time, nobreak) {
     /*
     Removes the current actions from the page, inserts the given node
     and its actions into the bottom of the page, scrolls to put the new
     content at the top, appends the page's list of embedded passages,
     and adds a new moment to SC's history. The embedded passage is
     preceded by a scene break ("****") unless `nobreak` is true.
+
+    The time parameter is a nonpositive integer that defaults to zero
+    and sets the moment in history to use when parsing. See
+    `Page.insertPsgText` for details.
     */
     var nodePsg = node.getPassage();
     if (nodePsg.title === passage() ||
@@ -151,7 +188,7 @@ s.Page.prototype.embedPsg = function(node, nobreak) {
 
     var latestPsg = this.innerPsg();
     $('#' + latestPsg.domId + '-actions').empty();
-    this.insertPsg(nodePsg, latestPsg, nobreak);
+    this.insertPsgText(nodePsg, latestPsg, time, nobreak);
     this.insertActions(nodePsg);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
@@ -176,7 +213,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     node.onLoad();
     var nodePsg = node.getPassage();
     if (embed) {
-        this.embedPsg(node, nobreak);
+        this.embedPsg(node, 0, nobreak);
         return this;
     } else {
         this._embeddedPsgs = [];
@@ -184,35 +221,4 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         Engine.play(nodePsg.title);
         return this;
     }
-}
-
-s.Page.prototype.reEmbedPsgs = function(psg) {
-    /*
-    Re-embeds embedded passages when the given main containing passage
-    object renders.
-    */
-    var currentPsg = psg;
-    var nextPsg;
-    for (var i = 0; i < this._embeddedPsgs.length; i++) {
-        nextPsg = Story.get(this._embeddedPsgs[i]);
-        this.insertPsg(nextPsg, currentPsg, this._noBreakFlags[i]);
-        currentPsg = nextPsg;
-    }
-    return this;
-}
-
-s.Page.prototype.rebuildPage = function(psg) {
-    /*
-    To be run after the given main containing passage object renders.
-    Re-embeds embedded passages.  Inserts action links into last
-    embedded passage, then scrolls so that the last embedded passage is
-    the first thing visible.
-
-    @param {SC Passage object} psg
-    */
-    var currentPsg = this.innerPsg();
-    this.reEmbedPsgs(psg);
-    this.insertActions(currentPsg);
-    this.scrollToLast();
-    return this;
 }

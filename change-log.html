@@ -265,10 +265,23 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
-<h2 class="mume-header" id="version-029">Version 0.2.9</h2>
+<h2 class="mume-header" id="version-030">Version 0.3.0</h2>
 
 <ul>
 <li>Was scrolling to second-to-last passage upon following a link. Moved <code>scrollToLast()</code> call in <code>Page.embedPsg()</code> to fix this.</li>
+<li>Removed <code>Node.addLink()</code> and added its code to <code>s.makeLink()</code>.</li>
+<li>Added the <code>v.static</code> namespace, with shortcut, <code>st</code>.</li>
+<li>Added <code>s.loadVars()</code> for loading variables from earlier moments. Does not touch the <code>st</code> namespace.</li>
+<li>Moved <code>v.parser</code> and <code>v.page</code> to <code>st.parser</code> and <code>st.page</code>.</li>
+<li>Allowed text substitutions to be functions that return strings.</li>
+<li>Allowed more description markups than link markups, to allow for link markups to appear in text substitutions.</li>
+<li>Added a <code>time</code> parameter to <code>Parser.procAllMarkup()</code> so the method can rewind the variables to an earlier moment before doing its markup. At present, this is unnecessary, since the text subs are stored in <code>st.parser</code>, which is not rewound, and no other part of the markup processing relies on dynamically changing data.</li>
+<li>Added <code>length()</code>, <code>getPsg()</code>, and <code>getFlag()</code> methods to <code>Page</code>.</li>
+<li>Changed the name of <code>Page.insertPsg()</code> to <code>Page.insertPsgText()</code>.</li>
+<li>Added a <code>time</code> parameter to <code>Page.insertPsgText()</code> so the method can rewind the variables to an earlier moment before doing its markup. This is necessary to allow SC markup in passage text which relies on variables, such as the <code>&lt;&lt;if&gt;&gt;</code> macro.</li>
+<li>Added a <code>time</code> parameter to <code>Page.embedPsg()</code>, which uses <code>Page.insertPsgText()</code>.</li>
+<li>Modified <code>Config.passages.onProcess</code> so that it rewinds variables. Does not reset variables to current time. Leaves them rewound for SC to use them as it renders the passage.</li>
+<li>Removed the <code>reEmbedPsgs()</code> and <code>rebuildPage()</code> methods from <code>Page</code> and moved their code to the global function <code>s.onPsgDisplay()</code> which is triggered by the <code>:passagedisplay</code> event. <code>s.onPsgDisplay()</code> begins by resetting the variables to the current moment.</li>
 </ul>
 <h2 class="mume-header" id="version-028">Version 0.2.8</h2>
 
