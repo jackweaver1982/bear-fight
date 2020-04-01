@@ -7,6 +7,9 @@ Story Subtitle
 :: StoryAuthor
 Story Author
 
+:: StoryDisplayTitle
+Story Display Title
+
 :: StoryBanner
 Story Banner
 
@@ -21,7 +24,7 @@ Story Caption
 {
     "ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
     "format": "SugarCube",
-    "format-version": "2.30.0",
+    "format-version": "2.31.0",
     "start": "Start",
     "zoom": 1
 }

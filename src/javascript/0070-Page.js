@@ -194,6 +194,7 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
     this._noBreakFlags.push(nobreak);
     this.scrollToLast();
     State.create(State.passage);
+    Save.autosave.save();
     return this;
 }
 

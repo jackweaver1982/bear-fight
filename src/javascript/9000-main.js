@@ -1,8 +1,23 @@
 st.page.setContinuous(true);
 
 s.makeLink(
-    'Start', 'begin', 'intro', s.none, true, true
+    'Start',
+    '<<if Save.autosave.has()>>restart<<else>>begin<</if>>',
+    'intro',
+    function() {
+        return Save.autosave.delete();
+    },
+    true, true
 ).setAlign('center');
+s.getNode('Start').push((new s.Action(
+    'resume',
+    function() {
+        return Save.autosave.has();
+    }
+)).setAlign('center').push(new s.Outcome(function() {
+    Save.autosave.load();
+})));
+
 s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
 

@@ -6,7 +6,7 @@ Story Title
 {
 	"ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
 	"format": "SugarCube",
-	"format-version": "2.30.0",
+	"format-version": "2.31.0",
 	"start": "Start",
 	"zoom": 1
 }
@@ -377,19 +377,21 @@ s.loadVars = function(time) {
             v[pn] = clone(oldVars[pn]);
         }
     });
+    return;
 }
 
 /*
 A Parser object manages the conversion of the given passage text to the
 actual passage text used by SugarCube to display information.
 
-There is one instance (see Global.js), built on State.variables, so its
-state can be stored in SugarCube's history. (This is needed, because the
-parser tracks dynamically generated text substitutions.) The class must
-therefore be made compatible with SugarCube by having `clone()` and
-`toJSON()` methods, and no recursive objects or object sharing. To
-achieve this, we also require it to have a constructor with no arguments
-and to have all its properties be SC supported types.
+There is one instance (`st.parser`, see Page.js), built on
+State.variables, so its state can be stored in SugarCube's history.
+(This is needed, because the parser tracks dynamically generated text
+substitutions.) The class must therefore be made compatible with
+SugarCube by having `clone()` and `toJSON()` methods, and no recursive
+objects or object sharing. To achieve this, we also require it to have a
+constructor with no arguments and to have all its properties be SC
+supported types.
 
 There are various methods for processing different kinds of markup. The
 method, `procMarkup()`, runs them all in the appropriate order. Through
@@ -399,7 +401,7 @@ method, `procMarkup()`, runs them all in the appropriate order. Through
 
 s.Parser = function() {
     this._textSubMap = new Map(); // Maps passage titles to arrays of
-                                  // text subs. A text subs can be a
+                                  // text subs. A text sub can be a
                                   // simple string or a functions
                                   // returning a string.
     return this;    
@@ -603,12 +605,6 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
         linkResult = linkRegex.exec(processedText);
 
         if (linkResult === null) {
-            // if (/\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/.test(processedText)) {
-            //     throw new Error(
-            //         'description markup without link markup in passage, "' +
-            //         psgTitle + '"'
-            //     );
-            // }
             return processedText.replace(
                 /\{\?([a-zA-Z][0-9a-zA-Z_]*?)\|(.+?)\}/g, ''
             );
@@ -731,6 +727,8 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     return processedText;
 }
 /* twine-user-script #7: "0070-Page.js" */
+st.parser = new s.Parser();
+
 /*
 A `Page` object represents the content which is displayed on the screen.
 Traditionally in SugarCube, this is just a passage. But with the node
@@ -925,6 +923,7 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
     this._noBreakFlags.push(nobreak);
     this.scrollToLast();
     State.create(State.passage);
+    Save.autosave.save();
     return this;
 }
 
@@ -953,39 +952,6 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-
-// s.Page.prototype.reEmbedPsgs = function(psg) {
-    /*
-    Re-embeds embedded passages when the given main containing passage
-    object renders.
-    */
-//     var currentPsg = psg;
-//     var nextPsg, time;
-//     for (var i = 0; i < this._embeddedPsgs.length; i++) {
-//         nextPsg = Story.get(this._embeddedPsgs[i]);
-//         time = i - (this._embeddedPsgs.length - 1)
-//         this.insertPsgText(nextPsg, currentPsg, time, this._noBreakFlags[i]);
-//         currentPsg = nextPsg;
-//     }
-//     return this;
-// }
-
-// s.Page.prototype.rebuildPage = function(psg) {
-    /*
-    To be run after the given main containing passage object renders.
-    Re-embeds embedded passages.  Inserts action links into last
-    embedded passage, then scrolls so that the last embedded passage is
-    the first thing visible.
-
-    @param {SC Passage object} psg
-    */
-//     s.loadVars(0);
-//     var currentPsg = this.innerPsg();
-//     this.reEmbedPsgs(psg);
-//     this.insertActions(currentPsg);
-//     this.scrollToLast();
-//     return this;
-// }
 /* twine-user-script #8: "8000-Global.js" */
 /*
 Global objects scattered throughout code:
@@ -994,6 +960,8 @@ from Node.js:
     s.nodes : Map(<<SC Passage obj>> : Node)
     s.getNode(psgTitle: String): Node
     s.specialPassages : String[]
+from Parser.js:
+    st.parser : Parser
 */
 
 Config.passages.nobr = true; // sets all passages to `nobr`
@@ -1056,7 +1024,6 @@ s.makeLink = function(startPsgTitle, text, endPsgTitle,
 s.none = function() { return; } // for convenience when passing an empty
                                 // function as a parameter
 
-st.parser = new s.Parser();
 st.page = new s.Page();
 
 Config.passages.onProcess = function(p) {
@@ -1098,12 +1065,37 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
+
+Config.saves.autosave = true;
+
+Config.saves.isAllowed = function () {
+    return (passage() !== 'Start' || st.page.length() > 0);
+};
+
+$(window).bind('beforeunload',function(){
+   Engine.restart();
+});
 /* twine-user-script #9: "9000-Main.js" */
 st.page.setContinuous(true);
 
 s.makeLink(
-    'Start', 'begin', 'intro', s.none, true, true
+    'Start',
+    '<<if Save.autosave.has()>>restart<<else>>begin<</if>>',
+    'intro',
+    function() {
+        return Save.autosave.delete();
+    },
+    true, true
 ).setAlign('center');
+s.getNode('Start').push((new s.Action(
+    'resume',
+    function() {
+        return Save.autosave.has();
+    }
+)).setAlign('center').push(new s.Outcome(function() {
+    Save.autosave.load();
+})));
+
 s.makeLink('intro', 'continue', 'RNG warning');
 s.makeLink('RNG warning', 'got it', 'who you are');
 
@@ -1192,6 +1184,10 @@ Story Subtitle
 
 :: StoryAuthor
 Story Author
+
+
+:: StoryDisplayTitle
+Story Display Title
 
 
 :: StoryBanner

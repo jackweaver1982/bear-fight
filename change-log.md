@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.1
+
+* Upgraded SugarCube to 2.31.0
+* Added the newly supported `:: StoryDisplayTitle` special passage to the twee template, and to `s.specialPsgs`.
+* Enabled autosaves and arranged for story to restart upon browser refresh. A link to resume using the autosave is placed in the `:: Start` passage. This resolves the issue of `Page.scrollToLast()` not firing soon enough on browser refresh or story restart.
+
 ## Version 0.3.0
 
 * Was scrolling to second-to-last passage upon following a link. Moved `scrollToLast()` call in `Page.embedPsg()` to fix this.

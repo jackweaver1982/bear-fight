@@ -11,8 +11,8 @@ s.getNode = function(psgTitle) {
 
 s.specialPsgs = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
-    'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
-    'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
+    'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryDisplayTitle',
+    'StoryInit', 'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
     'StorySubtitle', 'StoryTitle'
 ];
 

@@ -110,3 +110,13 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
+
+Config.saves.autosave = true;
+
+Config.saves.isAllowed = function () {
+    return (passage() !== 'Start' || st.page.length() > 0);
+};
+
+$(window).bind('beforeunload',function(){
+   Engine.restart();
+});
