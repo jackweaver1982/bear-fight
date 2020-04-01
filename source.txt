@@ -254,8 +254,8 @@ s.getNode = function(psgTitle) {
 
 s.specialPsgs = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
-    'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryInit',
-    'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
+    'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryDisplayTitle',
+    'StoryInit', 'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
     'StorySubtitle', 'StoryTitle'
 ];
 
@@ -1072,7 +1072,7 @@ Config.saves.isAllowed = function () {
     return (passage() !== 'Start' || st.page.length() > 0);
 };
 
-$(window).bind('beforeunload',function(){
+$(window).bind('beforeunload pagehide',function(){
    Engine.restart();
 });
 /* twine-user-script #9: "9000-Main.js" */

@@ -117,6 +117,6 @@ Config.saves.isAllowed = function () {
     return (passage() !== 'Start' || st.page.length() > 0);
 };
 
-$(window).bind('beforeunload',function(){
+$(window).bind('beforeunload pagehide',function(){
    Engine.restart();
 });

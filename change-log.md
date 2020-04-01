@@ -4,11 +4,16 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.2
+
+* Despite what the change log says, `:: StoryDisplayTitle` didn't make it into the compiled HTML file in the last commit. It is only in the source code. That is fixed now.
+* Added `pagehide` to the `beforeunload` event that restarts the story, in an attempt to get this behavior implemented in Safari on iOS.
+
 ## Version 0.3.1
 
 * Upgraded SugarCube to 2.31.0
 * Added the newly supported `:: StoryDisplayTitle` special passage to the twee template, and to `s.specialPsgs`.
-* Enabled autosaves and arranged for story to restart upon browser refresh. A link to resume using the autosave is placed in the `:: Start` passage. This resolves the issue of `Page.scrollToLast()` not firing soon enough on browser refresh or story restart.
+* Enabled autosaves and arranged via the `beforeunload` event for story to restart upon browser refresh. A link to resume using the autosave is placed in the `:: Start` passage. This resolves the issue of `Page.scrollToLast()` not firing soon enough on browser refresh or story restart.
 
 ## Version 0.3.0
 
