@@ -4,6 +4,17 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.3
+
+* Added css for headings in help screen. Added comments to css.
+* Added `outOfChar` flag to Node.
+* Added `setSubCount` and `addAction` method to Node.
+* Added `InfoNode` class.
+* Edited `Page.load` so that info nodes cannot be embedded.
+* Added global functions `addLink`, `setSubCount`, `copyActions`, `loadNode`, and `loadInfoNode`. Removed `makeLink`.
+* Edited `Config.saves.isAllowed` to prevent autosaving on an info node.
+* Edited `Config.passages.onProcess` and `s.onPsgDisplay` to do nothing when passage is not a node.
+
 ## Version 0.3.2
 
 * Despite what the change log says, `:: StoryDisplayTitle` didn't make it into the compiled HTML file in the last commit. It is only in the source code. That is fixed now.

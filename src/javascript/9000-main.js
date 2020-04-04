@@ -1,71 +1,18 @@
-st.page.setContinuous(true);
+s.addLink('intro', 'continue', 'RNG warning');
+s.addLink('RNG warning', 'got it', 'who you are');
+s.addLink('who you are', 'take a look around', 'bedroom');
 
-s.makeLink(
-    'Start',
-    '<<if Save.autosave.has()>>restart<<else>>begin<</if>>',
-    'intro',
-    function() {
-        return Save.autosave.delete();
-    },
-    true, true
-).setAlign('center');
-s.getNode('Start').push((new s.Action(
-    'resume',
-    function() {
-        return Save.autosave.has();
-    }
-)).setAlign('center').push(new s.Outcome(function() {
-    Save.autosave.load();
-})));
-
-s.makeLink('intro', 'continue', 'RNG warning');
-s.makeLink('RNG warning', 'got it', 'who you are');
-
-// s.bedroom = (new s.Node('bedroom', 2))
-// v.parser.setSubs('bedroom', [
-//     function() {
-//         if (v.pounding) {
-//             return 'You can hear the pounding on the front door coming from ' +
-//                    'that direction. ';
-//         } else if (v.crowbar) {
-//             return 'Outside the bedroom, ' +
-//                    (v.knowledge.has('policeAtDoor') ?
-//                         'the police are' : 'someone is') +
-//                    ' breaking into the house with a crowbar. ';
-//         } else {
-//             return '';
-//         }
-//     },
-//     function() {
-//         return (
-//             v.containedIn.get('knife') == 'bedroom' ?
-//             "What looks like a heavy-duty {chef's knife|D} is sticking out of"
-//                 + 'his chest.' :
-//             ''
-//         );
-//     }
-// ]);
-s.makeLink('who you are', 'take a look around', 'bedroom', s.none, false);
-
-s.getNode('bedroom').push((new s.Action(
-    'take the knife',
-    function() {
-        return (v.containedIn.get('knife') === 'bedroom');
-    }
-)).push(new s.Outcome(function() {
+s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
     st.parser.setSubs('Taking knife', [' You may need this for later.']);
-    st.page.load(s.takingKnife, true, true);
-    return;
-})));
+}, function() {
+    return (v.containedIn.get('knife') === 'bedroom');
+}, true, true)
 
-s.getNode('bedroom').push((new s.Action(
-    'search the body',
-    function() {
-        return !v.body.searched;
-    }
-)).push(new s.Outcome(function() {
+s.setSubCount('Taking knife', 1);
+
+s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
     v.body.searched = true;
     v.pounding = false;
     st.parser.setSubs('Cops bust in', [
@@ -74,26 +21,14 @@ s.getNode('bedroom').push((new s.Action(
         'As you bend down to take a closer look at the body, the bedroom ' +
         'door bursts open. ' 
     ]);
-    st.page.load(s.copsBustIn, true);
-    return;
-})));
+}, function() {
+    return !v.body.searched;
+})
 
+s.setSubCount('Cops bust in', 2);
 
+s.copyActions('bedroom', 'Taking knife');
 
-s.copsBustIn = new s.Node('Cops bust in', 2, function() {
-    v.detective.discovered = true;
-    return;
-});
-
-
-
-s.takingKnife = new s.Node('Taking knife', 1);
-
-s.bedroom = s.getNode('bedroom')
-for (var i = 0; i < s.bedroom.length(); i++) {
-    s.takingKnife.push(s.bedroom.get(i));
-}
-
-s.makeLink('Cops bust in', 'continue', 'Next', function() {
+s.addLink('Cops bust in', 'continue', 'Next', function() {
     v.inventory.delete('knife');
 });

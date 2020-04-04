@@ -207,10 +207,18 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     new passage content at the top, and a new moment is added to SC's
     history. The appended content is preceded by a scene break ("****"),
     unless the optional `nobreak` parameter is true.
+
+    If node is an info node, `embed` and `nobreak` have no effect.
+    Instead, the associated passage is loaded without adding to the SC
+    history.
     */
     if (embed === undefined) {
         embed = this._continuous;
     }
+    if (node instanceof s.InfoNode) {
+        embed = false;
+    }
+
     node.onLoad();
     var nodePsg = node.getPassage();
     if (embed) {

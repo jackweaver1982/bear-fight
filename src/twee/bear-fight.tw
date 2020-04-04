@@ -45,7 +45,12 @@ a {
     transition-duration: 200ms;
 }
 .description {
-  color: yellow;
+    /* Detailed description information revealed when clicking a noun. */
+    color: yellow;
+}
+.headings {
+    /* headings in help page */
+    color: lime;
 }
 
 :: Story JavaScript [script]
@@ -64,7 +69,30 @@ a {
 }>>
 <<set $inventory = new Set()>>
 
-:: Start
+:: PassageHeader
+<<if !tags().includes("no-header")>>
+    <<link 'info'>>
+        <<run s.loadInfoNode('help')>>
+    <</link>> /
+    <<link 'bio'>>
+        <<run s.loadInfoNode('bio')>>
+    <</link>>
+    <br><hr>
+<</if>>
+
+:: help
+<p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>
+
+<p>In this story, you control the character by tapping (or clicking) on links. Tap a noun to examine that object in closer detail. Tap a command to follow that action. Tapping a noun will usually not advance the story. Tapping a command, though, is often irreversible.</p>
+
+<p><b class="headings">Random outcomes.</b> Some actions may have a random outcome which could be good or bad. Your chances of getting a good outcome are related to your character's traits. Click on "view Character Sheet" in the footer to better understand these traits. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
+
+<p><b class="headings">Saving.</b> The story automatically saves your progress, so if you exit and reload later, you will be able to resume right where you left off. You can also manually save your progress in a bookmark that can be reloaded later. But think carefully about this. You only get one bookmark! (Warning: using private browsing or disabling or clearing your cookies will interfere with the story's saving feature.)</p>
+
+:: bio
+<p>This screen holds information about your character.</p>
+
+:: Start [no-header]
 <div style='text-align:center'>
     <h1><<= Story.title>></h1>
     by<br>
@@ -72,16 +100,26 @@ a {
     <br>
     <br>
     <br>
+    <<if Save.autosave.has()>>
+        /* Display 'resume / restart' links */
+        <<link 'resume'>><<run Save.autosave.load()>><</link>> /
+        <<link 'restart'>><<if confirm('Really restart?')>>
+            <<run Save.autosave.delete()>>
+            <<run s.loadNode('intro')>>
+        <</if>><</link>>
+    <<else>>
+        <<link 'begin'>><<run s.loadNode('intro')>><</link>>
+    <</if>>
 </div>
 
-:: intro
+:: intro [no-header]
 <p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
 
 <p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
 
 <p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
 
-:: RNG warning
+:: RNG warning [no-header]
 <p>In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character's traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
 
 :: who you are

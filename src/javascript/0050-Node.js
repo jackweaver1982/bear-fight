@@ -16,7 +16,7 @@ s.specialPsgs = [
     'StorySubtitle', 'StoryTitle'
 ];
 
-s.Node = function(psgTitle, subCount, func) {
+s.Node = function(psgTitle, subCount, func, outOfChar) {
     /*
     A `Node` object is like a wrapper around a passage. It contains the
     passage which holds the narrative description of the situation, as
@@ -45,6 +45,9 @@ s.Node = function(psgTitle, subCount, func) {
     node is loaded. It runs immediately before the loading of the
     passage associated with the calling node. By default, it does
     nothing.
+    @param {Boolean} outOfChar (optional) - True if the node content
+    lies outside the narrative of the story (help screen, character
+    stats, etc.) Defaults to false.
 
     @property passage - The SugarCube `Passage` object whose title is
     `psgTitle`
@@ -75,6 +78,7 @@ s.Node = function(psgTitle, subCount, func) {
     this._userScript = func || function() {
         return;
     }
+    this._outOfChar = (outOfChar === undefined) ? false : outOfChar;
     return this;
 };
 
@@ -104,6 +108,36 @@ s.Node.prototype.getSubCount = function() {
     return this._subCount;
 }
 
+s.Node.prototype.setSubCount = function(num) {
+    /*
+    Sets the sub count. Can only change it from its default value of 0
+    one time, to prevent unwanted errors. Sub counts are not meant to
+    dynamically change.
+    */
+    if (this._subCount !== 0) {
+        throw new Error(
+            'Node.setSubCount():\n' +
+            'can only set sub count once'
+        );
+    }
+    this._subCount = num;
+    return this;
+}
+
 s.Node.prototype.onLoad = function() {
     return this._userScript();
+}
+
+s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
+    /*
+    This method is for adding a simple action with one outcome to the
+    node. It creates an outcome that executes `carryOutFunc`, adds it as
+    the single outcome to a new action with link text `text` and check
+    function `checkFunc`. The `checkFunc` parameter defaults to true.
+    */
+    var outcome = new s.Outcome(carryOutFunc);
+    var action = new s.Action(text, checkFunc);
+    action.push(outcome);
+    this.push(action);
+    return this;
 }

@@ -28,7 +28,12 @@ a {
     transition-duration: 200ms;
 }
 .description {
-  color: yellow;
+    /* Detailed description information revealed when clicking a noun. */
+    color: yellow;
+}
+.headings {
+    /* headings in help page */
+    color: lime;
 }
 
 
@@ -259,7 +264,7 @@ s.specialPsgs = [
     'StorySubtitle', 'StoryTitle'
 ];
 
-s.Node = function(psgTitle, subCount, func) {
+s.Node = function(psgTitle, subCount, func, outOfChar) {
     /*
     A `Node` object is like a wrapper around a passage. It contains the
     passage which holds the narrative description of the situation, as
@@ -288,6 +293,9 @@ s.Node = function(psgTitle, subCount, func) {
     node is loaded. It runs immediately before the loading of the
     passage associated with the calling node. By default, it does
     nothing.
+    @param {Boolean} outOfChar (optional) - True if the node content
+    lies outside the narrative of the story (help screen, character
+    stats, etc.) Defaults to false.
 
     @property passage - The SugarCube `Passage` object whose title is
     `psgTitle`
@@ -318,6 +326,7 @@ s.Node = function(psgTitle, subCount, func) {
     this._userScript = func || function() {
         return;
     }
+    this._outOfChar = (outOfChar === undefined) ? false : outOfChar;
     return this;
 };
 
@@ -347,10 +356,70 @@ s.Node.prototype.getSubCount = function() {
     return this._subCount;
 }
 
+s.Node.prototype.setSubCount = function(num) {
+    /*
+    Sets the sub count. Can only change it from its default value of 0
+    one time, to prevent unwanted errors. Sub counts are not meant to
+    dynamically change.
+    */
+    if (this._subCount !== 0) {
+        throw new Error(
+            'Node.setSubCount():\n' +
+            'can only set sub count once'
+        );
+    }
+    this._subCount = num;
+    return this;
+}
+
 s.Node.prototype.onLoad = function() {
     return this._userScript();
 }
-/* twine-user-script #6: "0060-Parser.js" */
+
+s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
+    /*
+    This method is for adding a simple action with one outcome to the
+    node. It creates an outcome that executes `carryOutFunc`, adds it as
+    the single outcome to a new action with link text `text` and check
+    function `checkFunc`. The `checkFunc` parameter defaults to true.
+    */
+    var outcome = new s.Outcome(carryOutFunc);
+    var action = new s.Action(text, checkFunc);
+    action.push(outcome);
+    this.push(action);
+    return this;
+}
+/* twine-user-script #6: "0055-InfoNode.js" */
+s.InfoNode = function(psgTitle, checkFunc) {
+    /*
+    `InfoNode` is a subclass of `Node`. It is a special kind of node
+    which lies outside the narrative context of the game. Visiting an
+    info node does not trigger an autosave. An info node has a default
+    action with text, 'return to story', that takes the player back to
+    the last non-info node by reloading the last autosave.
+
+    @param {String} psgTitle - The title of the associated passage.
+    @param {Function|Boolean} checkFunc (optional) - The function to
+    call when checking if the `return to story` action should be
+    displayed. Should return a boolean. If a boolean is provided, simply
+    returns that boolean. Defaults to true.
+    */
+    s.Node.call(this, psgTitle);
+
+    this._outOfChar = true;
+    this.addAction('return to story', Save.autosave.load, checkFunc);
+
+    return this;
+};
+
+s.InfoNode.prototype = Object.create(s.Node.prototype);
+
+Object.defineProperty(s.InfoNode.prototype, 'constructor', {
+    value: s.InfoNode,
+    enumerable: false,
+    writable: true
+});
+/* twine-user-script #7: "0060-Parser.js" */
 v.static = {};
 
 Object.defineProperty(window, "st", {
@@ -726,7 +795,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
-/* twine-user-script #7: "0070-Page.js" */
+/* twine-user-script #8: "0070-Page.js" */
 st.parser = new s.Parser();
 
 /*
@@ -936,12 +1005,20 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     new passage content at the top, and a new moment is added to SC's
     history. The appended content is preceded by a scene break ("****"),
     unless the optional `nobreak` parameter is true.
+
+    If node is an info node, `embed` and `nobreak` have no effect.
+    Instead, the associated passage is loaded without adding to the SC
+    history.
     */
     if (embed === undefined) {
         embed = this._continuous;
     }
     node.onLoad();
     var nodePsg = node.getPassage();
+    // if (node instanceof s.InfoNode) {
+    //     Engine.play(nodePsg.title, true);
+    //     return;
+    // }
     if (embed) {
         this.embedPsg(node, 0, nobreak);
         return this;
@@ -952,7 +1029,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #8: "8000-Global.js" */
+/* twine-user-script #9: "8000-Global.js" */
 /*
 Global objects scattered throughout code:
 ----
@@ -980,19 +1057,27 @@ window.onerror = function(msg, url, linenumber) {
     return true;
 }
 
-s.makeLink = function(startPsgTitle, text, endPsgTitle,
-                      func, embed, nobreak) {
+s.addAction = function(psgTitle, text, carryOutFunc, checkFunc) {
+    /*
+    Adds a simple action to the node associated with `psgTitle` that has
+    link text `text` and check function `checkFunc`, and contains a
+    single outcome that executes `carryOutFunc`.
+    */
+    return s.getNode(psgTitle).addAction(text, carryOutFunc, checkFunc);
+}
+
+s.addLink = function(startPsgTitle, text, endPsgTitle,
+                      func, checkFunc, embed, nobreak) {
     /*
     Creates a new Outcome that runs `func`, then loads the node
     associated with `endPsgTitle`. Then adds that Outcome to a new
     Action with the given `text` as its link text. Then adds that Action
     to the associated with `startPsgTitle`. The target node is loaded
-    with the optional `embed` and `nobreak` parameters.
+    with the optional `embed` and `nobreak` parameters. The action is
+    given `checkFunc` as its check function.
 
     If there are no nodes associated with the given passage titles, they
     will be created.
-
-    Returns the newly created action.
     */
     var startNode = s.nodes.get(Story.get(startPsgTitle));
     if (startNode === undefined) {
@@ -1004,25 +1089,60 @@ s.makeLink = function(startPsgTitle, text, endPsgTitle,
         targetNode = new s.Node(endPsgTitle);
     }
 
-    var outcome;
+    var carryOutFunc;
     if (func === undefined) {
-        outcome = new s.Outcome(function() {
+        carryOutFunc = function() {
             st.page.load(targetNode);
-        });
+        }
     } else {
-        outcome = new s.Outcome(function() {
+        carryOutFunc = function() {
             func();
             st.page.load(targetNode, embed, nobreak);
-        });
+        }
     }
 
-    var action = new s.Action(text).push(outcome);
-    startNode.push(action);
-    return action;
+    startNode.addAction(text, carryOutFunc, checkFunc);
+    return;
 }
 
 s.none = function() { return; } // for convenience when passing an empty
                                 // function as a parameter
+
+s.setSubCount = function(psgTitle, num) {
+    /*
+    Sets the sub count of the node associated with `psgTitle` to `num`.
+    */
+    return s.getNode(psgTitle).setSubCount(num);
+}
+
+s.copyActions = function(fromPsgTitle, toPsgTitle) {
+    /*
+    For each action in the node associated with `fromPsgTitle`, pushes
+    that action to the node associated with `toPsgTitle`.
+    */
+    var fromNode = s.getNode(fromPsgTitle);
+    var toNode = s.getNode(toPsgTitle);
+    for (var i = 0; i < fromNode.length(); i++) {
+        toNode.push(fromNode.get(i));
+    }
+}
+
+Config.saves.autosave = true;
+
+Config.saves.isAllowed = function () {
+    var allowed = true;
+    if (passage() ===  'Start' && st.page.length() === 0) {
+        allowed = false;
+    }
+    if (s.getNode(passage()) instanceof s.InfoNode) {
+        allowed = false;
+    }
+    return allowed;
+};
+
+$(window).bind('beforeunload pagehide',function(){
+   Engine.restart();
+});
 
 st.page = new s.Page();
 
@@ -1030,8 +1150,13 @@ Config.passages.onProcess = function(p) {
     /*
     Rewinds variables to a previous moment to account for embedded
     passages. Variables will be restored on `:passagedisplay`. Then
-    processes the node markup.
+    processes the node markup. Does nothing if the current passage is
+    not associated with a node.
     */
+    if (s.getNode(p.title) === undefined) {
+        return p.text;
+    }
+
     s.loadVars(-st.page.length());
     var processedText = st.parser.procAllMarkup(
         p.title, p.text
@@ -1042,7 +1167,12 @@ Config.passages.onProcess = function(p) {
 s.onPsgDisplay = function(ev) {
     /*
     Triggered by the `:passagedisplay` event. Rebuilds the current page.
+    Does nothing if the current passage is not associated with a node.
     */
+    if (s.getNode(ev.passage.title) === undefined) {
+        return;
+    }
+
     s.loadVars(0); // resets variables to current time
 
     var currentPsg = ev.passage;
@@ -1066,84 +1196,49 @@ s.onPsgDisplay = function(ev) {
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
 
-Config.saves.autosave = true;
+s.loadNode = function(psgTitle) {
+    st.page.load(s.getNode(psgTitle));
+    return;
+}
 
-Config.saves.isAllowed = function () {
-    return (passage() !== 'Start' || st.page.length() > 0);
-};
-
-$(window).bind('beforeunload pagehide',function(){
-   Engine.restart();
-});
-/* twine-user-script #9: "9000-Main.js" */
-st.page.setContinuous(true);
-
-s.makeLink(
-    'Start',
-    '<<if Save.autosave.has()>>restart<<else>>begin<</if>>',
-    'intro',
-    function() {
-        return Save.autosave.delete();
-    },
-    true, true
-).setAlign('center');
-s.getNode('Start').push((new s.Action(
-    'resume',
-    function() {
-        return Save.autosave.has();
+s.loadInfoNode = function(psgTitle, checkFunc) {
+    /*
+    If `psgTitle` is associated with an info node, loads the info node.
+    If `psgTitle` is associated with a non-info node, throws an error.
+    If `psgTitle` is not associated with a node, creates a new info
+    node with the given parameters and loads it.
+    */
+    var node = s.getNode(psgTitle);
+    if (node === undefined) {
+        var newNode = new s.InfoNode(psgTitle, checkFunc);
+        st.page.load(newNode);
+        return;
     }
-)).setAlign('center').push(new s.Outcome(function() {
-    Save.autosave.load();
-})));
-
-s.makeLink('intro', 'continue', 'RNG warning');
-s.makeLink('RNG warning', 'got it', 'who you are');
-
-// s.bedroom = (new s.Node('bedroom', 2))
-// v.parser.setSubs('bedroom', [
-//     function() {
-//         if (v.pounding) {
-//             return 'You can hear the pounding on the front door coming from ' +
-//                    'that direction. ';
-//         } else if (v.crowbar) {
-//             return 'Outside the bedroom, ' +
-//                    (v.knowledge.has('policeAtDoor') ?
-//                         'the police are' : 'someone is') +
-//                    ' breaking into the house with a crowbar. ';
-//         } else {
-//             return '';
-//         }
-//     },
-//     function() {
-//         return (
-//             v.containedIn.get('knife') == 'bedroom' ?
-//             "What looks like a heavy-duty {chef's knife|D} is sticking out of"
-//                 + 'his chest.' :
-//             ''
-//         );
-//     }
-// ]);
-s.makeLink('who you are', 'take a look around', 'bedroom', s.none, false);
-
-s.getNode('bedroom').push((new s.Action(
-    'take the knife',
-    function() {
-        return (v.containedIn.get('knife') === 'bedroom');
+    if (node instanceof s.InfoNode) {
+        st.page.load(node);
+        return;
     }
-)).push(new s.Outcome(function() {
+    throw new Error(
+        'loadInfoNode():\n' +
+        '"' + psgTitle + '" is not an info node'
+    );
+}
+/* twine-user-script #10: "9000-Main.js" */
+s.addLink('intro', 'continue', 'RNG warning');
+s.addLink('RNG warning', 'got it', 'who you are');
+s.addLink('who you are', 'take a look around', 'bedroom');
+
+s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
     st.parser.setSubs('Taking knife', [' You may need this for later.']);
-    st.page.load(s.takingKnife, true, true);
-    return;
-})));
+}, function() {
+    return (v.containedIn.get('knife') === 'bedroom');
+}, true, true)
 
-s.getNode('bedroom').push((new s.Action(
-    'search the body',
-    function() {
-        return !v.body.searched;
-    }
-)).push(new s.Outcome(function() {
+s.setSubCount('Taking knife', 1);
+
+s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
     v.body.searched = true;
     v.pounding = false;
     st.parser.setSubs('Cops bust in', [
@@ -1152,30 +1247,18 @@ s.getNode('bedroom').push((new s.Action(
         'As you bend down to take a closer look at the body, the bedroom ' +
         'door bursts open. ' 
     ]);
-    st.page.load(s.copsBustIn, true);
-    return;
-})));
+}, function() {
+    return !v.body.searched;
+})
 
+s.setSubCount('Cops bust in', 2);
 
+s.copyActions('bedroom', 'Taking knife');
 
-s.copsBustIn = new s.Node('Cops bust in', 2, function() {
-    v.detective.discovered = true;
-    return;
-});
-
-
-
-s.takingKnife = new s.Node('Taking knife', 1);
-
-s.bedroom = s.getNode('bedroom')
-for (var i = 0; i < s.bedroom.length(); i++) {
-    s.takingKnife.push(s.bedroom.get(i));
-}
-
-s.makeLink('Cops bust in', 'continue', 'Next', function() {
+s.addLink('Cops bust in', 'continue', 'Next', function() {
     v.inventory.delete('knife');
 });
-/* twine-user-script #10: "Story JavaScript" */
+/* twine-user-script #11: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1218,7 +1301,33 @@ Story Caption
 <<set $inventory = new Set()>>
 
 
-:: Start
+:: PassageHeader
+<<if !tags().includes("no-header")>>
+    <<link 'info'>>
+        <<run s.loadInfoNode('help')>>
+    <</link>> /
+    <<link 'bio'>>
+        <<run s.loadInfoNode('bio')>>
+    <</link>>
+    <br><hr>
+<</if>>
+
+
+:: help
+<p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>
+
+<p>In this story, you control the character by tapping (or clicking) on links. Tap a noun to examine that object in closer detail. Tap a command to follow that action. Tapping a noun will usually not advance the story. Tapping a command, though, is often irreversible.</p>
+
+<p><b class="headings">Random outcomes.</b> Some actions may have a random outcome which could be good or bad. Your chances of getting a good outcome are related to your character's traits. Click on "view Character Sheet" in the footer to better understand these traits. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
+
+<p><b class="headings">Saving.</b> The story automatically saves your progress, so if you exit and reload later, you will be able to resume right where you left off. You can also manually save your progress in a bookmark that can be reloaded later. But think carefully about this. You only get one bookmark! (Warning: using private browsing or disabling or clearing your cookies will interfere with the story's saving feature.)</p>
+
+
+:: bio
+<p>This screen holds information about your character.</p>
+
+
+:: Start [no-header]
 <div style='text-align:center'>
     <h1><<= Story.title>></h1>
     by<br>
@@ -1226,10 +1335,20 @@ Story Caption
     <br>
     <br>
     <br>
+    <<if Save.autosave.has()>>
+        /* Display 'resume / restart' links */
+        <<link 'resume'>><<run Save.autosave.load()>><</link>> /
+        <<link 'restart'>><<if confirm('Really restart?')>>
+            <<run Save.autosave.delete()>>
+            <<run s.loadNode('intro')>>
+        <</if>><</link>>
+    <<else>>
+        <<link 'begin'>><<run s.loadNode('intro')>><</link>>
+    <</if>>
 </div>
 
 
-:: intro
+:: intro [no-header]
 <p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
 
 <p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
@@ -1237,7 +1356,7 @@ Story Caption
 <p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
 
 
-:: RNG warning
+:: RNG warning [no-header]
 <p>In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character's traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
 
 
