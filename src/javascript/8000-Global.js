@@ -49,7 +49,7 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     }
 
     var carryOutFunc;
-    if (func === undefined) {
+    if (func == null) {
         carryOutFunc = function() {
             st.page.load(targetNode);
         }
@@ -63,9 +63,6 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     startNode.addAction(text, carryOutFunc, checkFunc);
     return;
 }
-
-s.none = function() { return; } // for convenience when passing an empty
-                                // function as a parameter
 
 s.setSubCount = function(psgTitle, num) {
     /*

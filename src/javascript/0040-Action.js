@@ -23,29 +23,14 @@ s.Action = function(text, checkFunc, chooseFunc) {
     s.List.call(this);
     this._displayText = text;
 
-    if (checkFunc === undefined || checkFunc === true)  {
-        this._userScriptCheck = function() {
-            return true;
-        }
-    } else if (checkFunc === false) {
-        this._userScriptCheck = function() {
-            return false;
-        }
+    if (checkFunc == null)  {
+        this._userScriptCheck = true;
     } else {
         this._userScriptCheck = checkFunc;
     }
-    if (typeof(checkFunc) === 'boolean') {
-        checkFunc = function() {
-            return checkFunc;
-        }
-    }
 
     this._userScriptChoose = chooseFunc || function() {
-        if (this.length() > 0) {
-            return this._array[0];
-        } else {
-            return null;
-        }
+        return this._array[0];
     }
     this._align = 'left';
     return this;
@@ -82,9 +67,17 @@ s.Action.prototype.setAlign = function(align) {
 }
 
 s.Action.prototype.check = function() {
-    return this._userScriptCheck();
+    if (typeof(this._userScriptCheck) === 'boolean') {
+        return this._userScriptCheck;
+    } else {
+        return this._userScriptCheck();
+    }
 }
 
 s.Action.prototype.choose = function() {
-    return this._userScriptChoose();
+    if (this.length() === 0) {
+        return null;
+    } else {
+        return this._userScriptChoose();
+    }
 }

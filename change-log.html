@@ -265,6 +265,12 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-034">Version 0.3.4</h2>
+
+<ul>
+<li>Edited the <code>Outcome</code>, <code>Action</code>, and <code>Node</code> classes, as well as the <code>addLink</code> global function, so that <code>null</code> can be passed as a function parameter, instead of a useless call to a function that returns nothing. Also changed the <code>Outcome.choose</code> method so that <code>_userScript</code> is not called when <code>_array</code> is empty.</li>
+<li>Deleted the <code>none</code> global function.</li>
+</ul>
 <h2 class="mume-header" id="version-033">Version 0.3.3</h2>
 
 <ul>

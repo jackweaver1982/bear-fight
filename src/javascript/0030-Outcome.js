@@ -10,5 +10,9 @@ s.Outcome = function(func) {
 }
 
 s.Outcome.prototype.carryOut = function() {
-    return this._userScript();
+    if (this._userScript == null) {
+        return;
+    } else {
+        return this._userScript();    
+    }
 }

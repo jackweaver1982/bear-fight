@@ -4,6 +4,11 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.4
+
+* Edited the `Outcome`, `Action`, and `Node` classes, as well as the `addLink` global function, so that `null` can be passed as a function parameter, instead of a useless call to a function that returns nothing. Also changed the `Outcome.choose` method so that `_userScript` is not called when `_array` is empty.
+* Deleted the `none` global function.
+
 ## Version 0.3.3
 
 * Added css for headings in help screen. Added comments to css.

@@ -235,7 +235,11 @@ s.Outcome = function(func) {
 }
 
 s.Outcome.prototype.carryOut = function() {
-    return this._userScript();
+    if (this._userScript == null) {
+        return;
+    } else {
+        return this._userScript();    
+    }
 }
 /* twine-user-script #4: "0040-Action.js" */
 s.Action = function(text, checkFunc, chooseFunc) {
@@ -263,29 +267,14 @@ s.Action = function(text, checkFunc, chooseFunc) {
     s.List.call(this);
     this._displayText = text;
 
-    if (checkFunc === undefined || checkFunc === true)  {
-        this._userScriptCheck = function() {
-            return true;
-        }
-    } else if (checkFunc === false) {
-        this._userScriptCheck = function() {
-            return false;
-        }
+    if (checkFunc == null)  {
+        this._userScriptCheck = true;
     } else {
         this._userScriptCheck = checkFunc;
     }
-    if (typeof(checkFunc) === 'boolean') {
-        checkFunc = function() {
-            return checkFunc;
-        }
-    }
 
     this._userScriptChoose = chooseFunc || function() {
-        if (this.length() > 0) {
-            return this._array[0];
-        } else {
-            return null;
-        }
+        return this._array[0];
     }
     this._align = 'left';
     return this;
@@ -322,11 +311,19 @@ s.Action.prototype.setAlign = function(align) {
 }
 
 s.Action.prototype.check = function() {
-    return this._userScriptCheck();
+    if (typeof(this._userScriptCheck) === 'boolean') {
+        return this._userScriptCheck;
+    } else {
+        return this._userScriptCheck();
+    }
 }
 
 s.Action.prototype.choose = function() {
-    return this._userScriptChoose();
+    if (this.length() === 0) {
+        return null;
+    } else {
+        return this._userScriptChoose();
+    }
 }
 /* twine-user-script #5: "0050-Node.js" */
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
@@ -406,9 +403,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     this._passage = psg;
     s.nodes.set(psg, this);
     this._subCount = subCount || 0;
-    this._userScript = func || function() {
-        return;
-    }
+    this._userScript = func;
     this._outOfChar = (outOfChar === undefined) ? false : outOfChar;
     return this;
 };
@@ -456,7 +451,11 @@ s.Node.prototype.setSubCount = function(num) {
 }
 
 s.Node.prototype.onLoad = function() {
-    return this._userScript();
+    if (this._userScript == null) {
+        return;
+    } else {
+        return this._userScript();
+    }
 }
 
 s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
@@ -1096,12 +1095,12 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     if (embed === undefined) {
         embed = this._continuous;
     }
+    if (node instanceof s.InfoNode) {
+        embed = false;
+    }
+
     node.onLoad();
     var nodePsg = node.getPassage();
-    // if (node instanceof s.InfoNode) {
-    //     Engine.play(nodePsg.title, true);
-    //     return;
-    // }
     if (embed) {
         this.embedPsg(node, 0, nobreak);
         return this;
@@ -1140,15 +1139,6 @@ window.onerror = function(msg, url, linenumber) {
     return true;
 }
 
-s.addAction = function(psgTitle, text, carryOutFunc, checkFunc) {
-    /*
-    Adds a simple action to the node associated with `psgTitle` that has
-    link text `text` and check function `checkFunc`, and contains a
-    single outcome that executes `carryOutFunc`.
-    */
-    return s.getNode(psgTitle).addAction(text, carryOutFunc, checkFunc);
-}
-
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1173,7 +1163,7 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     }
 
     var carryOutFunc;
-    if (func === undefined) {
+    if (func == null) {
         carryOutFunc = function() {
             st.page.load(targetNode);
         }
@@ -1188,12 +1178,10 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     return;
 }
 
-s.none = function() { return; } // for convenience when passing an empty
-                                // function as a parameter
-
 s.setSubCount = function(psgTitle, num) {
     /*
     Sets the sub count of the node associated with `psgTitle` to `num`.
+    Returns the associated node.
     */
     return s.getNode(psgTitle).setSubCount(num);
 }
@@ -1208,6 +1196,7 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     for (var i = 0; i < fromNode.length(); i++) {
         toNode.push(fromNode.get(i));
     }
+    return;
 }
 
 Config.saves.autosave = true;

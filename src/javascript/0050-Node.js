@@ -75,9 +75,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     this._passage = psg;
     s.nodes.set(psg, this);
     this._subCount = subCount || 0;
-    this._userScript = func || function() {
-        return;
-    }
+    this._userScript = func;
     this._outOfChar = (outOfChar === undefined) ? false : outOfChar;
     return this;
 };
@@ -125,7 +123,11 @@ s.Node.prototype.setSubCount = function(num) {
 }
 
 s.Node.prototype.onLoad = function() {
-    return this._userScript();
+    if (this._userScript == null) {
+        return;
+    } else {
+        return this._userScript();
+    }
 }
 
 s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
