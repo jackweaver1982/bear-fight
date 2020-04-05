@@ -2,28 +2,37 @@ s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are');
 s.addLink('who you are', 'take a look around', 'bedroom');
 
-s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
-    v.containedIn.delete('knife');
-    v.inventory.add('knife');
-}, function() {
-    return (v.containedIn.get('knife') === 'bedroom');
-}, true, true)
+// bedroom actions
 
-s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
-    v.body.searched = true;
-    v.pounding = false;
-    st.parser.setSubs('Cops bust in', [
-        '',
+    // take the knife
+    s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
+        // carry out
+        v.containedIn.delete('knife');
+        v.inventory.add('knife');
+    }, function() {
+        // check
+        return (v.containedIn.get('knife') === 'bedroom');
+    }, true, true)
 
-        'As you bend down to take a closer look at the body, the bedroom ' +
-        'door bursts open. ' 
-    ]);
-}, function() {
-    return !v.body.searched;
-})
+    // search the body
+    s.setSubCount('Cops bust in', 2);
+    s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
+        // carry out
+        v.body.searched = true;
+        v.pounding = false;
+        st.parser.setSubs('Cops bust in', [
+            '',
 
-s.setSubCount('Cops bust in', 2);
+            'As you bend down to take a closer look at the body, ' +
+            'the bedroom door bursts open. '
+        ]);
+    }, function() {
+        // check
+        return !v.body.searched;
+    })
 
+// Taking knife actions
 s.copyActions('bedroom', 'Taking knife');
 
+// Cops bust in actions
 s.addLink('Cops bust in', 'continue', 'Next');

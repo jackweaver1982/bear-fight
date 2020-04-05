@@ -40,9 +40,15 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
 s.setSubCount = function(psgTitle, num) {
     /*
     Sets the sub count of the node associated with `psgTitle` to `num`.
-    Returns the associated node.
+    If no such node exists, creates one. Returns the associated node.
     */
-    return s.getNode(psgTitle).setSubCount(num);
+    var node = s.getNode(psgTitle);
+    if (node === undefined) {
+        node = new s.Node(psgTitle, num);
+        return node;
+    } else {
+        return node.setSubCount(num);
+    }
 }
 
 s.copyActions = function(fromPsgTitle, toPsgTitle) {

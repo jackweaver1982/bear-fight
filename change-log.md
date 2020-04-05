@@ -4,6 +4,11 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.6
+
+* Edited `s.setSubCount()` so it makes the node if no such node exists.
+* Edited `main.js` to make it cleaner and more human-readable.
+
 ## Version 0.3.5
 
 * Reorganized JavaScript files. Capitalized file names not ending in an underscore define only a class. Capitalized file names ending in an underscore also contain global variables and functions, which are always included in the beginning of the file, before the class definition. Uncapitalized file names contain only global variables and functions. `main.js` is the file which connects the JavaScript tools to the twee file.
