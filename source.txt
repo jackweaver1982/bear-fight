@@ -71,6 +71,22 @@ Object.defineProperty(window, "t", {
         return State.temporary;
     }
 });
+
+Config.passages.nobr = true; // sets all passages to `nobr`
+
+window.onerror = function(msg, url, linenumber) {
+    /*
+    Ensures that errors appear in a pop-up for greater visibility. Works
+    in Firefox, but doesn't seem to work in Safari. Be sure to do
+    testing in Firefox.
+    */
+    alert(
+        'Error message: ' + msg + '\n' +
+        'URL: ' + url + '\n' +
+        'Line Number: ' + linenumber
+    );
+    return true;
+}
 /* twine-user-script #2: "0020-List.js" */
 s.List = function() {
     /*
@@ -242,7 +258,7 @@ s.Action.prototype.choose = function() {
         return this._userScriptChoose();
     }
 }
-/* twine-user-script #5: "0050-Node.js" */
+/* twine-user-script #5: "0050-Node_.js" */
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
 
@@ -388,7 +404,7 @@ s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
     this.push(action);
     return this;
 }
-/* twine-user-script #6: "0055-InfoNode.js" */
+/* twine-user-script #6: "0060-InfoNode.js" */
 s.InfoNode = function(psgTitle, checkFunc) {
     /*
     `InfoNode` is a subclass of `Node`. It is a special kind of node
@@ -418,7 +434,7 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
     enumerable: false,
     writable: true
 });
-/* twine-user-script #7: "0060-Parser.js" */
+/* twine-user-script #7: "0070-Parser_.js" */
 v.static = {};
 
 Object.defineProperty(window, "st", {
@@ -794,7 +810,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
-/* twine-user-script #8: "0070-Page.js" */
+/* twine-user-script #8: "0080-Page_.js" */
 st.parser = new s.Parser();
 
 /*
@@ -1028,34 +1044,81 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #9: "8000-Global.js" */
-/*
-Global objects scattered throughout code:
-----
-from Node.js:
-    s.nodes : Map(<<SC Passage obj>> : Node)
-    s.getNode(psgTitle: String): Node
-    s.specialPassages : String[]
-from Parser.js:
-    st.parser : Parser
-*/
+/* twine-user-script #9: "6000-saving.js" */
+Config.saves.autosave = true;
 
-Config.passages.nobr = true; // sets all passages to `nobr`
+Config.saves.isAllowed = function () {
+    var allowed = true;
+    if (passage() ===  'Start' && st.page.length() === 0) {
+        allowed = false;
+    }
+    if (s.getNode(passage()) instanceof s.InfoNode) {
+        allowed = false;
+    }
+    return allowed;
+};
 
-window.onerror = function(msg, url, linenumber) {
+$(window).bind('beforeunload pagehide',function(){
     /*
-    Ensures that errors appear in a pop-up for greater visibility. Works
-    in Firefox, but doesn't seem to work in Safari. Be sure to do
-    testing in Firefox.
+    Restarts story on browser refresh. Without this, refresh takes too
+    long and that prevents the scrolling to the current content in long
+    chains of embedded passages.
     */
-    alert(
-        'Error message: ' + msg + '\n' +
-        'URL: ' + url + '\n' +
-        'Line Number: ' + linenumber
+    Engine.restart();
+});
+/* twine-user-script #10: "7000-rendering.js" */
+st.page = new s.Page();
+
+Config.passages.onProcess = function(p) {
+    /*
+    Rewinds variables to a previous moment to account for embedded
+    passages. Variables will be restored on `:passagedisplay`. Then
+    processes the node markup. Does nothing if the current passage is
+    not associated with a node.
+    */
+    if (s.getNode(p.title) === undefined) {
+        return p.text;
+    }
+
+    s.loadVars(-st.page.length());
+    var processedText = st.parser.procAllMarkup(
+        p.title, p.text
     );
-    return true;
+    return processedText;
+};
+
+s.onPsgDisplay = function(ev) {
+    /*
+    Triggered by the `:passagedisplay` event. Rebuilds the current page.
+    Does nothing if the current passage is not associated with a node.
+    */
+    if (s.getNode(ev.passage.title) === undefined) {
+        return;
+    }
+
+    s.loadVars(0); // resets variables to current time
+
+    var currentPsg = ev.passage;
+    var nextPsg, time;
+    for (var i = 0; i < st.page.length(); i++) {
+        /*
+        Re-inserts embedded passage text one at a time.
+        */
+        nextPsg = Story.get(st.page.getPsg(i));
+        time = i - (st.page.length() - 1)
+        st.page.insertPsgText(
+            nextPsg, currentPsg, time, st.page.getFlag(i)
+        );
+        currentPsg = nextPsg;
+    }
+
+    st.page.insertActions(st.page.innerPsg());
+    st.page.scrollToLast();
+    return;
 }
 
+$(document).on(':passagedisplay', s.onPsgDisplay);
+/* twine-user-script #11: "8000-functions.js" */
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1116,75 +1179,6 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     return;
 }
 
-Config.saves.autosave = true;
-
-Config.saves.isAllowed = function () {
-    var allowed = true;
-    if (passage() ===  'Start' && st.page.length() === 0) {
-        allowed = false;
-    }
-    if (s.getNode(passage()) instanceof s.InfoNode) {
-        allowed = false;
-    }
-    return allowed;
-};
-
-$(window).bind('beforeunload pagehide',function(){
-   Engine.restart();
-});
-
-st.page = new s.Page();
-
-Config.passages.onProcess = function(p) {
-    /*
-    Rewinds variables to a previous moment to account for embedded
-    passages. Variables will be restored on `:passagedisplay`. Then
-    processes the node markup. Does nothing if the current passage is
-    not associated with a node.
-    */
-    if (s.getNode(p.title) === undefined) {
-        return p.text;
-    }
-
-    s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(
-        p.title, p.text
-    );
-    return processedText;
-};
-
-s.onPsgDisplay = function(ev) {
-    /*
-    Triggered by the `:passagedisplay` event. Rebuilds the current page.
-    Does nothing if the current passage is not associated with a node.
-    */
-    if (s.getNode(ev.passage.title) === undefined) {
-        return;
-    }
-
-    s.loadVars(0); // resets variables to current time
-
-    var currentPsg = ev.passage;
-    var nextPsg, time;
-    for (var i = 0; i < st.page.length(); i++) {
-        /*
-        Re-inserts embedded passage text one at a time.
-        */
-        nextPsg = Story.get(st.page.getPsg(i));
-        time = i - (st.page.length() - 1)
-        st.page.insertPsgText(
-            nextPsg, currentPsg, time, st.page.getFlag(i)
-        );
-        currentPsg = nextPsg;
-    }
-
-    st.page.insertActions(st.page.innerPsg());
-    st.page.scrollToLast();
-    return;
-}
-
-$(document).on(':passagedisplay', s.onPsgDisplay);
-
 s.loadNode = function(psgTitle) {
     st.page.load(s.getNode(psgTitle));
     return;
@@ -1212,7 +1206,7 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
-/* twine-user-script #10: "9000-Main.js" */
+/* twine-user-script #12: "9000-main.js" */
 s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are');
 s.addLink('who you are', 'take a look around', 'bedroom');
@@ -1220,12 +1214,9 @@ s.addLink('who you are', 'take a look around', 'bedroom');
 s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
-    st.parser.setSubs('Taking knife', [' You may need this for later.']);
 }, function() {
     return (v.containedIn.get('knife') === 'bedroom');
 }, true, true)
-
-s.setSubCount('Taking knife', 1);
 
 s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
     v.body.searched = true;
@@ -1244,10 +1235,8 @@ s.setSubCount('Cops bust in', 2);
 
 s.copyActions('bedroom', 'Taking knife');
 
-s.addLink('Cops bust in', 'continue', 'Next', function() {
-    v.inventory.delete('knife');
-});
-/* twine-user-script #11: "Story JavaScript" */
+s.addLink('Cops bust in', 'continue', 'Next');
+/* twine-user-script #13: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1380,7 +1369,7 @@ Story Caption
 
 
 :: Taking knife
-<p>You take the knife and carefully slide it under your belt.{0}</p>
+<p>You take the knife and carefully slide it under your belt. You may need this for later.</p>
 
 
 :: Next

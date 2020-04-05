@@ -5,12 +5,9 @@ s.addLink('who you are', 'take a look around', 'bedroom');
 s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
     v.containedIn.delete('knife');
     v.inventory.add('knife');
-    st.parser.setSubs('Taking knife', [' You may need this for later.']);
 }, function() {
     return (v.containedIn.get('knife') === 'bedroom');
 }, true, true)
-
-s.setSubCount('Taking knife', 1);
 
 s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
     v.body.searched = true;
@@ -29,6 +26,4 @@ s.setSubCount('Cops bust in', 2);
 
 s.copyActions('bedroom', 'Taking knife');
 
-s.addLink('Cops bust in', 'continue', 'Next', function() {
-    v.inventory.delete('knife');
-});
+s.addLink('Cops bust in', 'continue', 'Next');

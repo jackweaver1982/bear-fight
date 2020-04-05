@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.5
+
+* Reorganized JavaScript files. Capitalized file names not ending in an underscore define only a class. Capitalized file names ending in an underscore also contain global variables and functions, which are always included in the beginning of the file, before the class definition. Uncapitalized file names contain only global variables and functions. `main.js` is the file which connects the JavaScript tools to the twee file.
+
 ## Version 0.3.4
 
 * Edited the `Outcome`, `Action`, and `Node` classes, as well as the `addLink` global function, so that `null` can be passed as a function parameter, instead of a useless call to a function that returns nothing. Also changed the `Outcome.choose` method so that `_userScript` is not called when `_array` is empty.

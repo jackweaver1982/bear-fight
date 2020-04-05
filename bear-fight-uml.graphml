@@ -85,10 +85,10 @@
             <y:AttributeLabel xml:space="preserve">-passage : &lt;&lt;SC Passage obj&gt;&gt;
 -subCount : Integer
 -outOfChar : Boolean</y:AttributeLabel>
-            <y:MethodLabel xml:space="preserve">-verify(obj: Object): Boolean &lt;&lt;override&gt;&gt;
+            <y:MethodLabel xml:space="preserve">-userScript()
+-verify(obj: Object): Boolean &lt;&lt;override&gt;&gt;
 +getPassage(): Passage
 +getSubCount(): Integer
--userScript()
 +setSubCount(num: Integer): Node
 +onLoad()
 +addAction(text: String, carryOutFunc: Function, checkFunc: Function): Node</y:MethodLabel>
@@ -110,17 +110,17 @@
 +s.specialPassages : String[]
 +st : Object
 +st.parser : Parser
-+st.page : Page
-+Config.saves.autosave : Boolean = true</y:AttributeLabel>
++Config.saves.autosave : Boolean = true
++st.page : Page</y:AttributeLabel>
             <y:MethodLabel xml:space="preserve">+window.onerror(msg: String, url: String, linenumber: Integer): Boolean
 +s.getNode(psgTitle: String): Node
 +s.loadVars(time: Integer)
++Config.saves.isAllowed(): Boolean
++Config.passages.onProcess(p: &lt;&lt;abbreviated SC Passage object&gt;&gt;): String
++s.onPsgDisplay(ev: &lt;&lt;SC Event object&gt;&gt;)
 +s.addLink(startPsgTitle: String, text: String, endPsgTitle: String, func: Function, checkFunc: Function, embed: Boolean, nobreak: Boolean)
 +s.setSubCount(psgTitle: String, num: Integer): Node
 +s.copyActions(fromPsgTitle: String, toPsgTitle: String): 
-+Config.passages.onProcess(p: &lt;&lt;abbreviated SC Passage object&gt;&gt;): String
-+s.onPsgDisplay(ev: &lt;&lt;SC Event object&gt;&gt;)
-+Config.saves.isAllowed(): Boolean
 +s.loadNode(psgTitle: String)
 +s.loadInfoNode(psgTitle: String, checkFunc: Function)</y:MethodLabel>
           </y:UML>
@@ -178,7 +178,6 @@
     </node>
     <node id="n7">
       <data key="d4" xml:space="preserve"/>
-      <data key="d5"/>
       <data key="d6">
         <y:UMLClassNode>
           <y:Geometry height="62.625926362055964" width="221.3572806816843" x="315.7880263258245" y="-269.0965278220391"/>
@@ -302,7 +301,6 @@
       </data>
     </edge>
     <edge id="e9" source="n7" target="n3">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="-31.312963181027982" tx="2.8421709430404007E-14" ty="97.86048387096776"/>
