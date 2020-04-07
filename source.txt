@@ -434,7 +434,60 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
     enumerable: false,
     writable: true
 });
-/* twine-user-script #7: "0070-Parser_.js" */
+/* twine-user-script #7: "0065-DebugController.js" */
+s.DebugController = function() {
+    /*
+    The Debug Controller controls debug mode, a developer mode that can
+    be used to activate certain capabilities and functionalities not
+    present in ordinary gameplay. The state of debug mode is stored in
+    the boolean property `debugOn` in SugarCube's `settings` namespace,
+    which has `ss` as an alias.
+    */
+    return this;    
+};
+
+s.DebugController.prototype.checkUIBar = function() {
+    /*
+    By default, SugarCube's UI Bar is only visible during debug mode.
+    This method ensures that the UI Bar is in the correct state.
+    */
+    if (ss.debugOn) {
+      UIBar.unstow().show();
+    } else {
+      UIBar.hide().stow();
+    }
+    return this;
+}
+
+s.DebugController.prototype.onInit = function() {
+    /*
+    Runs on story initialization.
+    */
+    this.checkUIBar();
+    return;
+}
+
+s.DebugController.prototype.onChange = function() {
+    /*
+    Runs when the debug state changes. Refreshes the current passage in
+    order to display visible changes that might occur with the state
+    change.
+    */
+    this.checkUIBar();
+    Engine.show();
+    return;
+}
+
+s.DebugController.prototype.toggle = function() {
+    /*
+    Toggles the debug state.
+    */
+    ss.debugOn = !ss.debugOn;
+    Setting.save();
+    this.onChange();
+    return this;
+}
+/* twine-user-script #8: "0070-Parser_.js" */
 v.static = {};
 
 Object.defineProperty(window, "st", {
@@ -810,7 +863,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
-/* twine-user-script #8: "0080-Page_.js" */
+/* twine-user-script #9: "0080-Page_.js" */
 st.parser = new s.Parser();
 
 /*
@@ -1044,7 +1097,20 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #9: "6000-saving.js" */
+/* twine-user-script #10: "5000-debug.js" */
+s.debCon = new s.DebugController();
+
+Setting.addToggle('debugOn', {
+    /*
+    Adds the `debugOn` boolean variable to `settings` and adds a toggle
+    switch for it to the setting menu in the UI Bar. Binds the relevant
+    `debCon` methods to the UI toggle switch.
+    */
+    label:      'debug mode',
+    onInit:     s.debCon.onInit.bind(s.debCon),
+    onChange:   s.debCon.onChange.bind(s.debCon)
+});
+/* twine-user-script #11: "6000-saving.js" */
 Config.saves.autosave = true;
 
 Config.saves.isAllowed = function () {
@@ -1066,7 +1132,7 @@ $(window).bind('beforeunload pagehide',function(){
     */
     Engine.restart();
 });
-/* twine-user-script #10: "7000-rendering.js" */
+/* twine-user-script #12: "7000-rendering.js" */
 st.page = new s.Page();
 
 Config.passages.onProcess = function(p) {
@@ -1081,9 +1147,7 @@ Config.passages.onProcess = function(p) {
     }
 
     s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(
-        p.title, p.text
-    );
+    var processedText = st.parser.procAllMarkup(p.title, p.text);
     return processedText;
 };
 
@@ -1118,7 +1182,7 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
-/* twine-user-script #11: "8000-functions.js" */
+/* twine-user-script #13: "8000-functions.js" */
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1212,7 +1276,7 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
-/* twine-user-script #12: "9000-main.js" */
+/* twine-user-script #14: "9000-main.js" */
 s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are');
 s.addLink('who you are', 'take a look around', 'bedroom');
@@ -1251,7 +1315,7 @@ s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
 s.addLink('Cops bust in', 'continue', 'Next');
-/* twine-user-script #13: "Story JavaScript" */
+/* twine-user-script #15: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1298,10 +1362,15 @@ Story Caption
 <<if !tags().includes("no-header")>>
     <<link 'info'>>
         <<run s.loadInfoNode('help')>>
-    <</link>> /
-    <<link 'bio'>>
+    <</link>>
+    / <<link 'bio'>>
         <<run s.loadInfoNode('bio')>>
     <</link>>
+    <<if ss.debugOn>>
+        / <<link 'exit debug mode'>>
+            <<run s.debCon.toggle()>>
+        <</link>>
+    <</if>>
     <br><hr>
 <</if>>
 

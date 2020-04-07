@@ -12,9 +12,7 @@ Config.passages.onProcess = function(p) {
     }
 
     s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(
-        p.title, p.text
-    );
+    var processedText = st.parser.procAllMarkup(p.title, p.text);
     return processedText;
 };
 

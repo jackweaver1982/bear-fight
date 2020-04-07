@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.7
+
+* Added `DebugController`; built `s.deCon` instance and added `debugOn` to SC's `settings`.
+
 ## Version 0.3.6
 
 * Edited `s.setSubCount()` so it makes the node if no such node exists.

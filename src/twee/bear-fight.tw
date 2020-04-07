@@ -73,10 +73,15 @@ a {
 <<if !tags().includes("no-header")>>
     <<link 'info'>>
         <<run s.loadInfoNode('help')>>
-    <</link>> /
-    <<link 'bio'>>
+    <</link>>
+    / <<link 'bio'>>
         <<run s.loadInfoNode('bio')>>
     <</link>>
+    <<if ss.debugOn>>
+        / <<link 'exit debug mode'>>
+            <<run s.debCon.toggle()>>
+        <</link>>
+    <</if>>
     <br><hr>
 <</if>>
 
