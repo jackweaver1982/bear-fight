@@ -4,6 +4,16 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.8
+
+* Added CSS code to make the header float on top of the page as you scroll.
+* Added CSS code to remove the upper margin of the story, so the header remains fixed as you scroll. (Without doing this, the header would start a margin away from the top, then scroll to the top before beginning to float.)
+* Added a `refreshActions` method to `Page` which simply erase and reinserts the current actions. It is meant to be run after dynamically changing variables on which action check functions depend.
+* Edited `Config.passages.onProcess` to automatically wrap `PassageHeader` so that it inherits the floating CSS code and so that it doesn't display when a passage is tagged with `no-header`.
+* Edited `Config.passages.onProcess` to automatically insert an HTML `<br>` in the top of `PassageHeader` and the top of any passage tagged `no-header`. This is to compensate for the fact that the upper margin of the story has been removed.
+* Edited `s.addLink()` so that it accepted `null` or `undefined` for `endPsgTitle`. This allows for links that execute functions but do not load a new node.
+* Edited `s.loadNode()` so that it accepts an optional `embed` parameter.
+
 ## Version 0.3.7
 
 * Added `DebugController`; built `s.deCon` instance and added `debugOn` to SC's `settings`.

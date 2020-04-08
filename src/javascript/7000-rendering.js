@@ -2,17 +2,33 @@ st.page = new s.Page();
 
 Config.passages.onProcess = function(p) {
     /*
+    Prepends passage text with an HTML linebreak if the passage is the
+    header passage or if the passage is tagged with `no-header`. Does
+    nothing further if the current passage is not associated with a
+    node.
+
     Rewinds variables to a previous moment to account for embedded
     passages. Variables will be restored on `:passagedisplay`. Then
-    processes the node markup. Does nothing if the current passage is
-    not associated with a node.
+    processes the node markup.
     */
+    var text = p.text;
+    if (p.title === 'PassageHeader') {
+        text = (
+            '<<if !tags().includes("no-header")>><div class="sticky"><br>' +
+            text +
+            '</div><</if>>'
+        );
+    }
+    if (p.tags.includes('no-header')) {
+        text = '<br>\n' + text;
+    }
+
     if (s.getNode(p.title) === undefined) {
-        return p.text;
+        return text;
     }
 
     s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(p.title, p.text);
+    var processedText = st.parser.procAllMarkup(p.title, text);
     return processedText;
 };
 

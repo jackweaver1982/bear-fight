@@ -49,8 +49,21 @@ a {
     color: yellow;
 }
 .headings {
-    /* headings in help page */
+    /* Headings in help page. */
     color: lime;
+}
+.sticky{
+    /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 999;
+    background-color: black;
+}
+#story {
+    /* Removes the top margin, so the header sticks seamlessly. Line breaks should be added manually at the top of the header and any passage with a `no-header` tag. This is handled automatically by the `onProcess` function in `rendering.js`. */
+    margin-top: 0px;
 }
 
 :: Story JavaScript [script]
@@ -70,20 +83,18 @@ a {
 <<set $inventory = new Set()>>
 
 :: PassageHeader
-<<if !tags().includes("no-header")>>
-    <<link 'info'>>
-        <<run s.loadInfoNode('help')>>
+<<link 'info'>>
+    <<run s.loadInfoNode('help')>>
+<</link>>
+/ <<link 'bio'>>
+    <<run s.loadInfoNode('bio')>>
+<</link>>
+<<if ss.debugOn>>
+    / <<link 'exit debug mode'>>
+        <<run s.debCon.toggle()>>
     <</link>>
-    / <<link 'bio'>>
-        <<run s.loadInfoNode('bio')>>
-    <</link>>
-    <<if ss.debugOn>>
-        / <<link 'exit debug mode'>>
-            <<run s.debCon.toggle()>>
-        <</link>>
-    <</if>>
-    <br><hr>
 <</if>>
+<br><hr>
 
 :: help
 <p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>
@@ -110,10 +121,10 @@ a {
         <<link 'resume'>><<run Save.autosave.load()>><</link>> /
         <<link 'restart'>><<if confirm('Really restart?')>>
             <<run Save.autosave.delete()>>
-            <<run s.loadNode('intro')>>
+            <<run s.loadNode('intro', false)>>
         <</if>><</link>>
     <<else>>
-        <<link 'begin'>><<run s.loadNode('intro')>><</link>>
+        <<link 'begin'>><<run s.loadNode('intro', false)>><</link>>
     <</if>>
 </div>
 

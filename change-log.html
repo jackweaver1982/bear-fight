@@ -265,6 +265,17 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-038">Version 0.3.8</h2>
+
+<ul>
+<li>Added CSS code to make the header float on top of the page as you scroll.</li>
+<li>Added CSS code to remove the upper margin of the story, so the header remains fixed as you scroll. (Without doing this, the header would start a margin away from the top, then scroll to the top before beginning to float.)</li>
+<li>Added a <code>refreshActions</code> method to <code>Page</code> which simply erase and reinserts the current actions. It is meant to be run after dynamically changing variables on which action check functions depend.</li>
+<li>Edited <code>Config.passages.onProcess</code> to automatically wrap <code>PassageHeader</code> so that it inherits the floating CSS code and so that it doesn&apos;t display when a passage is tagged with <code>no-header</code>.</li>
+<li>Edited <code>Config.passages.onProcess</code> to automatically insert an HTML <code>&lt;br&gt;</code> in the top of <code>PassageHeader</code> and the top of any passage tagged <code>no-header</code>. This is to compensate for the fact that the upper margin of the story has been removed.</li>
+<li>Edited <code>s.addLink()</code> so that it accepted <code>null</code> or <code>undefined</code> for <code>endPsgTitle</code>. This allows for links that execute functions but do not load a new node.</li>
+<li>Edited <code>s.loadNode()</code> so that it accepts an optional <code>embed</code> parameter.</li>
+</ul>
 <h2 class="mume-header" id="version-037">Version 0.3.7</h2>
 
 <ul>

@@ -11,20 +11,32 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     If there are no nodes associated with the given passage titles, they
     will be created.
     */
+    if (endPsgTitle == null && func == null) {
+        throw new Error(
+            'addLink():\n' +
+            'link must load a node or execute a function'
+        );
+    }
+
     var startNode = s.nodes.get(Story.get(startPsgTitle));
     if (startNode === undefined) {
         startNode = new s.Node(startPsgTitle);
     }
 
-    var targetNode = s.nodes.get(Story.get(endPsgTitle));
-    if (targetNode === undefined) {
-        targetNode = new s.Node(endPsgTitle);
+    var targetNode;
+    if (endPsgTitle != null) {
+        targetNode = s.nodes.get(Story.get(endPsgTitle));
+        if (targetNode === undefined) {
+            targetNode = new s.Node(endPsgTitle);
+        }
     }
 
     var carryOutFunc;
-    if (func == null) {
+    if (endPsgTitle == null) {
+        carryOutFunc = func;
+    } else if (func == null) {
         carryOutFunc = function() {
-            st.page.load(targetNode);
+            st.page.load(targetNode, embed, nobreak);
         }
     } else {
         carryOutFunc = function() {
@@ -64,8 +76,8 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     return;
 }
 
-s.loadNode = function(psgTitle) {
-    st.page.load(s.getNode(psgTitle));
+s.loadNode = function(psgTitle, embed) {
+    st.page.load(s.getNode(psgTitle), embed);
     return;
 }
 

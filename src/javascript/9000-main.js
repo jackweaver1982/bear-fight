@@ -1,5 +1,8 @@
+st.page.setContinuous(true);
+
 s.addLink('intro', 'continue', 'RNG warning');
-s.addLink('RNG warning', 'got it', 'who you are');
+s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
+// s.addLink('RNG warning', 'got it', 'who you are');
 s.addLink('who you are', 'take a look around', 'bedroom');
 
 // bedroom actions
@@ -12,7 +15,7 @@ s.addLink('who you are', 'take a look around', 'bedroom');
     }, function() {
         // check
         return (v.containedIn.get('knife') === 'bedroom');
-    }, true, true)
+    }, true, true);
 
     // search the body
     s.setSubCount('Cops bust in', 2);
@@ -29,7 +32,23 @@ s.addLink('who you are', 'take a look around', 'bedroom');
     }, function() {
         // check
         return !v.body.searched;
-    })
+    });
+
+    s.addLink('bedroom', 'mark body as searched', null, function() {
+        v.body.searched = true;
+        State.create(State.passage);
+        st.page.refreshActions();
+    }, function() {
+        return !v.body.searched;
+    });
+
+    s.addLink('bedroom', 'mark body as not searched', null, function() {
+        v.body.searched = false;
+        State.create(State.passage);
+        st.page.refreshActions();
+    }, function() {
+        return v.body.searched;
+    });
 
 // Taking knife actions
 s.copyActions('bedroom', 'Taking knife');

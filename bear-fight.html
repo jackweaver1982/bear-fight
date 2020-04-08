@@ -119,8 +119,21 @@ a {
     color: yellow;
 }
 .headings {
-    /* headings in help page */
+    /* Headings in help page. */
     color: lime;
+}
+.sticky{
+    /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 999;
+    background-color: black;
+}
+#story {
+    /* Removes the top margin, so the header sticks seamlessly. Line breaks should be added manually at the top of the header and any passage with a `no-header` tag. This is handled automatically by the `onProcess` function in `rendering.js`. */
+    margin-top: 0px;
 }</style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "0010-standard.js" */
 /*
 Establishes shorthand aliases for the following namespaces in
@@ -600,26 +613,25 @@ s.loadVars = function(time) {
     return;
 }
 
-/*
-A Parser object manages the conversion of the given passage text to the
-actual passage text used by SugarCube to display information.
-
-There is one instance (`st.parser`, see Page.js), built on
-State.variables, so its state can be stored in SugarCube's history.
-(This is needed, because the parser tracks dynamically generated text
-substitutions.) The class must therefore be made compatible with
-SugarCube by having `clone()` and `toJSON()` methods, and no recursive
-objects or object sharing. To achieve this, we also require it to have a
-constructor with no arguments and to have all its properties be SC
-supported types.
-
-There are various methods for processing different kinds of markup. The
-method, `procMarkup()`, runs them all in the appropriate order. Through
-`Config.passages.onProcess`, we instruct SugarCube to apply
-`procMarkup()` to passage text whenever a passage is rendered.
-*/
-
 s.Parser = function() {
+    /*
+    A Parser object manages the conversion of the given passage text to
+    the actual passage text used by SugarCube to display information.
+
+    There is one instance (`st.parser`, see Page.js), built on
+    State.variables, so its state can be stored in SugarCube's history.
+    (This is needed, because the parser tracks dynamically generated
+    text substitutions.) The class must therefore be made compatible
+    with SugarCube by having `clone()` and `toJSON()` methods, and no
+    recursive objects or object sharing. To achieve this, we also
+    require it to have a constructor with no arguments and to have all
+    its properties be SC supported types.
+
+    There are various methods for processing different kinds of markup.
+    The method, `procMarkup()`, runs them all in the appropriate order.
+    Through `Config.passages.onProcess`, we instruct SugarCube to apply
+    `procMarkup()` to passage text whenever a passage is rendered.
+    */
     this._textSubMap = new Map(); // Maps passage titles to arrays of
                                   // text subs. A text sub can be a
                                   // simple string or a functions
@@ -949,25 +961,24 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 /* twine-user-script #9: "0080-Page_.js" */
 st.parser = new s.Parser();
 
-/*
-A `Page` object represents the content which is displayed on the screen.
-Traditionally in SugarCube, this is just a passage. But with the node
-system, multiple passages can be displayed at a time, in order. The
-first passage is the main one and the one which SugarCube regards as
-being displayed. The other passages are displayed inside the first
-passage.
-
-There is one instance (`st.page`, see Global.js), built on
-State.variables, so its state can be stored in SugarCube's history.
-(This allows SugarCube to rebuild the page upon a browser refresh or
-upon loading a save file.) The class must therefore be made compatible
-with SugarCube by having `clone()` and `toJSON()` methods, and no
-recursive objects or object sharing. To achieve this, we also require it
-to have a constructor with no arguments and to have all its properties
-be SC supported types.
-*/
-
 s.Page = function() {
+    /*
+    A `Page` object represents the content which is displayed on the
+    screen. Traditionally in SugarCube, this is just a passage. But with
+    the node system, multiple passages can be displayed at a time, in
+    order. The first passage is the main one and the one which SugarCube
+    regards as being displayed. The other passages are displayed inside
+    the first passage.
+
+    There is one instance (`st.page`, see Global.js), built on
+    State.variables, so its state can be stored in SugarCube's history.
+    (This allows SugarCube to rebuild the page upon a browser refresh or
+    upon loading a save file.) The class must therefore be made
+    compatible with SugarCube by having `clone()` and `toJSON()`
+    methods, and no recursive objects or object sharing. To achieve
+    this, we also require it to have a constructor with no arguments and
+    to have all its properties be SC supported types.
+    */
     this._embeddedPsgs = [];  // list of embedded passage titles; does
                               // not include the first (main) passage
     this._noBreakFlags = [];  // list of nobreak flags (true if passage
@@ -1065,6 +1076,18 @@ s.Page.prototype.innerPsg = function() {
         psg = Story.get(title);
     }
     return psg;
+}
+
+s.Page.prototype.refreshActions = function() {
+    /*
+    Deletes the actions on the page and reinserts them. Can be used
+    after dynamically changing variables on which action check functions
+    depend.
+    */
+    var latestPsg = this.innerPsg();
+    $('#' + latestPsg.domId + '-actions').empty();
+    this.insertActions(latestPsg);
+    return this;
 }
 
 s.Page.prototype.scrollToLast = function() {
@@ -1220,17 +1243,33 @@ st.page = new s.Page();
 
 Config.passages.onProcess = function(p) {
     /*
+    Prepends passage text with an HTML linebreak if the passage is the
+    header passage or if the passage is tagged with `no-header`. Does
+    nothing further if the current passage is not associated with a
+    node.
+
     Rewinds variables to a previous moment to account for embedded
     passages. Variables will be restored on `:passagedisplay`. Then
-    processes the node markup. Does nothing if the current passage is
-    not associated with a node.
+    processes the node markup.
     */
+    var text = p.text;
+    if (p.title === 'PassageHeader') {
+        text = (
+            '<<if !tags().includes("no-header")>><div class="sticky"><br>' +
+            text +
+            '</div><</if>>'
+        );
+    }
+    if (p.tags.includes('no-header')) {
+        text = '<br>\n' + text;
+    }
+
     if (s.getNode(p.title) === undefined) {
-        return p.text;
+        return text;
     }
 
     s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(p.title, p.text);
+    var processedText = st.parser.procAllMarkup(p.title, text);
     return processedText;
 };
 
@@ -1279,20 +1318,32 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     If there are no nodes associated with the given passage titles, they
     will be created.
     */
+    if (endPsgTitle == null && func == null) {
+        throw new Error(
+            'addLink():\n' +
+            'link must load a node or execute a function'
+        );
+    }
+
     var startNode = s.nodes.get(Story.get(startPsgTitle));
     if (startNode === undefined) {
         startNode = new s.Node(startPsgTitle);
     }
 
-    var targetNode = s.nodes.get(Story.get(endPsgTitle));
-    if (targetNode === undefined) {
-        targetNode = new s.Node(endPsgTitle);
+    var targetNode;
+    if (endPsgTitle != null) {
+        targetNode = s.nodes.get(Story.get(endPsgTitle));
+        if (targetNode === undefined) {
+            targetNode = new s.Node(endPsgTitle);
+        }
     }
 
     var carryOutFunc;
-    if (func == null) {
+    if (endPsgTitle == null) {
+        carryOutFunc = func;
+    } else if (func == null) {
         carryOutFunc = function() {
-            st.page.load(targetNode);
+            st.page.load(targetNode, embed, nobreak);
         }
     } else {
         carryOutFunc = function() {
@@ -1332,8 +1383,8 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     return;
 }
 
-s.loadNode = function(psgTitle) {
-    st.page.load(s.getNode(psgTitle));
+s.loadNode = function(psgTitle, embed) {
+    st.page.load(s.getNode(psgTitle), embed);
     return;
 }
 
@@ -1360,8 +1411,11 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
     );
 }
 /* twine-user-script #14: "9000-main.js" */
+st.page.setContinuous(true);
+
 s.addLink('intro', 'continue', 'RNG warning');
-s.addLink('RNG warning', 'got it', 'who you are');
+s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
+// s.addLink('RNG warning', 'got it', 'who you are');
 s.addLink('who you are', 'take a look around', 'bedroom');
 
 // bedroom actions
@@ -1374,7 +1428,7 @@ s.addLink('who you are', 'take a look around', 'bedroom');
     }, function() {
         // check
         return (v.containedIn.get('knife') === 'bedroom');
-    }, true, true)
+    }, true, true);
 
     // search the body
     s.setSubCount('Cops bust in', 2);
@@ -1391,7 +1445,23 @@ s.addLink('who you are', 'take a look around', 'bedroom');
     }, function() {
         // check
         return !v.body.searched;
-    })
+    });
+
+    s.addLink('bedroom', 'mark body as searched', null, function() {
+        v.body.searched = true;
+        State.create(State.passage);
+        st.page.refreshActions();
+    }, function() {
+        return !v.body.searched;
+    });
+
+    s.addLink('bedroom', 'mark body as not searched', null, function() {
+        v.body.searched = false;
+        State.create(State.passage);
+        st.page.refreshActions();
+    }, function() {
+        return v.body.searched;
+    });
 
 // Taking knife actions
 s.copyActions('bedroom', 'Taking knife');
@@ -1411,20 +1481,18 @@ s.addLink('Cops bust in', 'continue', 'Next');
 &lt;&lt;set $detective = {
     discovered: false
 }&gt;&gt;
-&lt;&lt;set $inventory = new Set()&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="PassageHeader" tags="" position="975,100" size="100,100">&lt;&lt;if !tags().includes(&quot;no-header&quot;)&gt;&gt;
-    &lt;&lt;link &#39;info&#39;&gt;&gt;
-        &lt;&lt;run s.loadInfoNode(&#39;help&#39;)&gt;&gt;
+&lt;&lt;set $inventory = new Set()&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="PassageHeader" tags="" position="975,100" size="100,100">&lt;&lt;link &#39;info&#39;&gt;&gt;
+    &lt;&lt;run s.loadInfoNode(&#39;help&#39;)&gt;&gt;
+&lt;&lt;/link&gt;&gt;
+/ &lt;&lt;link &#39;bio&#39;&gt;&gt;
+    &lt;&lt;run s.loadInfoNode(&#39;bio&#39;)&gt;&gt;
+&lt;&lt;/link&gt;&gt;
+&lt;&lt;if ss.debugOn&gt;&gt;
+    / &lt;&lt;link &#39;exit debug mode&#39;&gt;&gt;
+        &lt;&lt;run s.debCon.toggle()&gt;&gt;
     &lt;&lt;/link&gt;&gt;
-    / &lt;&lt;link &#39;bio&#39;&gt;&gt;
-        &lt;&lt;run s.loadInfoNode(&#39;bio&#39;)&gt;&gt;
-    &lt;&lt;/link&gt;&gt;
-    &lt;&lt;if ss.debugOn&gt;&gt;
-        / &lt;&lt;link &#39;exit debug mode&#39;&gt;&gt;
-            &lt;&lt;run s.debCon.toggle()&gt;&gt;
-        &lt;&lt;/link&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-    &lt;br&gt;&lt;hr&gt;
-&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="9" name="help" tags="" position="1100,100" size="100,100">&lt;p&gt;The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.&lt;/p&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;&lt;hr&gt;</tw-passagedata><tw-passagedata pid="9" name="help" tags="" position="1100,100" size="100,100">&lt;p&gt;The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.&lt;/p&gt;
 
 &lt;p&gt;In this story, you control the character by tapping (or clicking) on links. Tap a noun to examine that object in closer detail. Tap a command to follow that action. Tapping a noun will usually not advance the story. Tapping a command, though, is often irreversible.&lt;/p&gt;
 
@@ -1442,10 +1510,10 @@ s.addLink('Cops bust in', 'continue', 'Next');
         &lt;&lt;link &#39;resume&#39;&gt;&gt;&lt;&lt;run Save.autosave.load()&gt;&gt;&lt;&lt;/link&gt;&gt; /
         &lt;&lt;link &#39;restart&#39;&gt;&gt;&lt;&lt;if confirm(&#39;Really restart?&#39;)&gt;&gt;
             &lt;&lt;run Save.autosave.delete()&gt;&gt;
-            &lt;&lt;run s.loadNode(&#39;intro&#39;)&gt;&gt;
+            &lt;&lt;run s.loadNode(&#39;intro&#39;, false)&gt;&gt;
         &lt;&lt;/if&gt;&gt;&lt;&lt;/link&gt;&gt;
     &lt;&lt;else&gt;&gt;
-        &lt;&lt;link &#39;begin&#39;&gt;&gt;&lt;&lt;run s.loadNode(&#39;intro&#39;)&gt;&gt;&lt;&lt;/link&gt;&gt;
+        &lt;&lt;link &#39;begin&#39;&gt;&gt;&lt;&lt;run s.loadNode(&#39;intro&#39;, false)&gt;&gt;&lt;&lt;/link&gt;&gt;
     &lt;&lt;/if&gt;&gt;
 &lt;/div&gt;</tw-passagedata><tw-passagedata pid="12" name="intro" tags="no-header" position="225,225" size="100,100">&lt;p&gt;It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can&#39;t remember.&lt;/p&gt;
 

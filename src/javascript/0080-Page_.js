@@ -1,24 +1,23 @@
 st.parser = new s.Parser();
 
-/*
-A `Page` object represents the content which is displayed on the screen.
-Traditionally in SugarCube, this is just a passage. But with the node
-system, multiple passages can be displayed at a time, in order. The
-first passage is the main one and the one which SugarCube regards as
-being displayed. The other passages are displayed inside the first
-passage.
-
-There is one instance (`st.page`, see Global.js), built on
-State.variables, so its state can be stored in SugarCube's history.
-(This allows SugarCube to rebuild the page upon a browser refresh or
-upon loading a save file.) The class must therefore be made compatible
-with SugarCube by having `clone()` and `toJSON()` methods, and no
-recursive objects or object sharing. To achieve this, we also require it
-to have a constructor with no arguments and to have all its properties
-be SC supported types.
-*/
-
 s.Page = function() {
+    /*
+    A `Page` object represents the content which is displayed on the
+    screen. Traditionally in SugarCube, this is just a passage. But with
+    the node system, multiple passages can be displayed at a time, in
+    order. The first passage is the main one and the one which SugarCube
+    regards as being displayed. The other passages are displayed inside
+    the first passage.
+
+    There is one instance (`st.page`, see Global.js), built on
+    State.variables, so its state can be stored in SugarCube's history.
+    (This allows SugarCube to rebuild the page upon a browser refresh or
+    upon loading a save file.) The class must therefore be made
+    compatible with SugarCube by having `clone()` and `toJSON()`
+    methods, and no recursive objects or object sharing. To achieve
+    this, we also require it to have a constructor with no arguments and
+    to have all its properties be SC supported types.
+    */
     this._embeddedPsgs = [];  // list of embedded passage titles; does
                               // not include the first (main) passage
     this._noBreakFlags = [];  // list of nobreak flags (true if passage
@@ -116,6 +115,18 @@ s.Page.prototype.innerPsg = function() {
         psg = Story.get(title);
     }
     return psg;
+}
+
+s.Page.prototype.refreshActions = function() {
+    /*
+    Deletes the actions on the page and reinserts them. Can be used
+    after dynamically changing variables on which action check functions
+    depend.
+    */
+    var latestPsg = this.innerPsg();
+    $('#' + latestPsg.domId + '-actions').empty();
+    this.insertActions(latestPsg);
+    return this;
 }
 
 s.Page.prototype.scrollToLast = function() {
