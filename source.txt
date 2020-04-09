@@ -950,37 +950,6 @@ s.Page.prototype.setContinuous = function(val) {
     return this;
 }
 
-s.Page.prototype.insertActions = function(psg) {
-    /*
-    For each action in the node corresponding to the given SC passage
-    object, this function checks if the action should be displayed. If
-    it passes the check, it adds a link for the corresponding action.
-    Does nothing if the incoming passage does not correspond to a node.
-    */
-    var node = s.nodes.get(psg);
-    if (node === undefined) {
-        return;
-    }
-
-    var psgTitle = psg.title;
-    var psgId = psg.domId;
-    var action;
-    for (var i = 0; i < node.length(); i++) {
-        action = node.get(i);
-        if (action.check()) {
-            $('#' + psgId + '-actions').wiki(
-                '<p style="text-align:' + action.getAlign() + '">' +
-                    '<<link "' + action.getText() + '">>'+
-                        '<<run s.nodes.get(Story.get("' + psgTitle + '"))' +
-                        '.get(' + i + ').choose().carryOut()>>' +
-                    '<</link>>' +
-                '</p>'
-            );
-        }
-    }
-    return this;
-}
-
 s.Page.prototype.innerPsg = function() {
     /*
     Returns the innermost passage on the page as a SC Passage object.
@@ -993,28 +962,6 @@ s.Page.prototype.innerPsg = function() {
         psg = Story.get(title);
     }
     return psg;
-}
-
-s.Page.prototype.refreshActions = function() {
-    /*
-    Deletes the actions on the page and reinserts them. Can be used
-    after dynamically changing variables on which action check functions
-    depend.
-    */
-    var latestPsg = this.innerPsg();
-    $('#' + latestPsg.domId + '-actions').empty();
-    this.insertActions(latestPsg);
-    return this;
-}
-
-s.Page.prototype.scrollToLast = function() {
-    /*
-    Scrolls to put the innermost passage at the top.
-    */
-    $('html, body').animate({
-        scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
-    }, 0);
-    return this;
 }
 
 s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
@@ -1051,6 +998,59 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
         s.loadVars(0);
     }
 
+    return this;
+}
+
+s.Page.prototype.insertActions = function(psg) {
+    /*
+    For each action in the node corresponding to the given SC passage
+    object, this function checks if the action should be displayed. If
+    it passes the check, it adds a link for the corresponding action.
+    Does nothing if the incoming passage does not correspond to a node.
+    */
+    var node = s.nodes.get(psg);
+    if (node === undefined) {
+        return;
+    }
+
+    var psgTitle = psg.title;
+    var psgId = psg.domId;
+    var action;
+    for (var i = 0; i < node.length(); i++) {
+        action = node.get(i);
+        if (action.check()) {
+            $('#' + psgId + '-actions').wiki(
+                '<p style="text-align:' + action.getAlign() + '">' +
+                    '<<link "' + action.getText() + '">>'+
+                        '<<run s.nodes.get(Story.get("' + psgTitle + '"))' +
+                        '.get(' + i + ').choose().carryOut()>>' +
+                    '<</link>>' +
+                '</p>'
+            );
+        }
+    }
+    return this;
+}
+
+s.Page.prototype.refreshActions = function() {
+    /*
+    Deletes the actions on the page and reinserts them. Can be used
+    after dynamically changing variables on which action check functions
+    depend.
+    */
+    var latestPsg = this.innerPsg();
+    $('#' + latestPsg.domId + '-actions').empty();
+    this.insertActions(latestPsg);
+    return this;
+}
+
+s.Page.prototype.scrollToLast = function() {
+    /*
+    Scrolls to put the innermost passage at the top.
+    */
+    $('html, body').animate({
+        scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
+    }, 0);
     return this;
 }
 

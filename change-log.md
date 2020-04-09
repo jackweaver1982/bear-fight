@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.9
+
+* Rearranged methods and "uses" arrows in UML diagram.
+
 ## Version 0.3.8
 
 * Added CSS code to make the header float on top of the page as you scroll.
