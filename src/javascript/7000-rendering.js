@@ -1,4 +1,29 @@
 st.page = new s.Page();
+s.menuBar = new s.MenuBar();
+
+s.menuMarkup = function() {
+    /*
+    Returns the text of the SC markup that renders the links in the
+    displayed menu bar.
+    */
+    var text = '';
+    var action;
+    for (var i = 0; i < s.menuBar.length(); i++) {
+        action = s.menuBar.get(i);
+        if (!action.check()) {
+            continue;
+        }
+        if (text !== '') {
+            text += ' / ';
+        }
+        text += (
+            '<<link "' + action.getText() + '">>' +
+                '<<run s.menuBar.get(' + i + ').choose().carryOut()>>' +
+            '<</link>>'
+        );
+    }
+    return text;
+}
 
 Config.passages.onProcess = function(p) {
     /*
@@ -14,9 +39,11 @@ Config.passages.onProcess = function(p) {
     var text = p.text;
     if (p.title === 'PassageHeader') {
         text = (
-            '<<if !tags().includes("no-header")>><div class="sticky"><br>' +
-            text +
-            '</div><</if>>'
+            '<<if !tags().includes("no-header")>>' +
+                '<div class="sticky"><br>' +
+                    text + s.menuMarkup() + '<br><hr>' +
+                '</div>' +
+            '<</if>>'
         );
     }
     if (p.tags.includes('no-header')) {

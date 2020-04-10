@@ -271,7 +271,62 @@ s.Action.prototype.choose = function() {
         return this._userScriptChoose();
     }
 }
-/* twine-user-script #5: "0050-Node_.js" */
+/* twine-user-script #5: "0045-ActionList.js" */
+s.ActionList = function() {
+    /*
+    Action List is a subclass of List whose instance can contain only
+    actions.
+    */
+    s.List.call(this);
+    return this;
+};
+
+s.ActionList.prototype = Object.create(s.List.prototype);
+
+Object.defineProperty(s.ActionList.prototype, 'constructor', {
+    value: s.ActionList,
+    enumerable: false,
+    writable: true
+});
+
+s.ActionList.prototype._verify = function(obj) {
+    /*
+    @override
+    */
+    return (obj instanceof s.Action);
+}
+
+s.ActionList.prototype.addAction = function(text, carryOutFunc, checkFunc) {
+    /*
+    This method is for adding a simple action with one outcome to the
+    list. It creates an outcome that executes `carryOutFunc`, adds it as
+    the single outcome to a new action with link text `text` and check
+    function `checkFunc`. The `checkFunc` parameter defaults to true.
+    */
+    var outcome = new s.Outcome(carryOutFunc);
+    var action = new s.Action(text, checkFunc);
+    action.push(outcome);
+    this.push(action);
+    return this;
+}
+/* twine-user-script #6: "0047-MenuBar.js" */
+s.MenuBar = function() {
+    /*
+    A `MenuBar` instance is a list of actions to be included in the
+    header of the story.
+    */
+    s.ActionList.call(this);
+    return this;
+};
+
+s.MenuBar.prototype = Object.create(s.ActionList.prototype);
+
+Object.defineProperty(s.MenuBar.prototype, 'constructor', {
+    value: s.MenuBar,
+    enumerable: false,
+    writable: true
+});
+/* twine-user-script #7: "0050-Node_.js" */
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
 
@@ -298,7 +353,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
 
     Structurally, a node is a list of actions with a passage for the
     narrative description, and some additional methods. As such, it is
-    implemented as a subclass of `List`.
+    implemented as a subclass of `ActionList`.
 
     The associated passage may have slots available for dynamically
     generated text substitutions. The node object has properties and
@@ -326,7 +381,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     @property passage - The SugarCube `Passage` object whose title is
     `psgTitle`
     */
-    s.List.call(this);
+    s.ActionList.call(this);
     if (!Story.has(psgTitle)) {
         throw new Error(
             'Node():\n' +
@@ -354,23 +409,13 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     return this;
 };
 
-s.Node.prototype = Object.create(s.List.prototype);
+s.Node.prototype = Object.create(s.ActionList.prototype);
 
 Object.defineProperty(s.Node.prototype, 'constructor', {
     value: s.Node,
     enumerable: false,
     writable: true
 });
-
-s.Node.prototype._verify = function(obj) {
-    /*
-    @override
-
-    Members of a `Node` must be actions that are registered with the
-    factory.
-    */
-    return (obj instanceof s.Action);
-}
 
 s.Node.prototype.getPassage = function() {
     return this._passage;
@@ -403,21 +448,7 @@ s.Node.prototype.onLoad = function() {
         return this._userScript();
     }
 }
-
-s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
-    /*
-    This method is for adding a simple action with one outcome to the
-    node. It creates an outcome that executes `carryOutFunc`, adds it as
-    the single outcome to a new action with link text `text` and check
-    function `checkFunc`. The `checkFunc` parameter defaults to true.
-    */
-    var outcome = new s.Outcome(carryOutFunc);
-    var action = new s.Action(text, checkFunc);
-    action.push(outcome);
-    this.push(action);
-    return this;
-}
-/* twine-user-script #6: "0060-InfoNode.js" */
+/* twine-user-script #8: "0060-InfoNode.js" */
 s.InfoNode = function(psgTitle, checkFunc) {
     /*
     `InfoNode` is a subclass of `Node`. It is a special kind of node
@@ -447,7 +478,7 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
     enumerable: false,
     writable: true
 });
-/* twine-user-script #7: "0065-DebugController.js" */
+/* twine-user-script #9: "0065-DebugController.js" */
 s.DebugController = function() {
     /*
     The Debug Controller controls debug mode, a developer mode that can
@@ -500,7 +531,7 @@ s.DebugController.prototype.toggle = function() {
     this.onChange();
     return this;
 }
-/* twine-user-script #8: "0070-Parser_.js" */
+/* twine-user-script #10: "0070-Parser_.js" */
 v.static = {};
 
 Object.defineProperty(window, "st", {
@@ -875,7 +906,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
-/* twine-user-script #9: "0080-Page_.js" */
+/* twine-user-script #11: "0080-Page_.js" */
 st.parser = new s.Parser();
 
 s.Page = function() {
@@ -1120,7 +1151,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #10: "5000-debug.js" */
+/* twine-user-script #12: "5000-debug.js" */
 s.debCon = new s.DebugController();
 
 Setting.addToggle('debugOn', {
@@ -1133,7 +1164,7 @@ Setting.addToggle('debugOn', {
     onInit:     s.debCon.onInit.bind(s.debCon),
     onChange:   s.debCon.onChange.bind(s.debCon)
 });
-/* twine-user-script #11: "6000-saving.js" */
+/* twine-user-script #13: "6000-saving.js" */
 Config.saves.autosave = true;
 
 Config.saves.isAllowed = function () {
@@ -1155,8 +1186,33 @@ $(window).bind('beforeunload pagehide',function(){
     */
     Engine.restart();
 });
-/* twine-user-script #12: "7000-rendering.js" */
+/* twine-user-script #14: "7000-rendering.js" */
 st.page = new s.Page();
+s.menuBar = new s.MenuBar();
+
+s.menuMarkup = function() {
+    /*
+    Returns the text of the SC markup that renders the links in the
+    displayed menu bar.
+    */
+    var text = '';
+    var action;
+    for (var i = 0; i < s.menuBar.length(); i++) {
+        action = s.menuBar.get(i);
+        if (!action.check()) {
+            continue;
+        }
+        if (text !== '') {
+            text += ' / ';
+        }
+        text += (
+            '<<link "' + action.getText() + '">>' +
+                '<<run s.menuBar.get(' + i + ').choose().carryOut()>>' +
+            '<</link>>'
+        );
+    }
+    return text;
+}
 
 Config.passages.onProcess = function(p) {
     /*
@@ -1172,9 +1228,11 @@ Config.passages.onProcess = function(p) {
     var text = p.text;
     if (p.title === 'PassageHeader') {
         text = (
-            '<<if !tags().includes("no-header")>><div class="sticky"><br>' +
-            text +
-            '</div><</if>>'
+            '<<if !tags().includes("no-header")>>' +
+                '<div class="sticky"><br>' +
+                    text + s.menuMarkup() + '<br><hr>' +
+                '</div>' +
+            '<</if>>'
         );
     }
     if (p.tags.includes('no-header')) {
@@ -1221,7 +1279,7 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
-/* twine-user-script #13: "8000-functions.js" */
+/* twine-user-script #15: "8000-functions.js" */
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1327,8 +1385,15 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
-/* twine-user-script #14: "9000-main.js" */
+/* twine-user-script #16: "9000-main.js" */
 st.page.setContinuous(true);
+
+s.menuBar.addAction('info', function() {
+    s.loadInfoNode('help');
+});
+s.menuBar.addAction('bio', function() {
+    s.loadInfoNode('bio');
+});
 
 s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
@@ -1385,7 +1450,7 @@ s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
 s.addLink('Cops bust in', 'continue', 'Next');
-/* twine-user-script #15: "Story JavaScript" */
+/* twine-user-script #17: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1429,18 +1494,7 @@ Story Caption
 
 
 :: PassageHeader
-<<link 'info'>>
-    <<run s.loadInfoNode('help')>>
-<</link>>
-/ <<link 'bio'>>
-    <<run s.loadInfoNode('bio')>>
-<</link>>
-<<if ss.debugOn>>
-    / <<link 'exit debug mode'>>
-        <<run s.debCon.toggle()>>
-    <</link>>
-<</if>>
-<br><hr>
+/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
 
 
 :: help

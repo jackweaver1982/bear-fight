@@ -83,18 +83,7 @@ a {
 <<set $inventory = new Set()>>
 
 :: PassageHeader
-<<link 'info'>>
-    <<run s.loadInfoNode('help')>>
-<</link>>
-/ <<link 'bio'>>
-    <<run s.loadInfoNode('bio')>>
-<</link>>
-<<if ss.debugOn>>
-    / <<link 'exit debug mode'>>
-        <<run s.debCon.toggle()>>
-    <</link>>
-<</if>>
-<br><hr>
+/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
 
 :: help
 <p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>

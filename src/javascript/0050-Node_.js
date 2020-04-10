@@ -24,7 +24,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
 
     Structurally, a node is a list of actions with a passage for the
     narrative description, and some additional methods. As such, it is
-    implemented as a subclass of `List`.
+    implemented as a subclass of `ActionList`.
 
     The associated passage may have slots available for dynamically
     generated text substitutions. The node object has properties and
@@ -52,7 +52,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     @property passage - The SugarCube `Passage` object whose title is
     `psgTitle`
     */
-    s.List.call(this);
+    s.ActionList.call(this);
     if (!Story.has(psgTitle)) {
         throw new Error(
             'Node():\n' +
@@ -80,23 +80,13 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     return this;
 };
 
-s.Node.prototype = Object.create(s.List.prototype);
+s.Node.prototype = Object.create(s.ActionList.prototype);
 
 Object.defineProperty(s.Node.prototype, 'constructor', {
     value: s.Node,
     enumerable: false,
     writable: true
 });
-
-s.Node.prototype._verify = function(obj) {
-    /*
-    @override
-
-    Members of a `Node` must be actions that are registered with the
-    factory.
-    */
-    return (obj instanceof s.Action);
-}
 
 s.Node.prototype.getPassage = function() {
     return this._passage;
@@ -128,18 +118,4 @@ s.Node.prototype.onLoad = function() {
     } else {
         return this._userScript();
     }
-}
-
-s.Node.prototype.addAction = function(text, carryOutFunc, checkFunc) {
-    /*
-    This method is for adding a simple action with one outcome to the
-    node. It creates an outcome that executes `carryOutFunc`, adds it as
-    the single outcome to a new action with link text `text` and check
-    function `checkFunc`. The `checkFunc` parameter defaults to true.
-    */
-    var outcome = new s.Outcome(carryOutFunc);
-    var action = new s.Action(text, checkFunc);
-    action.push(outcome);
-    this.push(action);
-    return this;
 }

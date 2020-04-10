@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.3.10
+
+* Added an `ActionList` class between `List` and `Node`. Moved `Node`'s `_verify` and `addAction` methods to the new class.
+* Made a `MenuBar` class.
+* Added `s.menuBar` and `s.menuMarkup()` to `rendering.js` to have the menu bar items automatically added to the header.
+
 ## Version 0.3.9
 
 * Rearranged methods and "uses" arrows in UML diagram.

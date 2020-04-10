@@ -1,5 +1,12 @@
 st.page.setContinuous(true);
 
+s.menuBar.addAction('info', function() {
+    s.loadInfoNode('help');
+});
+s.menuBar.addAction('bio', function() {
+    s.loadInfoNode('bio');
+});
+
 s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
 // s.addLink('RNG warning', 'got it', 'who you are');
