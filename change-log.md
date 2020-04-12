@@ -4,6 +4,13 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.0
+
+* Deleted the `MenuBar` class; made `s.menuBar` an instance of `ActionList`.
+* Added `cheatCode` property to `DebugController`, together with `getCheat` and `setCheat` methods.
+* Deleted `debug.js`; moved contents to `Page_.js`.
+* Edited `Page.load()` to check for correct entry of cheat code.
+
 ## Version 0.3.10
 
 * Added an `ActionList` class between `List` and `Node`. Moved `Node`'s `_verify` and `addAction` methods to the new class.

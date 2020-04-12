@@ -6,6 +6,17 @@ s.menuBar.addAction('info', function() {
 s.menuBar.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
+s.menuBar.addAction(
+    'exit debug mode',
+    s.debCon.toggle.bind(s.debCon),
+    function() {
+        return ss.debugOn;
+    }
+);
+
+s.debCon.setCheat([
+    'help', 'help', 'help', 'bio', 'help', 'bio', 'help', 'help', 'bio'
+]);
 
 s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are', null, null, false);

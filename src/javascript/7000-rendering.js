@@ -1,5 +1,5 @@
 st.page = new s.Page();
-s.menuBar = new s.MenuBar();
+s.menuBar = new s.ActionList();
 
 s.menuMarkup = function() {
     /*

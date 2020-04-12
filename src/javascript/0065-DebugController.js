@@ -5,9 +5,23 @@ s.DebugController = function() {
     present in ordinary gameplay. The state of debug mode is stored in
     the boolean property `debugOn` in SugarCube's `settings` namespace,
     which has `ss` as an alias.
+
+    @property {Array} _cheatCode - An array of passage title strings.
+    Loading the nodes associated to these passage titles in the given
+    order toggles the state of debug mode.
     */
+    this._cheatCode = [];
     return this;    
 };
+
+s.DebugController.prototype.getCheat = function() {
+    return this._cheatCode;
+}
+
+s.DebugController.prototype.setCheat = function(psgTitles) {
+    this._cheatCode = psgTitles;
+    return this;
+}
 
 s.DebugController.prototype.checkUIBar = function() {
     /*

@@ -309,24 +309,7 @@ s.ActionList.prototype.addAction = function(text, carryOutFunc, checkFunc) {
     this.push(action);
     return this;
 }
-/* twine-user-script #6: "0047-MenuBar.js" */
-s.MenuBar = function() {
-    /*
-    A `MenuBar` instance is a list of actions to be included in the
-    header of the story.
-    */
-    s.ActionList.call(this);
-    return this;
-};
-
-s.MenuBar.prototype = Object.create(s.ActionList.prototype);
-
-Object.defineProperty(s.MenuBar.prototype, 'constructor', {
-    value: s.MenuBar,
-    enumerable: false,
-    writable: true
-});
-/* twine-user-script #7: "0050-Node_.js" */
+/* twine-user-script #6: "0050-Node_.js" */
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
 
@@ -448,7 +431,7 @@ s.Node.prototype.onLoad = function() {
         return this._userScript();
     }
 }
-/* twine-user-script #8: "0060-InfoNode.js" */
+/* twine-user-script #7: "0060-InfoNode.js" */
 s.InfoNode = function(psgTitle, checkFunc) {
     /*
     `InfoNode` is a subclass of `Node`. It is a special kind of node
@@ -478,7 +461,7 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
     enumerable: false,
     writable: true
 });
-/* twine-user-script #9: "0065-DebugController.js" */
+/* twine-user-script #8: "0065-DebugController.js" */
 s.DebugController = function() {
     /*
     The Debug Controller controls debug mode, a developer mode that can
@@ -486,9 +469,23 @@ s.DebugController = function() {
     present in ordinary gameplay. The state of debug mode is stored in
     the boolean property `debugOn` in SugarCube's `settings` namespace,
     which has `ss` as an alias.
+
+    @property {Array} _cheatCode - An array of passage title strings.
+    Loading the nodes associated to these passage titles in the given
+    order toggles the state of debug mode.
     */
+    this._cheatCode = [];
     return this;    
 };
+
+s.DebugController.prototype.getCheat = function() {
+    return this._cheatCode;
+}
+
+s.DebugController.prototype.setCheat = function(psgTitles) {
+    this._cheatCode = psgTitles;
+    return this;
+}
 
 s.DebugController.prototype.checkUIBar = function() {
     /*
@@ -531,7 +528,7 @@ s.DebugController.prototype.toggle = function() {
     this.onChange();
     return this;
 }
-/* twine-user-script #10: "0070-Parser_.js" */
+/* twine-user-script #9: "0070-Parser_.js" */
 v.static = {};
 
 Object.defineProperty(window, "st", {
@@ -906,8 +903,21 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
-/* twine-user-script #11: "0080-Page_.js" */
+/* twine-user-script #10: "0080-Page_.js" */
 st.parser = new s.Parser();
+
+s.debCon = new s.DebugController();
+
+Setting.addToggle('debugOn', {
+    /*
+    Adds the `debugOn` boolean variable to `settings` and adds a toggle
+    switch for it to the setting menu in the UI Bar. Binds the relevant
+    `debCon` methods to the UI toggle switch.
+    */
+    label:      'debug mode',
+    onInit:     s.debCon.onInit.bind(s.debCon),
+    onChange:   s.debCon.onChange.bind(s.debCon)
+});
 
 s.Page = function() {
     /*
@@ -1120,6 +1130,9 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
 
 s.Page.prototype.load = function(node, embed, nobreak) {
     /*
+    Checks the debug controller's cheat code and toggles debug mode if
+    necessary.
+
     Runs the given node's `onLoad` function, then renders the node's
     passage. If the optional parameter `embed` is true, then rather than
     rendering the passage, the passage's contents are appended to the
@@ -1132,6 +1145,18 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     Instead, the associated passage is loaded without adding to the SC
     history.
     */
+    var code = s.debCon.getCheat();
+    var L = code.length;
+    if (
+        code[L - 1] === node.getPassage().title &&
+        State.length >= L &&
+        code.slice(0, L - 1).every(function(psgTitle, i) {
+            return code[i] === State.peek(L - 2 - i).title;
+        })
+    ) {
+        s.debCon.toggle();
+    }
+
     if (embed === undefined) {
         embed = this._continuous;
     }
@@ -1151,20 +1176,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #12: "5000-debug.js" */
-s.debCon = new s.DebugController();
-
-Setting.addToggle('debugOn', {
-    /*
-    Adds the `debugOn` boolean variable to `settings` and adds a toggle
-    switch for it to the setting menu in the UI Bar. Binds the relevant
-    `debCon` methods to the UI toggle switch.
-    */
-    label:      'debug mode',
-    onInit:     s.debCon.onInit.bind(s.debCon),
-    onChange:   s.debCon.onChange.bind(s.debCon)
-});
-/* twine-user-script #13: "6000-saving.js" */
+/* twine-user-script #11: "6000-saving.js" */
 Config.saves.autosave = true;
 
 Config.saves.isAllowed = function () {
@@ -1178,17 +1190,28 @@ Config.saves.isAllowed = function () {
     return allowed;
 };
 
-$(window).bind('beforeunload pagehide',function(){
+$(window).bind('beforeunload pagehide', function(){
     /*
-    Restarts story on browser refresh. Without this, refresh takes too
-    long and that prevents the scrolling to the current content in long
-    chains of embedded passages.
+    Restarts story on browser refresh.
+
+    The normal (and preferred) behavior in SC is for a browser refresh
+    to leave the story in the same state, essentially reloading the
+    current moment. But with embedded passages, the current displayed
+    text could be quite long and it's important that at the end of
+    reloading, the page is scrolled to the bottom.
+
+    In it's current implementation, the browser refresh takes too long,
+    so the scroll function is executed too early and has no effect.
+    There doesn't seem to be any way to time it reliably, so the
+    workaround is to have the story restart upon browser refresh, and
+    have the `Start` passage offer a way to resume the story by loading
+    the autosave.
     */
     Engine.restart();
 });
-/* twine-user-script #14: "7000-rendering.js" */
+/* twine-user-script #12: "7000-rendering.js" */
 st.page = new s.Page();
-s.menuBar = new s.MenuBar();
+s.menuBar = new s.ActionList();
 
 s.menuMarkup = function() {
     /*
@@ -1279,7 +1302,7 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
-/* twine-user-script #15: "8000-functions.js" */
+/* twine-user-script #13: "8000-functions.js" */
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1385,7 +1408,7 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
-/* twine-user-script #16: "9000-main.js" */
+/* twine-user-script #14: "9000-main.js" */
 st.page.setContinuous(true);
 
 s.menuBar.addAction('info', function() {
@@ -1394,6 +1417,17 @@ s.menuBar.addAction('info', function() {
 s.menuBar.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
+s.menuBar.addAction(
+    'exit debug mode',
+    s.debCon.toggle.bind(s.debCon),
+    function() {
+        return ss.debugOn;
+    }
+);
+
+s.debCon.setCheat([
+    'help', 'help', 'help', 'bio', 'help', 'bio', 'help', 'help', 'bio'
+]);
 
 s.addLink('intro', 'continue', 'RNG warning');
 s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
@@ -1450,7 +1484,7 @@ s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
 s.addLink('Cops bust in', 'continue', 'Next');
-/* twine-user-script #17: "Story JavaScript" */
+/* twine-user-script #15: "Story JavaScript" */
 
 
 :: StorySubtitle

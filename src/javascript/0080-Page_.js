@@ -1,5 +1,18 @@
 st.parser = new s.Parser();
 
+s.debCon = new s.DebugController();
+
+Setting.addToggle('debugOn', {
+    /*
+    Adds the `debugOn` boolean variable to `settings` and adds a toggle
+    switch for it to the setting menu in the UI Bar. Binds the relevant
+    `debCon` methods to the UI toggle switch.
+    */
+    label:      'debug mode',
+    onInit:     s.debCon.onInit.bind(s.debCon),
+    onChange:   s.debCon.onChange.bind(s.debCon)
+});
+
 s.Page = function() {
     /*
     A `Page` object represents the content which is displayed on the
@@ -211,6 +224,9 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
 
 s.Page.prototype.load = function(node, embed, nobreak) {
     /*
+    Checks the debug controller's cheat code and toggles debug mode if
+    necessary.
+
     Runs the given node's `onLoad` function, then renders the node's
     passage. If the optional parameter `embed` is true, then rather than
     rendering the passage, the passage's contents are appended to the
@@ -223,6 +239,18 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     Instead, the associated passage is loaded without adding to the SC
     history.
     */
+    var code = s.debCon.getCheat();
+    var L = code.length;
+    if (
+        code[L - 1] === node.getPassage().title &&
+        State.length >= L &&
+        code.slice(0, L - 1).every(function(psgTitle, i) {
+            return code[i] === State.peek(L - 2 - i).title;
+        })
+    ) {
+        s.debCon.toggle();
+    }
+
     if (embed === undefined) {
         embed = this._continuous;
     }
