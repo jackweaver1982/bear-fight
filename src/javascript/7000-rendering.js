@@ -37,6 +37,9 @@ Config.passages.onProcess = function(p) {
     processes the node markup.
     */
     var text = p.text;
+    if (ss.debugOn && p.title === 'StoryMenu') {
+        text = s.menuMarkup();
+    }
     if (p.title === 'PassageHeader') {
         text = (
             '<<if !tags().includes("no-header")>>' +

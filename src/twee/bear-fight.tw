@@ -17,8 +17,7 @@ Story Banner
 Story Caption
 
 :: StoryMenu
-<<link 'menu item 1'>><</link>>
-<<link 'menu item 2'>><</link>>
+/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
 
 :: StoryData
 {
@@ -55,10 +54,11 @@ a {
 .sticky{
     /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
     position: sticky;
+    position: -webkit-sticky;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 999;
+    z-index: 49;
     background-color: black;
 }
 #story {
@@ -98,20 +98,27 @@ a {
 <p>This screen holds information about your character.</p>
 
 :: Start [no-header]
+<<timed 0s>>
+    <<if recall('autoBegin', false)>>
+        <<run forget('autoBegin')>>
+        <<run s.loadNode('intro', false)>>
+    <</if>>
+<</timed>>
 <div style='text-align:center'>
     <h1><<= Story.title>></h1>
     by<br>
     <<= Story.get('StoryAuthor').text>><br>
+    version <<= s.version.asString()>><br>
     <br>
     <br>
     <br>
     <<if Save.autosave.has()>>
-        /* Display 'resume / restart' links */
-        <<link 'resume'>><<run Save.autosave.load()>><</link>> /
-        <<link 'restart'>><<if confirm('Really restart?')>>
-            <<run Save.autosave.delete()>>
-            <<run s.loadNode('intro', false)>>
-        <</if>><</link>>
+        <<link 'resume'>><<run s.savesMgr.load(0)>><</link>>
+        <<if !ss.debugOn>> /
+            <<link 'restart'>><<if confirm('Really restart?')>>
+                <<run s.restart()>>
+            <</if>><</link>>
+        <</if>>
     <<else>>
         <<link 'begin'>><<run s.loadNode('intro', false)>><</link>>
     <</if>>

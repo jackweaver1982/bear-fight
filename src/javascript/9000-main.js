@@ -1,3 +1,7 @@
+s.version.set(0,4,1);
+
+s.savesMgr.setBlock(true);
+
 st.page.setContinuous(true);
 
 s.menuBar.addAction('info', function() {
@@ -7,10 +11,11 @@ s.menuBar.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
 s.menuBar.addAction(
-    'exit debug mode',
-    s.debCon.toggle.bind(s.debCon),
+    'restart',
     function() {
-        return ss.debugOn;
+        if (confirm('Really restart?')) {
+            s.restart();
+        }
     }
 );
 

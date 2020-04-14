@@ -32,14 +32,14 @@ s.Parser = function() {
     A Parser object manages the conversion of the given passage text to
     the actual passage text used by SugarCube to display information.
 
-    There is one instance (`st.parser`, see Page.js), built on
-    State.variables, so its state can be stored in SugarCube's history.
-    (This is needed, because the parser tracks dynamically generated
-    text substitutions.) The class must therefore be made compatible
-    with SugarCube by having `clone()` and `toJSON()` methods, and no
-    recursive objects or object sharing. To achieve this, we also
-    require it to have a constructor with no arguments and to have all
-    its properties be SC supported types.
+    There is one instance (`st.parser`), built on State.variables, so
+    its state can be stored in SugarCube's history. (This is needed,
+    because the parser tracks dynamically generated text substitutions.)
+    The class must therefore be made compatible with SugarCube by having
+    `clone ()` and `toJSON()` methods, and no recursive objects or
+    object sharing. To achieve this, we also require it to have a
+    constructor with no arguments and to have all its properties be SC
+    supported types.
 
     There are various methods for processing different kinds of markup.
     The method, `procMarkup()`, runs them all in the appropriate order.

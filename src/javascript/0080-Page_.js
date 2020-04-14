@@ -22,14 +22,14 @@ s.Page = function() {
     regards as being displayed. The other passages are displayed inside
     the first passage.
 
-    There is one instance (`st.page`, see Global.js), built on
-    State.variables, so its state can be stored in SugarCube's history.
-    (This allows SugarCube to rebuild the page upon a browser refresh or
-    upon loading a save file.) The class must therefore be made
-    compatible with SugarCube by having `clone()` and `toJSON()`
-    methods, and no recursive objects or object sharing. To achieve
-    this, we also require it to have a constructor with no arguments and
-    to have all its properties be SC supported types.
+    There is one instance (`st.page`), built on State.variables, so its
+    state can be stored in SugarCube's history. (This allows SugarCube
+    to rebuild the page upon a browser refresh or upon loading a save
+    file.) The class must therefore be made compatible with SugarCube by
+    having `clone()` and `toJSON()` methods, and no recursive objects or
+    object sharing. To achieve this, we also require it to have a
+    constructor with no arguments and to have all its properties be SC
+    supported types.
     */
     this._embeddedPsgs = [];  // list of embedded passage titles; does
                               // not include the first (main) passage

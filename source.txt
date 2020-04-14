@@ -6,7 +6,7 @@ Story Title
 {
 	"ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
 	"format": "SugarCube",
-	"format-version": "2.31.0",
+	"format-version": "2.31.1",
 	"start": "Start",
 	"zoom": 1
 }
@@ -38,10 +38,11 @@ a {
 .sticky{
     /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
     position: sticky;
+    position: -webkit-sticky;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 999;
+    z-index: 49;
     background-color: black;
 }
 #story {
@@ -100,7 +101,143 @@ window.onerror = function(msg, url, linenumber) {
     );
     return true;
 }
-/* twine-user-script #2: "0020-List.js" */
+/* twine-user-script #2: "0015-Version.js" */
+s.Version = function(major, minor, patch) {
+    /*
+    Keeps track of a three-part version number and returns it in
+    multiple useful formats. There is one predefined instance,
+    `version`. (See below.)
+
+    @property {Integer} _major - Should be a nonnegative integer less
+    than 1000. Defaults to 0.
+    @property {Integer} _minor - Should be a nonnegative integer less
+    than 1000. Defaults to 0.
+    @property {Integer} _patch - Should be a nonnegative integer less
+    than 1000. Defaults to 1, if others are zero; otherwise, defaults to
+    0.
+    */
+    major = major || 0;
+    minor = minor || 0;
+    patch = patch || ((major === 0 && minor === 0) ? 1 : 0);
+    this.set(major, minor, patch);
+    return this;
+}
+
+s.Version.prototype.asArray = function() {
+    /*
+    Returns the version number as an array of three integers.
+    */
+    return [this._major, this._minor, this._patch];
+}
+
+s.Version.prototype._arrToStr = function(arr) {
+    /*
+    Converts a version number formatted as an array to a string. Returns
+    the string. If the patch part is 0, it is not included in the
+    string.
+    */
+    var string = arr[0].toString() + '.' + arr[1].toString();
+    if (arr[2] > 0) {
+        string += '.' + arr[2].toString();
+    }
+    return string;
+}
+
+s.Version.prototype._strToArr = function(string) {
+    /*
+    Converts a version number formatted as a string to an array. Returns
+    the array.
+    */
+    var arr = string.split('.').map(function(part) {
+        return parseInt(part, 10);
+    });
+    if (arr.length === 2) {
+        arr.push(0);
+    }
+    return arr;
+}
+
+s.Version.prototype._arrToInt = function(arr) {
+    /*
+    Converts a version number formatted as an array to an integer.
+    Returns the integer.
+    */
+    return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
+}
+
+s.Version.prototype._intToArr = function(num) {
+    /*
+    Converts a version number formatted as an integer to an array.
+    Returns the array.
+    */
+    var arr = [0,0,0];
+    arr[2] = num % 1000;
+    num = (num - arr[2])/1000;
+    arr[1] = num % 1000;
+    arr[0] = (num - arr[1])/1000;
+    return arr;
+}
+
+s.Version.prototype.intToStr = function(num) {
+    /*
+    Converts a version number formatted as an integer to an object with
+    `major`, `minor`, and `parts` properties. Returns the object.
+    */
+    return this._arrToStr(this._intToArr(num));
+}
+
+s.Version.prototype.asString = function() {
+    /*
+    Returns the version number as a string, such as `'2.113.86'`. If the
+    `_patch` parameter is 0, it is not included in the string.
+    */
+    return this._arrToStr(this.asArray());
+}
+
+s.Version.prototype.asInteger = function() {
+    /*
+    Returns the version number as a potentially nine-digit integer. For
+    example, 32.3.86 corresponds to 32003086.
+    */
+    return this._arrToInt(this.asArray());
+}
+
+s.Version.prototype.set = function(major, minor, patch) {
+    /*
+    Sets the corresponding properties. Throws an error if any
+    parameter is not a nonnegative integer less than 1000, or if all
+    parameters are 0. Returns the `Version` object.
+
+    @param {Integer} major - A nonnegative integer less than 1000.
+    @param {Integer} minor - A nonnegative integer less than 1000.
+    @param {Integer} patch - A nonnegative integer less than 1000.
+    Cannot be zero if both major and minor are zero.
+
+    @return {Version}
+    */
+    for (var i = 0; i < 3; i++) {
+        if (arguments[i] !== parseInt(arguments[i], 10) ||
+            arguments[i] < 0 ||
+            arguments[i] > 999) {
+            throw new Error(
+                'Version._init():\n' +
+                'numbers must be nonnegative integers less than 1000'
+            );
+        }
+    }
+    if (major + minor + patch === 0) {
+        throw new Error(
+            'Version._init():\n' +
+            'parts cannot all be 0'
+        );
+    }
+    this._major = major;
+    this._minor = minor;
+    this._patch = patch;
+    Config.saves.version = this.asInteger();
+    return this;
+}
+/* twine-user-script #3: "0020-List.js" */
 s.List = function() {
     /*
     A wrapper around an array with methods for controlling manipulation
@@ -168,7 +305,7 @@ s.List.prototype.indexOf = function(obj) {
 s.List.prototype.length = function() {
     return this._array.length;
 }
-/* twine-user-script #3: "0030-Outcome.js" */
+/* twine-user-script #4: "0030-Outcome.js" */
 s.Outcome = function(func) {
     /*
     Represents one possible result of a player action.
@@ -187,7 +324,7 @@ s.Outcome.prototype.carryOut = function() {
         return this._userScript();    
     }
 }
-/* twine-user-script #4: "0040-Action.js" */
+/* twine-user-script #5: "0040-Action.js" */
 s.Action = function(text, checkFunc, chooseFunc) {
     /*
     In a given passage, the reader will choose from a list of actions.
@@ -271,7 +408,7 @@ s.Action.prototype.choose = function() {
         return this._userScriptChoose();
     }
 }
-/* twine-user-script #5: "0045-ActionList.js" */
+/* twine-user-script #6: "0045-ActionList.js" */
 s.ActionList = function() {
     /*
     Action List is a subclass of List whose instance can contain only
@@ -309,7 +446,7 @@ s.ActionList.prototype.addAction = function(text, carryOutFunc, checkFunc) {
     this.push(action);
     return this;
 }
-/* twine-user-script #6: "0050-Node_.js" */
+/* twine-user-script #7: "0050-Node_.js" */
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
 
@@ -431,7 +568,7 @@ s.Node.prototype.onLoad = function() {
         return this._userScript();
     }
 }
-/* twine-user-script #7: "0060-InfoNode.js" */
+/* twine-user-script #8: "0060-InfoNode.js" */
 s.InfoNode = function(psgTitle, checkFunc) {
     /*
     `InfoNode` is a subclass of `Node`. It is a special kind of node
@@ -461,7 +598,7 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
     enumerable: false,
     writable: true
 });
-/* twine-user-script #8: "0065-DebugController.js" */
+/* twine-user-script #9: "0065-DebugController.js" */
 s.DebugController = function() {
     /*
     The Debug Controller controls debug mode, a developer mode that can
@@ -528,7 +665,7 @@ s.DebugController.prototype.toggle = function() {
     this.onChange();
     return this;
 }
-/* twine-user-script #9: "0070-Parser_.js" */
+/* twine-user-script #10: "0070-Parser_.js" */
 v.static = {};
 
 Object.defineProperty(window, "st", {
@@ -563,14 +700,14 @@ s.Parser = function() {
     A Parser object manages the conversion of the given passage text to
     the actual passage text used by SugarCube to display information.
 
-    There is one instance (`st.parser`, see Page.js), built on
-    State.variables, so its state can be stored in SugarCube's history.
-    (This is needed, because the parser tracks dynamically generated
-    text substitutions.) The class must therefore be made compatible
-    with SugarCube by having `clone()` and `toJSON()` methods, and no
-    recursive objects or object sharing. To achieve this, we also
-    require it to have a constructor with no arguments and to have all
-    its properties be SC supported types.
+    There is one instance (`st.parser`), built on State.variables, so
+    its state can be stored in SugarCube's history. (This is needed,
+    because the parser tracks dynamically generated text substitutions.)
+    The class must therefore be made compatible with SugarCube by having
+    `clone ()` and `toJSON()` methods, and no recursive objects or
+    object sharing. To achieve this, we also require it to have a
+    constructor with no arguments and to have all its properties be SC
+    supported types.
 
     There are various methods for processing different kinds of markup.
     The method, `procMarkup()`, runs them all in the appropriate order.
@@ -903,7 +1040,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
-/* twine-user-script #10: "0080-Page_.js" */
+/* twine-user-script #11: "0080-Page_.js" */
 st.parser = new s.Parser();
 
 s.debCon = new s.DebugController();
@@ -928,14 +1065,14 @@ s.Page = function() {
     regards as being displayed. The other passages are displayed inside
     the first passage.
 
-    There is one instance (`st.page`, see Global.js), built on
-    State.variables, so its state can be stored in SugarCube's history.
-    (This allows SugarCube to rebuild the page upon a browser refresh or
-    upon loading a save file.) The class must therefore be made
-    compatible with SugarCube by having `clone()` and `toJSON()`
-    methods, and no recursive objects or object sharing. To achieve
-    this, we also require it to have a constructor with no arguments and
-    to have all its properties be SC supported types.
+    There is one instance (`st.page`), built on State.variables, so its
+    state can be stored in SugarCube's history. (This allows SugarCube
+    to rebuild the page upon a browser refresh or upon loading a save
+    file.) The class must therefore be made compatible with SugarCube by
+    having `clone()` and `toJSON()` methods, and no recursive objects or
+    object sharing. To achieve this, we also require it to have a
+    constructor with no arguments and to have all its properties be SC
+    supported types.
     */
     this._embeddedPsgs = [];  // list of embedded passage titles; does
                               // not include the first (main) passage
@@ -1176,7 +1313,67 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #11: "6000-saving.js" */
+/* twine-user-script #12: "0090-SaveManager_.js" */
+s.version = new s.Version();
+
+s.SavesManager = function(block) {
+    /*
+    A `SavesManager` object manages the autosave, the bookmark(s), and
+    any checkpoints that might have been created.
+
+    @property {Boolean} block - If true, will block the loading of saves
+    whose version does not match the current version. Defaults to false.
+    */
+    if (block == null) {
+        this._block = false;
+    } else {
+        this._block = block;
+    }
+    return this;    
+};
+
+s.SavesManager.prototype.setBlock = function(bool) {
+    this._block = bool;
+    return this;
+}
+
+s.SavesManager.prototype.get = function(num) {
+    /*
+    Returns the save whose label in the saves dialog box matched `num`.
+    If `num` is 0, returns the autosave.
+    */
+    if (num === 0) {
+        return Save.autosave.get();
+    } else {
+        return Save.slots.get(num - 1);
+    }
+}
+
+s.SavesManager.prototype.load = function(num) {
+    /*
+    Loads the save whose label in the saves dialog box matched `num`. If
+    `num` is 0, loads the autosave.
+    */
+    if (this._block) {
+        var verInt = this.get(num).version;
+        if (verInt !== s.version.asInteger()) {
+            var verStr = s.version.intToStr(verInt);
+            alert(
+                'save file is from version ' + verStr + ';\n' +
+                'current version is ' + s.version.asString() + ';\n' + 
+                'unable to load.'
+            );
+            return;
+        }
+    }
+    if (num === 0) {
+        Save.autosave.load();
+    } else {
+        Save.slots.load(num - 1);
+    }
+    return this;
+}
+/* twine-user-script #13: "6000-saving.js" */
 Config.saves.autosave = true;
 
 Config.saves.isAllowed = function () {
@@ -1190,26 +1387,63 @@ Config.saves.isAllowed = function () {
     return allowed;
 };
 
+s.savesMgr = new s.SavesManager();
+/* twine-user-script #14: "6500-restarting.js" */
+/*
+The normal (and preferred) behavior in SC is for a browser refresh to
+leave the story in the same state, essentially reloading the current
+moment. But with embedded passages, the current displayed text could be
+quite long and it's important that at the end of reloading, the page is
+scrolled to the bottom.
+
+In it's current implementation, the browser refresh takes too long, so
+the scroll function is executed too early and has no effect. There
+doesn't seem to be any way to time it reliably, so the workaround is to
+have the story restart upon browser refresh, and have the `Start`
+passage offer a way to resume the story by loading the autosave.
+
+Ideally, the behavior of the 'Restart' button in the UI bar should be
+modified to accommodate this change. But its behavior is fixed, so we
+instead opt to remove it. A custom restart button should be added to
+preserve the desired functionality.
+*/
+
+$('#menu-item-restart').remove() // remove Restart button
+
 $(window).bind('beforeunload pagehide', function(){
-    /*
-    Restarts story on browser refresh.
-
-    The normal (and preferred) behavior in SC is for a browser refresh
-    to leave the story in the same state, essentially reloading the
-    current moment. But with embedded passages, the current displayed
-    text could be quite long and it's important that at the end of
-    reloading, the page is scrolled to the bottom.
-
-    In it's current implementation, the browser refresh takes too long,
-    so the scroll function is executed too early and has no effect.
-    There doesn't seem to be any way to time it reliably, so the
-    workaround is to have the story restart upon browser refresh, and
-    have the `Start` passage offer a way to resume the story by loading
-    the autosave.
-    */
     Engine.restart();
 });
-/* twine-user-script #12: "7000-rendering.js" */
+
+$(document).one(':enginerestart', function (ev) {
+    /*
+    To perform a 'hard restart' (i.e. to delete the autosave before
+    restarting), set 'hardRestart' to true in the metadata before
+    restarting.
+    */
+    if (recall('hardRestart', false)) {
+        Save.autosave.delete();
+        forget('hardRestart');
+    }
+});
+
+s.restart = function() {
+    /*
+    In general, this custom restart function is preferred over
+    `Engine.restart()` and is what should be triggered by any 'restart'
+    menu items.
+
+    In general, this function performs a hard restart. If it was called
+    from the `Start` passage with no embedded nodes, sets 'autoBegin' to
+    true in the metadata. The start passage can use this metadata to
+    avoid needing to click both restart and begin.
+    */
+    memorize('hardRestart', true);
+    if (passage() === 'Start' && st.page.length() === 0) {
+        memorize('autoBegin', true);
+    }
+    Engine.restart();
+}
+/* twine-user-script #15: "7000-rendering.js" */
 st.page = new s.Page();
 s.menuBar = new s.ActionList();
 
@@ -1249,6 +1483,9 @@ Config.passages.onProcess = function(p) {
     processes the node markup.
     */
     var text = p.text;
+    if (ss.debugOn && p.title === 'StoryMenu') {
+        text = s.menuMarkup();
+    }
     if (p.title === 'PassageHeader') {
         text = (
             '<<if !tags().includes("no-header")>>' +
@@ -1302,7 +1539,7 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
-/* twine-user-script #13: "8000-functions.js" */
+/* twine-user-script #16: "8000-functions.js" */
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1408,7 +1645,11 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
-/* twine-user-script #14: "9000-main.js" */
+/* twine-user-script #17: "9000-main.js" */
+s.version.set(0,4,1);
+
+s.savesMgr.setBlock(true);
+
 st.page.setContinuous(true);
 
 s.menuBar.addAction('info', function() {
@@ -1418,10 +1659,11 @@ s.menuBar.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
 s.menuBar.addAction(
-    'exit debug mode',
-    s.debCon.toggle.bind(s.debCon),
+    'restart',
     function() {
-        return ss.debugOn;
+        if (confirm('Really restart?')) {
+            s.restart();
+        }
     }
 );
 
@@ -1484,7 +1726,7 @@ s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
 s.addLink('Cops bust in', 'continue', 'Next');
-/* twine-user-script #15: "Story JavaScript" */
+/* twine-user-script #18: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1508,8 +1750,7 @@ Story Caption
 
 
 :: StoryMenu
-<<link 'menu item 1'>><</link>>
-<<link 'menu item 2'>><</link>>
+/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
 
 
 :: StoryInit
@@ -1546,20 +1787,27 @@ Story Caption
 
 
 :: Start [no-header]
+<<timed 0s>>
+    <<if recall('autoBegin', false)>>
+        <<run forget('autoBegin')>>
+        <<run s.loadNode('intro', false)>>
+    <</if>>
+<</timed>>
 <div style='text-align:center'>
     <h1><<= Story.title>></h1>
     by<br>
     <<= Story.get('StoryAuthor').text>><br>
+    version <<= s.version.asString()>><br>
     <br>
     <br>
     <br>
     <<if Save.autosave.has()>>
-        /* Display 'resume / restart' links */
-        <<link 'resume'>><<run Save.autosave.load()>><</link>> /
-        <<link 'restart'>><<if confirm('Really restart?')>>
-            <<run Save.autosave.delete()>>
-            <<run s.loadNode('intro', false)>>
-        <</if>><</link>>
+        <<link 'resume'>><<run s.savesMgr.load(0)>><</link>>
+        <<if !ss.debugOn>> /
+            <<link 'restart'>><<if confirm('Really restart?')>>
+                <<run s.restart()>>
+            <</if>><</link>>
+        <</if>>
     <<else>>
         <<link 'begin'>><<run s.loadNode('intro', false)>><</link>>
     <</if>>

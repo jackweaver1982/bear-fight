@@ -4,6 +4,18 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.1
+
+* Upgraded SC to 2.31.1.
+* Added `position: -webkit-sticky;` to `sticky` class in CSS so that header will float in Safari.
+* Changed `z-index` in `sticky` class in CSS to 49 so that header sits behind UI bar when browser is small (on a phone, e.g.).
+* Created a `Version` class to track and format a version number. Made a single instance on the `s` namespace.
+* Made a `SavesManager` class to manage save files and operations. Made a single instance on the `s` namespace.
+* Removed the 'Restart' button from the UI bar.
+* On `:enginerestart` event, SC now checks the `hardRestart` property in metadata. If true, the autosave is deleted before restart.
+* Made a custom `s.restart()` function that performs a hard restart and sets the `autoBegin` property in metadata to true if restarting from the `Start` node.
+* Edited `Config.passages.onProcess`. If debug mode is on, inserts menu markup into `StoryMenu` passage.
+
 ## Version 0.4.0
 
 * Deleted the `MenuBar` class; made `s.menuBar` an instance of `ActionList`.

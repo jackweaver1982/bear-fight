@@ -265,6 +265,19 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-041">Version 0.4.1</h2>
+
+<ul>
+<li>Upgraded SC to 2.31.1.</li>
+<li>Added <code>position: -webkit-sticky;</code> to <code>sticky</code> class in CSS so that header will float in Safari.</li>
+<li>Changed <code>z-index</code> in <code>sticky</code> class in CSS to 49 so that header sits behind UI bar when browser is small (on a phone, e.g.).</li>
+<li>Created a <code>Version</code> class to track and format a version number. Made a single instance on the <code>s</code> namespace.</li>
+<li>Made a <code>SavesManager</code> class to manage save files and operations. Made a single instance on the <code>s</code> namespace.</li>
+<li>Removed the &apos;Restart&apos; button from the UI bar.</li>
+<li>On <code>:enginerestart</code> event, SC now checks the <code>hardRestart</code> property in metadata. If true, the autosave is deleted before restart.</li>
+<li>Made a custom <code>s.restart()</code> function that performs a hard restart and sets the <code>autoBegin</code> property in metadata to true if restarting from the <code>Start</code> node.</li>
+<li>Edited <code>Config.passages.onProcess</code>. If debug mode is on, inserts menu markup into <code>StoryMenu</code> passage.</li>
+</ul>
 <h2 class="mume-header" id="version-040">Version 0.4.0</h2>
 
 <ul>
