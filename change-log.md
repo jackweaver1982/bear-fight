@@ -4,6 +4,13 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.2
+
+* Added a `_fixedEnd` parameter to `List`; when true, it keeps the last item in the last position so that `push` pushes into the second-to-last spot. Added an `_addItem` method to facilitate this.
+* Edited `ActionList` subclass constructor to pass the `fixedEnd` parameter.
+* Added `Start` to `s.specialPsgs` so that `Start` cannot correspond to a node.
+* Created `Menu` class; moved `saving.js` and `restarting.js` to `Menu_.js`, the file containing the definition of `Menu`.
+
 ## Version 0.4.1
 
 * Upgraded SC to 2.31.1.

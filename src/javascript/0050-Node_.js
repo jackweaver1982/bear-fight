@@ -10,7 +10,7 @@ s.getNode = function(psgTitle) {
 }
 
 s.specialPsgs = [
-    'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
+    'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady', 'Start', 
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryDisplayTitle',
     'StoryInit', 'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
     'StorySubtitle', 'StoryTitle'
@@ -62,7 +62,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     if (s.specialPsgs.indexOf(psgTitle) >= 0) {
         throw new Error(
             'Node():\n' +
-            'cannot assign a special passage other than `Start` to a node'
+            'cannot assign a special passage to a node'
         );
     }
     var psg = Story.get(psgTitle);

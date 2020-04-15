@@ -1,9 +1,17 @@
-s.List = function() {
+s.List = function(fixedEnd) {
     /*
     A wrapper around an array with methods for controlling manipulation
     and access of elements.
+
+    @param {Boolean} fixedEnd - Defaults to false. If true, the `push`
+    method will keep the last element is _array in the last position.
     */
     this._array = [];
+    if (fixedEnd === undefined) {
+        this._fixedEnd = false;
+    } else {
+        this._fixedEnd = fixedEnd;
+    }
     return this;
 }
 
@@ -13,6 +21,20 @@ s.List.prototype._verify = function(obj) {
     by subclasses.
     */
     return true;
+}
+
+s.List.prototype._addItem = function(obj) {
+    /*
+    Adds an object to the end of the list. If _fixedEnd is true, adds it
+    just before the last item. Does not verify object, so should not be
+    used by external tools.
+    */
+    var pos = this._array.length;
+    if (this._fixedEnd && pos > 0) {
+        pos -= 1;
+    }
+    this._array.splice(pos, 0, obj);
+    return this;
 }
 
 s.List.prototype.push = function() {
@@ -25,7 +47,7 @@ s.List.prototype.push = function() {
         var args = Array.prototype.slice.call(arguments);
         var arg = args.shift();
         if (this._verify(arg)) {
-            this._array.push(arg);
+            this._addItem(arg);
         } else {
             throw new Error(
                 'List.push():\n' +

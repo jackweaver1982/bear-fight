@@ -238,12 +238,20 @@ s.Version.prototype.set = function(major, minor, patch) {
     return this;
 }
 /* twine-user-script #3: "0020-List.js" */
-s.List = function() {
+s.List = function(fixedEnd) {
     /*
     A wrapper around an array with methods for controlling manipulation
     and access of elements.
+
+    @param {Boolean} fixedEnd - Defaults to false. If true, the `push`
+    method will keep the last element is _array in the last position.
     */
     this._array = [];
+    if (fixedEnd === undefined) {
+        this._fixedEnd = false;
+    } else {
+        this._fixedEnd = fixedEnd;
+    }
     return this;
 }
 
@@ -253,6 +261,20 @@ s.List.prototype._verify = function(obj) {
     by subclasses.
     */
     return true;
+}
+
+s.List.prototype._addItem = function(obj) {
+    /*
+    Adds an object to the end of the list. If _fixedEnd is true, adds it
+    just before the last item. Does not verify object, so should not be
+    used by external tools.
+    */
+    var pos = this._array.length;
+    if (this._fixedEnd && pos > 0) {
+        pos -= 1;
+    }
+    this._array.splice(pos, 0, obj);
+    return this;
 }
 
 s.List.prototype.push = function() {
@@ -265,7 +287,7 @@ s.List.prototype.push = function() {
         var args = Array.prototype.slice.call(arguments);
         var arg = args.shift();
         if (this._verify(arg)) {
-            this._array.push(arg);
+            this._addItem(arg);
         } else {
             throw new Error(
                 'List.push():\n' +
@@ -409,12 +431,12 @@ s.Action.prototype.choose = function() {
     }
 }
 /* twine-user-script #6: "0045-ActionList.js" */
-s.ActionList = function() {
+s.ActionList = function(fixedEnd) {
     /*
     Action List is a subclass of List whose instance can contain only
     actions.
     */
-    s.List.call(this);
+    s.List.call(this, fixedEnd);
     return this;
 };
 
@@ -459,7 +481,7 @@ s.getNode = function(psgTitle) {
 }
 
 s.specialPsgs = [
-    'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady',
+    'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady', 'Start', 
     'StoryAuthor', 'StoryBanner', 'StoryCaption', 'StoryDisplayTitle',
     'StoryInit', 'StoryInterface', 'StoryMenu', 'StorySettings', 'StoryShare',
     'StorySubtitle', 'StoryTitle'
@@ -511,7 +533,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
     if (s.specialPsgs.indexOf(psgTitle) >= 0) {
         throw new Error(
             'Node():\n' +
-            'cannot assign a special passage other than `Start` to a node'
+            'cannot assign a special passage to a node'
         );
     }
     var psg = Story.get(psgTitle);
@@ -1313,7 +1335,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
-/* twine-user-script #12: "0090-SaveManager_.js" */
+/* twine-user-script #12: "0090-SavesManager_.js" */
 s.version = new s.Version();
 
 s.SavesManager = function(block) {
@@ -1373,23 +1395,17 @@ s.SavesManager.prototype.load = function(num) {
     }
     return this;
 }
-/* twine-user-script #13: "6000-saving.js" */
-Config.saves.autosave = true;
-
-Config.saves.isAllowed = function () {
-    var allowed = true;
-    if (passage() ===  'Start' && st.page.length() === 0) {
-        allowed = false;
-    }
-    if (s.getNode(passage()) instanceof s.InfoNode) {
-        allowed = false;
-    }
-    return allowed;
-};
-
-s.savesMgr = new s.SavesManager();
-/* twine-user-script #14: "6500-restarting.js" */
+/* twine-user-script #13: "0095-Menu_.js" */
 /*
+The `Menu` object will contain functionality to resume the story by
+loading a save file. As such we need to instantiate the `SavesManager`
+object and set some SC save configurations.
+
+The `Menu` object will also contain functionality to restart the story.
+But because of a technical issue, we need to redefine how SC restarts
+the story. Hence, we do both these things before defining the `Menu`
+class.
+
 The normal (and preferred) behavior in SC is for a browser refresh to
 leave the story in the same state, essentially reloading the current
 moment. But with embedded passages, the current displayed text could be
@@ -1408,7 +1424,22 @@ instead opt to remove it. A custom restart button should be added to
 preserve the desired functionality.
 */
 
-$('#menu-item-restart').remove() // remove Restart button
+Config.saves.autosave = true;
+
+Config.saves.isAllowed = function () {
+    var allowed = true;
+    if (passage() ===  'Start' && st.page.length() === 0) {
+        allowed = false;
+    }
+    if (s.getNode(passage()) instanceof s.InfoNode) {
+        allowed = false;
+    }
+    return allowed;
+};
+
+s.savesMgr = new s.SavesManager();
+
+$('#menu-item-restart').remove() // remove default Restart button
 
 $(window).bind('beforeunload pagehide', function(){
     Engine.restart();
@@ -1425,6 +1456,8 @@ $(document).one(':enginerestart', function (ev) {
         forget('hardRestart');
     }
 });
+
+st.page = new s.Page(); // need the Page instance in the below function
 
 s.restart = function() {
     /*
@@ -1443,8 +1476,91 @@ s.restart = function() {
     }
     Engine.restart();
 }
-/* twine-user-script #15: "7000-rendering.js" */
-st.page = new s.Page();
+
+s.Menu = function(func) {
+    /*
+    A `Menu` object is an `ActionList` with built-in `begin`, `resume`,
+    and `restart` actions. The `restart` method is kept at the end of
+    the list. The `begin` method is customizable. These actions are
+    automatically inserted into various areas of the story (such as the
+    header under normal circumstance, the UI bar in debug mode, and the
+    bottom of the `Start` passage.)
+
+    @param {Function} func - The function to execute when the player
+    selects the `begin` action.
+    */
+    s.ActionList.call(this, true);
+    this.addAction(
+        'restart',
+        function() {
+            if (confirm('Really restart?')) {
+                s.restart();
+            }
+        },
+        function() {
+            return (
+                passage() !== 'Start' ||
+                st.page.length() > 0 ||
+                Save.autosave.has()
+            );
+        }
+    );
+    this.addAction(
+        'begin',
+        func,
+        function() {
+            return (
+                passage() === 'Start' &&
+                st.page.length() === 0 &&
+                !Save.autosave.has()
+            );
+        }
+    );
+    this.addAction(
+        'resume',
+        function() {
+            s.savesMgr.load(0);
+        },
+        function() {
+            return (
+                passage() === 'Start' &&
+                st.page.length() === 0 &&
+                Save.autosave.has()
+            );
+        }
+    );
+    return this;
+};
+
+s.Menu.prototype = Object.create(s.ActionList.prototype);
+
+Object.defineProperty(s.Menu.prototype, 'constructor', {
+    value: s.Menu,
+    enumerable: false,
+    writable: true
+});
+
+s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc) {
+    /*
+    @override
+
+    This method is for adding a simple action with one outcome to the
+    list. It creates an outcome that executes `carryOutFunc`, adds it as
+    the single outcome to a new action with link text `text` and check
+    function `checkFunc`. The default behavior of `checkFunc` is to
+    allow the action if not on the start screen.
+    */
+    if (checkFunc === undefined) {
+        checkFunc = function() {
+            return (passage() !== `Start` || st.page.length() > 0);
+        }
+    }
+    return s.ActionList.prototype.addAction.call(
+        this, text, carryOutFunc, checkFunc
+    );
+}
+
+/* twine-user-script #14: "7000-rendering.js" */
 s.menuBar = new s.ActionList();
 
 s.menuMarkup = function() {
@@ -1539,7 +1655,7 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
-/* twine-user-script #16: "8000-functions.js" */
+/* twine-user-script #15: "8000-functions.js" */
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*
@@ -1645,8 +1761,8 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
-/* twine-user-script #17: "9000-main.js" */
-s.version.set(0,4,1);
+/* twine-user-script #16: "9000-main.js" */
+s.version.set(0,4,2);
 
 s.savesMgr.setBlock(true);
 
@@ -1659,6 +1775,24 @@ s.menuBar.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
 s.menuBar.addAction(
+    'restart',
+    function() {
+        if (confirm('Really restart?')) {
+            s.restart();
+        }
+    }
+);
+
+s.menu = new s.Menu(function() {
+    s.loadNode('intro', false);
+});
+s.menu.addAction('info', function() {
+    s.loadInfoNode('help');
+});
+s.menu.addAction('bio', function() {
+    s.loadInfoNode('bio');
+});
+s.menu.addAction(
     'restart',
     function() {
         if (confirm('Really restart?')) {
@@ -1726,7 +1860,7 @@ s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
 s.addLink('Cops bust in', 'continue', 'Next');
-/* twine-user-script #18: "Story JavaScript" */
+/* twine-user-script #17: "Story JavaScript" */
 
 
 :: StorySubtitle
@@ -1787,6 +1921,7 @@ Story Caption
 
 
 :: Start [no-header]
+/* The `Start` passage must be a kind of title screen. It cannot be used as a node and should not have branching choices. */
 <<timed 0s>>
     <<if recall('autoBegin', false)>>
         <<run forget('autoBegin')>>

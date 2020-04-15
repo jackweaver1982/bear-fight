@@ -98,6 +98,7 @@ a {
 <p>This screen holds information about your character.</p>
 
 :: Start [no-header]
+/* The `Start` passage must be a kind of title screen. It cannot be used as a node and should not have branching choices. */
 <<timed 0s>>
     <<if recall('autoBegin', false)>>
         <<run forget('autoBegin')>>

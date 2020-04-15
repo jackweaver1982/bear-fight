@@ -265,6 +265,14 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-042">Version 0.4.2</h2>
+
+<ul>
+<li>Added a <code>_fixedEnd</code> parameter to <code>List</code>; when true, it keeps the last item in the last position so that <code>push</code> pushes into the second-to-last spot. Added an <code>_addItem</code> method to facilitate this.</li>
+<li>Edited <code>ActionList</code> subclass constructor to pass the <code>fixedEnd</code> parameter.</li>
+<li>Added <code>Start</code> to <code>s.specialPsgs</code> so that <code>Start</code> cannot correspond to a node.</li>
+<li>Created <code>Menu</code> class; moved <code>saving.js</code> and <code>restarting.js</code> to <code>Menu_.js</code>, the file containing the definition of <code>Menu</code>.</li>
+</ul>
 <h2 class="mume-header" id="version-041">Version 0.4.1</h2>
 
 <ul>

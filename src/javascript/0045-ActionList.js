@@ -1,9 +1,9 @@
-s.ActionList = function() {
+s.ActionList = function(fixedEnd) {
     /*
     Action List is a subclass of List whose instance can contain only
     actions.
     */
-    s.List.call(this);
+    s.List.call(this, fixedEnd);
     return this;
 };
 

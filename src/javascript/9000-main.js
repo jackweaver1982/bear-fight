@@ -1,4 +1,4 @@
-s.version.set(0,4,1);
+s.version.set(0,4,2);
 
 s.savesMgr.setBlock(true);
 
@@ -11,6 +11,24 @@ s.menuBar.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
 s.menuBar.addAction(
+    'restart',
+    function() {
+        if (confirm('Really restart?')) {
+            s.restart();
+        }
+    }
+);
+
+s.menu = new s.Menu(function() {
+    s.loadNode('intro', false);
+});
+s.menu.addAction('info', function() {
+    s.loadInfoNode('help');
+});
+s.menu.addAction('bio', function() {
+    s.loadInfoNode('bio');
+});
+s.menu.addAction(
     'restart',
     function() {
         if (confirm('Really restart?')) {
