@@ -4,6 +4,17 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.3
+
+* In `List`, replaced `_addItem()` with `insert`; added an `index` parameter to `ActionList.addAction()`.
+* Edited `Page.embedPsg()` to throw an error if you try to embed a node from a passage not associated with node.
+* Edited `Page.load()` to automatically set the `embed` parameter to false if the current passage title is `Start`.
+* Removed the `func` parameter from `Menu`'s constructor; the `begin` action now defaults to carrying out `null`.
+* Added `Menu.onBegin()` which lets you sets the function that `begin` carries out.
+* Replaced `s.menuBar` with `s.menu`.
+* Added `s.preProcText`, an array of size-2 arrays that associates passage titles to functions which preprocess their text before SC processes it; used `s.preProcText` to automate the preprocessing of the passages, `Header`, `StoryMenu`, and `Start`.
+* Moved CSS code to separate file.
+
 ## Version 0.4.2
 
 * Added a `_fixedEnd` parameter to `List`; when true, it keeps the last item in the last position so that `push` pushes into the second-to-last spot. Added an `_addItem` method to facilitate this.

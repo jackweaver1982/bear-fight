@@ -23,17 +23,26 @@ s.List.prototype._verify = function(obj) {
     return true;
 }
 
-s.List.prototype._addItem = function(obj) {
+s.List.prototype.insert = function(index, obj) {
     /*
-    Adds an object to the end of the list. If _fixedEnd is true, adds it
-    just before the last item. Does not verify object, so should not be
-    used by external tools.
+    If the object passes the `_verify` test, inserts it at index. (E.g.,
+    an index of 0 inserts it at the beginning, and index equal to the
+    length of _array inserts it at the end.)
+
+    If you try to insert to the end of the list when _fixedEnd is true,
+    will insert to the second to the last spot.
     */
-    var pos = this._array.length;
-    if (this._fixedEnd && pos > 0) {
-        pos -= 1;
+    if (this._verify(obj)) {
+        if (index === this._array.length && index > 0 && this._fixedEnd) {
+            index -= 1;
+        }
+        this._array.splice(index, 0, obj);
+    } else {
+        throw new Error(
+            'List.insert():\n' +
+            'object does not qualify for list'
+        );
     }
-    this._array.splice(pos, 0, obj);
     return this;
 }
 
@@ -46,14 +55,7 @@ s.List.prototype.push = function() {
     if (arguments.length > 0) {
         var args = Array.prototype.slice.call(arguments);
         var arg = args.shift();
-        if (this._verify(arg)) {
-            this._addItem(arg);
-        } else {
-            throw new Error(
-                'List.push():\n' +
-                'object does not qualify for list'
-            );
-        }
+        this.insert(this._array.length, arg);
         this.push.apply(this, args);
     }
     return this;

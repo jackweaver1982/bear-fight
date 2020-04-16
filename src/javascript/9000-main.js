@@ -1,26 +1,10 @@
-s.version.set(0,4,2);
+s.version.set(0,4,3);
+s.savesMgr.setBlock(true); // block loading of saves from old versions
+st.page.setContinuous(true); // make embedding passages the default
 
-s.savesMgr.setBlock(true);
-
-st.page.setContinuous(true);
-
-s.menuBar.addAction('info', function() {
-    s.loadInfoNode('help');
-});
-s.menuBar.addAction('bio', function() {
-    s.loadInfoNode('bio');
-});
-s.menuBar.addAction(
-    'restart',
-    function() {
-        if (confirm('Really restart?')) {
-            s.restart();
-        }
-    }
-);
-
-s.menu = new s.Menu(function() {
-    s.loadNode('intro', false);
+// build menu
+s.menu.onBegin(function() {
+    s.loadNode('intro');
 });
 s.menu.addAction('info', function() {
     s.loadInfoNode('help');
@@ -28,22 +12,17 @@ s.menu.addAction('info', function() {
 s.menu.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
-s.menu.addAction(
-    'restart',
-    function() {
-        if (confirm('Really restart?')) {
-            s.restart();
-        }
-    }
-);
 
+// set cheat code for debug mode
 s.debCon.setCheat([
     'help', 'help', 'help', 'bio', 'help', 'bio', 'help', 'help', 'bio'
 ]);
 
+// make initial links
 s.addLink('intro', 'continue', 'RNG warning');
-s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
-// s.addLink('RNG warning', 'got it', 'who you are');
+s.addLink(
+    'RNG warning', 'got it', 'who you are', null, null, false // don't embed
+);
 s.addLink('who you are', 'take a look around', 'bedroom');
 
 // bedroom actions
@@ -56,7 +35,7 @@ s.addLink('who you are', 'take a look around', 'bedroom');
     }, function() {
         // check
         return (v.containedIn.get('knife') === 'bedroom');
-    }, true, true);
+    }, true, true); // embed with scene break
 
     // search the body
     s.setSubCount('Cops bust in', 2);

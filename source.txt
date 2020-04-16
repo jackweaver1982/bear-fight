@@ -13,6 +13,7 @@ Story Title
 
 
 :: Story Stylesheet [stylesheet]
+/* twine-user-stylesheet #1: "main.css" */
 html {
     font: 100% Georgia, serif;
 }
@@ -49,6 +50,7 @@ a {
     /* Removes the top margin, so the header sticks seamlessly. Line breaks should be added manually at the top of the header and any passage with a `no-header` tag. This is handled automatically by the `onProcess` function in `rendering.js`. */
     margin-top: 0px;
 }
+/* twine-user-stylesheet #2: "Story Stylesheet" */
 
 
 :: Story JavaScript [script]
@@ -263,17 +265,26 @@ s.List.prototype._verify = function(obj) {
     return true;
 }
 
-s.List.prototype._addItem = function(obj) {
+s.List.prototype.insert = function(index, obj) {
     /*
-    Adds an object to the end of the list. If _fixedEnd is true, adds it
-    just before the last item. Does not verify object, so should not be
-    used by external tools.
+    If the object passes the `_verify` test, inserts it at index. (E.g.,
+    an index of 0 inserts it at the beginning, and index equal to the
+    length of _array inserts it at the end.)
+
+    If you try to insert to the end of the list when _fixedEnd is true,
+    will insert to the second to the last spot.
     */
-    var pos = this._array.length;
-    if (this._fixedEnd && pos > 0) {
-        pos -= 1;
+    if (this._verify(obj)) {
+        if (index === this._array.length && index > 0 && this._fixedEnd) {
+            index -= 1;
+        }
+        this._array.splice(index, 0, obj);
+    } else {
+        throw new Error(
+            'List.insert():\n' +
+            'object does not qualify for list'
+        );
     }
-    this._array.splice(pos, 0, obj);
     return this;
 }
 
@@ -286,14 +297,7 @@ s.List.prototype.push = function() {
     if (arguments.length > 0) {
         var args = Array.prototype.slice.call(arguments);
         var arg = args.shift();
-        if (this._verify(arg)) {
-            this._addItem(arg);
-        } else {
-            throw new Error(
-                'List.push():\n' +
-                'object does not qualify for list'
-            );
-        }
+        this.insert(this._array.length, arg);
         this.push.apply(this, args);
     }
     return this;
@@ -455,17 +459,23 @@ s.ActionList.prototype._verify = function(obj) {
     return (obj instanceof s.Action);
 }
 
-s.ActionList.prototype.addAction = function(text, carryOutFunc, checkFunc) {
+s.ActionList.prototype.addAction = function(
+    text, carryOutFunc, checkFunc, index
+) {
     /*
     This method is for adding a simple action with one outcome to the
     list. It creates an outcome that executes `carryOutFunc`, adds it as
     the single outcome to a new action with link text `text` and check
     function `checkFunc`. The `checkFunc` parameter defaults to true.
+
+    If an `index` parameter is given, will insert the action at the
+    given index, otherwise will push the action.
     */
+    index = index || this.length();
     var outcome = new s.Outcome(carryOutFunc);
     var action = new s.Action(text, checkFunc);
     action.push(outcome);
-    this.push(action);
+    this.insert(index, action);
     return this;
 }
 /* twine-user-script #7: "0050-Node_.js" */
@@ -1266,11 +1276,18 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
     and sets the moment in history to use when parsing. See
     `Page.insertPsgText` for details.
     */
+    if (s.getNode(passage()) == undefined) {
+        throw new Error(
+            'Page.embedPsg():\n' +
+            'shell passage not associated with a node'
+        );
+    }
+
     var nodePsg = node.getPassage();
     if (nodePsg.title === passage() ||
         this._embeddedPsgs.indexOf(nodePsg.title) >= 0) {
         throw new Error(
-            'Page.load():\n' +
+            'Page.embedPsg():\n' +
             'cannot embed a passage in itself'
         );
     }
@@ -1319,7 +1336,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     if (embed === undefined) {
         embed = this._continuous;
     }
-    if (node instanceof s.InfoNode) {
+    if (passage() === 'Start' || node instanceof s.InfoNode) {
         embed = false;
     }
 
@@ -1477,7 +1494,7 @@ s.restart = function() {
     Engine.restart();
 }
 
-s.Menu = function(func) {
+s.Menu = function() {
     /*
     A `Menu` object is an `ActionList` with built-in `begin`, `resume`,
     and `restart` actions. The `restart` method is kept at the end of
@@ -1485,9 +1502,6 @@ s.Menu = function(func) {
     automatically inserted into various areas of the story (such as the
     header under normal circumstance, the UI bar in debug mode, and the
     bottom of the `Start` passage.)
-
-    @param {Function} func - The function to execute when the player
-    selects the `begin` action.
     */
     s.ActionList.call(this, true);
     this.addAction(
@@ -1507,7 +1521,7 @@ s.Menu = function(func) {
     );
     this.addAction(
         'begin',
-        func,
+        null,
         function() {
             return (
                 passage() === 'Start' &&
@@ -1560,8 +1574,22 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc) {
     );
 }
 
+s.Menu.prototype.onBegin = function(func) {
+    /*
+    Sets the `begin` action to carry out the given function.
+    */
+    this.delete(0);
+    this.addAction('begin', func, function() {
+            return (
+                passage() === 'Start' &&
+                st.page.length() === 0 &&
+                !Save.autosave.has()
+            );
+        }, 0);
+    return this;
+}
 /* twine-user-script #14: "7000-rendering.js" */
-s.menuBar = new s.ActionList();
+s.menu = new s.Menu();
 
 s.menuMarkup = function() {
     /*
@@ -1570,8 +1598,8 @@ s.menuMarkup = function() {
     */
     var text = '';
     var action;
-    for (var i = 0; i < s.menuBar.length(); i++) {
-        action = s.menuBar.get(i);
+    for (var i = 0; i < s.menu.length(); i++) {
+        action = s.menu.get(i);
         if (!action.check()) {
             continue;
         }
@@ -1580,12 +1608,17 @@ s.menuMarkup = function() {
         }
         text += (
             '<<link "' + action.getText() + '">>' +
-                '<<run s.menuBar.get(' + i + ').choose().carryOut()>>' +
+                '<<run s.menu.get(' + i + ').choose().carryOut()>>' +
             '<</link>>'
         );
     }
     return text;
 }
+
+s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
+                    // the title of a passage, preProcText[i][1] is a
+                    // function to apply to that passage's text before
+                    // SC's text processing.
 
 Config.passages.onProcess = function(p) {
     /*
@@ -1599,20 +1632,10 @@ Config.passages.onProcess = function(p) {
     processes the node markup.
     */
     var text = p.text;
-    if (ss.debugOn && p.title === 'StoryMenu') {
-        text = s.menuMarkup();
-    }
-    if (p.title === 'PassageHeader') {
-        text = (
-            '<<if !tags().includes("no-header")>>' +
-                '<div class="sticky"><br>' +
-                    text + s.menuMarkup() + '<br><hr>' +
-                '</div>' +
-            '<</if>>'
-        );
-    }
-    if (p.tags.includes('no-header')) {
-        text = '<br>\n' + text;
+    for (var i = 0; i < s.preProcText.length; i++) {
+        if (p.title === s.preProcText[i][0]) {
+            text = s.preProcText[i][1](text);
+        }
     }
 
     if (s.getNode(p.title) === undefined) {
@@ -1623,6 +1646,47 @@ Config.passages.onProcess = function(p) {
     var processedText = st.parser.procAllMarkup(p.title, text);
     return processedText;
 };
+
+s.preProcText.push(['StoryMenu', function(text) {
+    /*
+    Adds the menu to the UI bar if it is visible and the current passage
+    allows the menu.
+    */
+    if (!UIBar.isHidden() && !tags().includes('no-menu')) {
+        return s.menuMarkup();
+    } else {
+        return '';
+    }
+}]);
+
+s.preProcText.push(['PassageHeader', function(text) {
+    /*
+    Adds the menu to the header with the sticky class if the current passage
+    allows it, unless currently at the Start passage. Otherwise, adds a
+    line break to compensate for the reduced upper margin (needed to
+    have the sticky class work as intended).
+    */
+    return (
+        '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
+            '<div class="sticky"><br>' +
+                s.menuMarkup() + '<br><hr>' +
+            '</div>' +
+        '<<else>>' +
+            '<br>' +
+        '<</if>>'
+    );
+}]);
+
+s.preProcText.push(['Start', function(text) {
+    /*
+    Adds the menu to the bottom of the Start passage.
+    */
+    return text += (
+        '<br><div style="text-align:center">' +
+        s.menuMarkup() +
+        '</div>'
+    );
+}]);
 
 s.onPsgDisplay = function(ev) {
     /*
@@ -1762,29 +1826,13 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
     );
 }
 /* twine-user-script #16: "9000-main.js" */
-s.version.set(0,4,2);
+s.version.set(0,4,3);
+s.savesMgr.setBlock(true); // block loading of saves from old versions
+st.page.setContinuous(true); // make embedding passages the default
 
-s.savesMgr.setBlock(true);
-
-st.page.setContinuous(true);
-
-s.menuBar.addAction('info', function() {
-    s.loadInfoNode('help');
-});
-s.menuBar.addAction('bio', function() {
-    s.loadInfoNode('bio');
-});
-s.menuBar.addAction(
-    'restart',
-    function() {
-        if (confirm('Really restart?')) {
-            s.restart();
-        }
-    }
-);
-
-s.menu = new s.Menu(function() {
-    s.loadNode('intro', false);
+// build menu
+s.menu.onBegin(function() {
+    s.loadNode('intro');
 });
 s.menu.addAction('info', function() {
     s.loadInfoNode('help');
@@ -1792,22 +1840,17 @@ s.menu.addAction('info', function() {
 s.menu.addAction('bio', function() {
     s.loadInfoNode('bio');
 });
-s.menu.addAction(
-    'restart',
-    function() {
-        if (confirm('Really restart?')) {
-            s.restart();
-        }
-    }
-);
 
+// set cheat code for debug mode
 s.debCon.setCheat([
     'help', 'help', 'help', 'bio', 'help', 'bio', 'help', 'help', 'bio'
 ]);
 
+// make initial links
 s.addLink('intro', 'continue', 'RNG warning');
-s.addLink('RNG warning', 'got it', 'who you are', null, null, false);
-// s.addLink('RNG warning', 'got it', 'who you are');
+s.addLink(
+    'RNG warning', 'got it', 'who you are', null, null, false // don't embed
+);
 s.addLink('who you are', 'take a look around', 'bedroom');
 
 // bedroom actions
@@ -1820,7 +1863,7 @@ s.addLink('who you are', 'take a look around', 'bedroom');
     }, function() {
         // check
         return (v.containedIn.get('knife') === 'bedroom');
-    }, true, true);
+    }, true, true); // embed with scene break
 
     // search the body
     s.setSubCount('Cops bust in', 2);
@@ -1884,7 +1927,7 @@ Story Caption
 
 
 :: StoryMenu
-/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
+/* This passage needs to be here and should be empty */
 
 
 :: StoryInit
@@ -1903,7 +1946,7 @@ Story Caption
 
 
 :: PassageHeader
-/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
+/* This passage needs to be here and should be empty */
 
 
 :: help
@@ -1920,12 +1963,12 @@ Story Caption
 <p>This screen holds information about your character.</p>
 
 
-:: Start [no-header]
-/* The `Start` passage must be a kind of title screen. It cannot be used as a node and should not have branching choices. */
+:: Start
+/* Cannot be used as a node; should not have branching choices. */
 <<timed 0s>>
     <<if recall('autoBegin', false)>>
         <<run forget('autoBegin')>>
-        <<run s.loadNode('intro', false)>>
+        <<run s.loadNode('intro')>>
     <</if>>
 <</timed>>
 <div style='text-align:center'>
@@ -1936,20 +1979,10 @@ Story Caption
     <br>
     <br>
     <br>
-    <<if Save.autosave.has()>>
-        <<link 'resume'>><<run s.savesMgr.load(0)>><</link>>
-        <<if !ss.debugOn>> /
-            <<link 'restart'>><<if confirm('Really restart?')>>
-                <<run s.restart()>>
-            <</if>><</link>>
-        <</if>>
-    <<else>>
-        <<link 'begin'>><<run s.loadNode('intro', false)>><</link>>
-    <</if>>
 </div>
 
 
-:: intro [no-header]
+:: intro [no-menu]
 <p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
 
 <p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
@@ -1957,7 +1990,7 @@ Story Caption
 <p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
 
 
-:: RNG warning [no-header]
+:: RNG warning [no-menu]
 <p>In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character's traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
 
 

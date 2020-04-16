@@ -265,6 +265,18 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-043">Version 0.4.3</h2>
+
+<ul>
+<li>In <code>List</code>, replaced <code>_addItem()</code> with <code>insert</code>; added an <code>index</code> parameter to <code>ActionList.addAction()</code>.</li>
+<li>Edited <code>Page.embedPsg()</code> to throw an error if you try to embed a node from a passage not associated with node.</li>
+<li>Edited <code>Page.load()</code> to automatically set the <code>embed</code> parameter to false if the current passage title is <code>Start</code>.</li>
+<li>Removed the <code>func</code> parameter from <code>Menu</code>&apos;s constructor; the <code>begin</code> action now defaults to carrying out <code>null</code>.</li>
+<li>Added <code>Menu.onBegin()</code> which lets you sets the function that <code>begin</code> carries out.</li>
+<li>Replaced <code>s.menuBar</code> with <code>s.menu</code>.</li>
+<li>Added <code>s.preProcText</code>, an array of size-2 arrays that associates passage titles to functions which preprocess their text before SC processes it; used <code>s.preProcText</code> to automate the preprocessing of the passages, <code>Header</code>, <code>StoryMenu</code>, and <code>Start</code>.</li>
+<li>Moved CSS code to separate file.</li>
+</ul>
 <h2 class="mume-header" id="version-042">Version 0.4.2</h2>
 
 <ul>

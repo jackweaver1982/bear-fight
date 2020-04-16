@@ -79,7 +79,7 @@ s.restart = function() {
     Engine.restart();
 }
 
-s.Menu = function(func) {
+s.Menu = function() {
     /*
     A `Menu` object is an `ActionList` with built-in `begin`, `resume`,
     and `restart` actions. The `restart` method is kept at the end of
@@ -87,9 +87,6 @@ s.Menu = function(func) {
     automatically inserted into various areas of the story (such as the
     header under normal circumstance, the UI bar in debug mode, and the
     bottom of the `Start` passage.)
-
-    @param {Function} func - The function to execute when the player
-    selects the `begin` action.
     */
     s.ActionList.call(this, true);
     this.addAction(
@@ -109,7 +106,7 @@ s.Menu = function(func) {
     );
     this.addAction(
         'begin',
-        func,
+        null,
         function() {
             return (
                 passage() === 'Start' &&
@@ -162,3 +159,17 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc) {
     );
 }
 
+s.Menu.prototype.onBegin = function(func) {
+    /*
+    Sets the `begin` action to carry out the given function.
+    */
+    this.delete(0);
+    this.addAction('begin', func, function() {
+            return (
+                passage() === 'Start' &&
+                st.page.length() === 0 &&
+                !Save.autosave.has()
+            );
+        }, 0);
+    return this;
+}

@@ -1,4 +1,4 @@
-s.menuBar = new s.ActionList();
+s.menu = new s.Menu();
 
 s.menuMarkup = function() {
     /*
@@ -7,8 +7,8 @@ s.menuMarkup = function() {
     */
     var text = '';
     var action;
-    for (var i = 0; i < s.menuBar.length(); i++) {
-        action = s.menuBar.get(i);
+    for (var i = 0; i < s.menu.length(); i++) {
+        action = s.menu.get(i);
         if (!action.check()) {
             continue;
         }
@@ -17,12 +17,17 @@ s.menuMarkup = function() {
         }
         text += (
             '<<link "' + action.getText() + '">>' +
-                '<<run s.menuBar.get(' + i + ').choose().carryOut()>>' +
+                '<<run s.menu.get(' + i + ').choose().carryOut()>>' +
             '<</link>>'
         );
     }
     return text;
 }
+
+s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
+                    // the title of a passage, preProcText[i][1] is a
+                    // function to apply to that passage's text before
+                    // SC's text processing.
 
 Config.passages.onProcess = function(p) {
     /*
@@ -36,20 +41,10 @@ Config.passages.onProcess = function(p) {
     processes the node markup.
     */
     var text = p.text;
-    if (ss.debugOn && p.title === 'StoryMenu') {
-        text = s.menuMarkup();
-    }
-    if (p.title === 'PassageHeader') {
-        text = (
-            '<<if !tags().includes("no-header")>>' +
-                '<div class="sticky"><br>' +
-                    text + s.menuMarkup() + '<br><hr>' +
-                '</div>' +
-            '<</if>>'
-        );
-    }
-    if (p.tags.includes('no-header')) {
-        text = '<br>\n' + text;
+    for (var i = 0; i < s.preProcText.length; i++) {
+        if (p.title === s.preProcText[i][0]) {
+            text = s.preProcText[i][1](text);
+        }
     }
 
     if (s.getNode(p.title) === undefined) {
@@ -60,6 +55,47 @@ Config.passages.onProcess = function(p) {
     var processedText = st.parser.procAllMarkup(p.title, text);
     return processedText;
 };
+
+s.preProcText.push(['StoryMenu', function(text) {
+    /*
+    Adds the menu to the UI bar if it is visible and the current passage
+    allows the menu.
+    */
+    if (!UIBar.isHidden() && !tags().includes('no-menu')) {
+        return s.menuMarkup();
+    } else {
+        return '';
+    }
+}]);
+
+s.preProcText.push(['PassageHeader', function(text) {
+    /*
+    Adds the menu to the header with the sticky class if the current passage
+    allows it, unless currently at the Start passage. Otherwise, adds a
+    line break to compensate for the reduced upper margin (needed to
+    have the sticky class work as intended).
+    */
+    return (
+        '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
+            '<div class="sticky"><br>' +
+                s.menuMarkup() + '<br><hr>' +
+            '</div>' +
+        '<<else>>' +
+            '<br>' +
+        '<</if>>'
+    );
+}]);
+
+s.preProcText.push(['Start', function(text) {
+    /*
+    Adds the menu to the bottom of the Start passage.
+    */
+    return text += (
+        '<br><div style="text-align:center">' +
+        s.menuMarkup() +
+        '</div>'
+    );
+}]);
 
 s.onPsgDisplay = function(ev) {
     /*

@@ -17,7 +17,7 @@ Story Banner
 Story Caption
 
 :: StoryMenu
-/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
+/* This passage needs to be here and should be empty */
 
 :: StoryData
 {
@@ -29,42 +29,6 @@ Story Caption
 }
 
 :: Story Stylesheet [stylesheet]
-html {
-    font: 100% Georgia, serif;
-}
-body {
-    color: white;
-    background-color: black;
-}
-a {
-    cursor: pointer;
-    color: #68d;
-    text-decoration: none;
-    font-weight: bold;
-    transition-duration: 200ms;
-}
-.description {
-    /* Detailed description information revealed when clicking a noun. */
-    color: yellow;
-}
-.headings {
-    /* Headings in help page. */
-    color: lime;
-}
-.sticky{
-    /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
-    position: sticky;
-    position: -webkit-sticky;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 49;
-    background-color: black;
-}
-#story {
-    /* Removes the top margin, so the header sticks seamlessly. Line breaks should be added manually at the top of the header and any passage with a `no-header` tag. This is handled automatically by the `onProcess` function in `rendering.js`. */
-    margin-top: 0px;
-}
 
 :: Story JavaScript [script]
 
@@ -83,7 +47,7 @@ a {
 <<set $inventory = new Set()>>
 
 :: PassageHeader
-/* This passage needs to be here, even if it's empty, in order to use the Menu Bar */
+/* This passage needs to be here and should be empty */
 
 :: help
 <p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>
@@ -97,12 +61,12 @@ a {
 :: bio
 <p>This screen holds information about your character.</p>
 
-:: Start [no-header]
-/* The `Start` passage must be a kind of title screen. It cannot be used as a node and should not have branching choices. */
+:: Start
+/* Cannot be used as a node; should not have branching choices. */
 <<timed 0s>>
     <<if recall('autoBegin', false)>>
         <<run forget('autoBegin')>>
-        <<run s.loadNode('intro', false)>>
+        <<run s.loadNode('intro')>>
     <</if>>
 <</timed>>
 <div style='text-align:center'>
@@ -113,26 +77,16 @@ a {
     <br>
     <br>
     <br>
-    <<if Save.autosave.has()>>
-        <<link 'resume'>><<run s.savesMgr.load(0)>><</link>>
-        <<if !ss.debugOn>> /
-            <<link 'restart'>><<if confirm('Really restart?')>>
-                <<run s.restart()>>
-            <</if>><</link>>
-        <</if>>
-    <<else>>
-        <<link 'begin'>><<run s.loadNode('intro', false)>><</link>>
-    <</if>>
 </div>
 
-:: intro [no-header]
+:: intro [no-menu]
 <p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
 
 <p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
 
 <p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
 
-:: RNG warning [no-header]
+:: RNG warning [no-menu]
 <p>In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character's traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
 
 :: who you are

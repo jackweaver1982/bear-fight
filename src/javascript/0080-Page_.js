@@ -201,11 +201,18 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
     and sets the moment in history to use when parsing. See
     `Page.insertPsgText` for details.
     */
+    if (s.getNode(passage()) == undefined) {
+        throw new Error(
+            'Page.embedPsg():\n' +
+            'shell passage not associated with a node'
+        );
+    }
+
     var nodePsg = node.getPassage();
     if (nodePsg.title === passage() ||
         this._embeddedPsgs.indexOf(nodePsg.title) >= 0) {
         throw new Error(
-            'Page.load():\n' +
+            'Page.embedPsg():\n' +
             'cannot embed a passage in itself'
         );
     }
@@ -254,7 +261,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     if (embed === undefined) {
         embed = this._continuous;
     }
-    if (node instanceof s.InfoNode) {
+    if (passage() === 'Start' || node instanceof s.InfoNode) {
         embed = false;
     }
 
