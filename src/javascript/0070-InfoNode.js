@@ -1,3 +1,5 @@
+// Node_
+
 s.InfoNode = function(psgTitle, checkFunc) {
     /*
     `InfoNode` is a subclass of `Node`. It is a special kind of node
@@ -26,4 +28,9 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
     value: s.InfoNode,
     enumerable: false,
     writable: true
+});
+
+s.autosave.necessary.push(function() {
+    // do not autosave when visiting an info node
+    return (!(s.getNode(passage()) instanceof s.InfoNode));
 });

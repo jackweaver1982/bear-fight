@@ -1,3 +1,5 @@
+// standard
+
 s.Version = function(major, minor, patch) {
     /*
     Keeps track of a three-part version number and returns it in
@@ -133,3 +135,5 @@ s.Version.prototype.set = function(major, minor, patch) {
     Config.saves.version = this.asInteger();
     return this;
 }
+
+s.version = new s.Version();

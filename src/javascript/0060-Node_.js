@@ -1,3 +1,5 @@
+// ActionList
+
 s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
                      // `Node` objects
 

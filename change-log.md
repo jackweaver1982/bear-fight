@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.4
+
+* Reorganized JS files.
+
 ## Version 0.4.3
 
 * In `List`, replaced `_addItem()` with `insert`; added an `index` parameter to `ActionList.addAction()`.

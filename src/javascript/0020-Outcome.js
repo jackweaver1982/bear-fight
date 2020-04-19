@@ -1,3 +1,5 @@
+// standard
+
 s.Outcome = function(func) {
     /*
     Represents one possible result of a player action.

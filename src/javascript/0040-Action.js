@@ -1,3 +1,5 @@
+// List
+
 s.Action = function(text, checkFunc, chooseFunc) {
     /*
     In a given passage, the reader will choose from a list of actions.

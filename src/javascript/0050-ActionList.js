@@ -1,3 +1,5 @@
+// List, Action
+
 s.ActionList = function(fixedEnd) {
     /*
     Action List is a subclass of List whose instance can contain only
@@ -34,7 +36,9 @@ s.ActionList.prototype.addAction = function(
     If an `index` parameter is given, will insert the action at the
     given index, otherwise will push the action.
     */
-    index = index || this.length();
+    if (index == null) {
+        index = this.length();
+    }
     var outcome = new s.Outcome(carryOutFunc);
     var action = new s.Action(text, checkFunc);
     action.push(outcome);

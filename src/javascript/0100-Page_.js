@@ -1,17 +1,4 @@
-st.parser = new s.Parser();
-
-s.debCon = new s.DebugController();
-
-Setting.addToggle('debugOn', {
-    /*
-    Adds the `debugOn` boolean variable to `settings` and adds a toggle
-    switch for it to the setting menu in the UI Bar. Binds the relevant
-    `debCon` methods to the UI toggle switch.
-    */
-    label:      'debug mode',
-    onInit:     s.debCon.onInit.bind(s.debCon),
-    onChange:   s.debCon.onChange.bind(s.debCon)
-});
+// InfoNode, Parser_, DebugController_
 
 s.Page = function() {
     /*
@@ -277,3 +264,114 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         return this;
     }
 }
+
+st.page = new s.Page();
+
+$(window).bind('beforeunload pagehide', function(){
+    /*
+    Restart upon browser refresh. Otherwise, upon browser refresh,
+    `Page.scrollToLast()` will not fire. (It fires too early, before the
+    reloaded page is ready, and we cannot bind to any event that
+    triggers after the page is fully reloaded.) This ad hoc solution
+    requires that the 'Start' passage offer a way to reload the
+    autosave.
+    */
+    Engine.restart();
+});
+
+$(document).one(':enginerestart', function (ev) {
+    /*
+    To perform a 'hard restart' (i.e. to delete the autosave before
+    restarting), set 'hardRestart' to true in the metadata before
+    restarting.
+    */
+    if (recall('hardRestart', false)) {
+        Save.autosave.delete();
+        forget('hardRestart');
+    }
+});
+
+$('#menu-item-restart').remove() // remove default Restart button
+
+s.restart = function() {
+    /*
+    In general, this custom restart function is preferred over
+    `Engine.restart()` and is what should be triggered by any 'restart'
+    menu items. In particular, the default 'Restart' button in the UI
+    bar should be removed.
+
+    In general, this function performs a hard restart. If it was called
+    from the 'Start' passage, sets 'autoBegin' to true in the metadata.
+    The start passage can use this metadata to immediately move to the
+    next passage in the story rather than simply refresh itself.
+    */
+    memorize('hardRestart', true);
+    if (passage() === 'Start' && st.page.length() === 0) {
+        memorize('autoBegin', true);
+    }
+    Engine.restart();
+}
+
+s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
+                    // the title of a passage, preProcText[i][1] is a
+                    // function to apply to that passage's text before
+                    // SC's text processing.
+
+Config.passages.onProcess = function(p) {
+    /*
+    Prepends passage text with an HTML linebreak if the passage is the
+    header passage or if the passage is tagged with `no-header`. Does
+    nothing further if the current passage is not associated with a
+    node.
+
+    Rewinds variables to a previous moment to account for embedded
+    passages. Variables will be restored on `:passagedisplay`. Then
+    processes the node markup.
+    */
+    var text = p.text;
+    for (var i = 0; i < s.preProcText.length; i++) {
+        if (p.title === s.preProcText[i][0]) {
+            text = s.preProcText[i][1](text);
+        }
+    }
+
+    if (s.getNode(p.title) === undefined) {
+        return text;
+    }
+
+    s.loadVars(-st.page.length());
+    var processedText = st.parser.procAllMarkup(p.title, text);
+    return processedText;
+};
+
+s.onPsgDisplay = function(ev) {
+    /*
+    Triggered by the `:passagedisplay` event. Rebuilds the current page.
+    Does nothing if the current passage is not associated with a node.
+    */
+    if (s.getNode(ev.passage.title) === undefined) {
+        return;
+    }
+
+    s.loadVars(0); // resets variables to current time
+
+    var currentPsg = ev.passage;
+    var nextPsg, time;
+    for (var i = 0; i < st.page.length(); i++) {
+        /*
+        Re-inserts embedded passage text one at a time.
+        */
+        nextPsg = Story.get(st.page.getPsg(i));
+        time = i - (st.page.length() - 1)
+        st.page.insertPsgText(
+            nextPsg, currentPsg, time, st.page.getFlag(i)
+        );
+        currentPsg = nextPsg;
+    }
+
+    st.page.insertActions(st.page.innerPsg());
+    st.page.scrollToLast();
+    return;
+}
+
+$(document).on(':passagedisplay', s.onPsgDisplay);

@@ -1,3 +1,5 @@
+// Page_
+
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
     /*

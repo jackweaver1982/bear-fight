@@ -1,4 +1,4 @@
-s.version = new s.Version();
+// Version
 
 s.SavesManager = function(block) {
     /*
@@ -57,3 +57,5 @@ s.SavesManager.prototype.load = function(num) {
     }
     return this;
 }
+
+s.savesMgr = new s.SavesManager();

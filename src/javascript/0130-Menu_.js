@@ -1,12 +1,9 @@
-/*
-The `Menu` object will contain functionality to resume the story by
-loading a save file. As such we need to instantiate the `SavesManager`
-object and set some SC save configurations.
+// SavesManager_, ActionList, Page_
 
-The `Menu` object will also contain functionality to restart the story.
-But because of a technical issue, we need to redefine how SC restarts
-the story. Hence, we do both these things before defining the `Menu`
-class.
+/*
+The `Menu` object will contain functionality to restart the story. But
+because of a technical issue, we need to redefine how SC restarts the
+story. Hence, we do both these things before defining the `Menu` class.
 
 The normal (and preferred) behavior in SC is for a browser refresh to
 leave the story in the same state, essentially reloading the current
@@ -25,59 +22,6 @@ modified to accommodate this change. But its behavior is fixed, so we
 instead opt to remove it. A custom restart button should be added to
 preserve the desired functionality.
 */
-
-Config.saves.autosave = true;
-
-Config.saves.isAllowed = function () {
-    var allowed = true;
-    if (passage() ===  'Start' && st.page.length() === 0) {
-        allowed = false;
-    }
-    if (s.getNode(passage()) instanceof s.InfoNode) {
-        allowed = false;
-    }
-    return allowed;
-};
-
-s.savesMgr = new s.SavesManager();
-
-$('#menu-item-restart').remove() // remove default Restart button
-
-$(window).bind('beforeunload pagehide', function(){
-    Engine.restart();
-});
-
-$(document).one(':enginerestart', function (ev) {
-    /*
-    To perform a 'hard restart' (i.e. to delete the autosave before
-    restarting), set 'hardRestart' to true in the metadata before
-    restarting.
-    */
-    if (recall('hardRestart', false)) {
-        Save.autosave.delete();
-        forget('hardRestart');
-    }
-});
-
-st.page = new s.Page(); // need the Page instance in the below function
-
-s.restart = function() {
-    /*
-    In general, this custom restart function is preferred over
-    `Engine.restart()` and is what should be triggered by any 'restart'
-    menu items.
-
-    In general, this function performs a hard restart. If it was called
-    from the `Start` passage with no embedded nodes, sets 'autoBegin' to
-    true in the metadata. The start passage can use this metadata to
-    avoid needing to click both restart and begin.
-    */
-    memorize('hardRestart', true);
-    if (passage() === 'Start' && st.page.length() === 0) {
-        memorize('autoBegin', true);
-    }
-    Engine.restart();
-}
 
 s.Menu = function() {
     /*
@@ -99,22 +43,11 @@ s.Menu = function() {
         function() {
             return (
                 passage() !== 'Start' ||
-                st.page.length() > 0 ||
                 Save.autosave.has()
             );
         }
     );
-    this.addAction(
-        'begin',
-        null,
-        function() {
-            return (
-                passage() === 'Start' &&
-                st.page.length() === 0 &&
-                !Save.autosave.has()
-            );
-        }
-    );
+    this.onBegin();
     this.addAction(
         'resume',
         function() {
@@ -123,7 +56,6 @@ s.Menu = function() {
         function() {
             return (
                 passage() === 'Start' &&
-                st.page.length() === 0 &&
                 Save.autosave.has()
             );
         }
@@ -139,7 +71,7 @@ Object.defineProperty(s.Menu.prototype, 'constructor', {
     writable: true
 });
 
-s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc) {
+s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
     /*
     @override
 
@@ -151,11 +83,11 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc) {
     */
     if (checkFunc === undefined) {
         checkFunc = function() {
-            return (passage() !== `Start` || st.page.length() > 0);
+            return (passage() !== `Start`);
         }
     }
     return s.ActionList.prototype.addAction.call(
-        this, text, carryOutFunc, checkFunc
+        this, text, carryOutFunc, checkFunc, index
     );
 }
 
@@ -163,13 +95,81 @@ s.Menu.prototype.onBegin = function(func) {
     /*
     Sets the `begin` action to carry out the given function.
     */
-    this.delete(0);
+    if (this.get(0).getText() === 'begin') {
+        this.delete(0);
+    }
     this.addAction('begin', func, function() {
-            return (
-                passage() === 'Start' &&
-                st.page.length() === 0 &&
-                !Save.autosave.has()
-            );
-        }, 0);
+        return (
+            passage() === 'Start' &&
+            !Save.autosave.has()
+        );
+    }, 0);
     return this;
 }
+
+s.menu = new s.Menu();
+
+s.menuMarkup = function() {
+    /*
+    Returns the text of the SC markup that renders the links in the
+    displayed menu bar.
+    */
+    var text = '';
+    var action;
+    for (var i = 0; i < s.menu.length(); i++) {
+        action = s.menu.get(i);
+        if (!action.check()) {
+            continue;
+        }
+        if (text !== '') {
+            text += ' / ';
+        }
+        text += (
+            '<<link "' + action.getText() + '">>' +
+                '<<run s.menu.get(' + i + ').choose().carryOut()>>' +
+            '<</link>>'
+        );
+    }
+    return text;
+}
+
+s.preProcText.push(['StoryMenu', function(text) {
+    /*
+    Adds the menu to the UI bar if it is visible and the current passage
+    allows the menu.
+    */
+    if (!UIBar.isHidden() && !tags().includes('no-menu')) {
+        return s.menuMarkup();
+    } else {
+        return '';
+    }
+}]);
+
+s.preProcText.push(['PassageHeader', function(text) {
+    /*
+    Adds the menu to the header with the sticky class if the current passage
+    allows it, unless currently at the Start passage. Otherwise, adds a
+    line break to compensate for the reduced upper margin (needed to
+    have the sticky class work as intended).
+    */
+    return (
+        '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
+            '<div class="sticky"><br>' +
+                s.menuMarkup() + '<br><hr>' +
+            '</div>' +
+        '<<else>>' +
+            '<br>' +
+        '<</if>>'
+    );
+}]);
+
+s.preProcText.push(['Start', function(text) {
+    /*
+    Adds the menu to the bottom of the Start passage.
+    */
+    return text += (
+        '<br><div style="text-align:center">' +
+        s.menuMarkup() +
+        '</div>'
+    );
+}]);

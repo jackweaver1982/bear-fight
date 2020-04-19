@@ -1,3 +1,5 @@
+// standard
+
 s.List = function(fixedEnd) {
     /*
     A wrapper around an array with methods for controlling manipulation

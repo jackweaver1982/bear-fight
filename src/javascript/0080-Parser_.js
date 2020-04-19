@@ -1,31 +1,4 @@
-v.static = {};
-
-Object.defineProperty(window, "st", {
-    get: function() {
-        return State.variables.static;
-    }
-});
-
-s.loadVars = function(time) {
-    // Replaces `v` with a copy of `State.variables` from the moment
-    // with index `time`. Does not touch `v.static`.
-    //
-    // @param {Integer} time - A nonpositive integer representing the
-    // time from which to take the variable data. A value of 0 denotes
-    // the present.
-    var oldVars = State.peek(-time).variables;
-    Object.keys(v).forEach(function(pn) {
-        if (pn !== 'static') {
-            delete v[pn];
-        }
-    });
-    Object.keys(oldVars).forEach(function(pn) {
-        if (pn !== 'static') {
-            v[pn] = clone(oldVars[pn]);
-        }
-    });
-    return;
-}
+// Node_
 
 s.Parser = function() {
     /*
@@ -372,3 +345,5 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
     return processedText;
 }
+
+st.parser = new s.Parser();
