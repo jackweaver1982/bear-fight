@@ -4,6 +4,11 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.5
+
+* Automated the insertion of the timed macro into the 'Start' passage.
+* Broke up twee code into separate twee files.
+
 ## Version 0.4.4
 
 * Reorganized JS files.

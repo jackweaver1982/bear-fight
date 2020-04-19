@@ -1359,6 +1359,38 @@ s.Page.prototype.load = function(node, embed, nobreak) {
 
 st.page = new s.Page();
 
+s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
+                    // the title of a passage, preProcText[i][1] is a
+                    // function to apply to that passage's text before
+                    // SC's text processing.
+
+Config.passages.onProcess = function(p) {
+    /*
+    Prepends passage text with an HTML linebreak if the passage is the
+    header passage or if the passage is tagged with `no-header`. Does
+    nothing further if the current passage is not associated with a
+    node.
+
+    Rewinds variables to a previous moment to account for embedded
+    passages. Variables will be restored on `:passagedisplay`. Then
+    processes the node markup.
+    */
+    var text = p.text;
+    for (var i = 0; i < s.preProcText.length; i++) {
+        if (p.title === s.preProcText[i][0]) {
+            text = s.preProcText[i][1](text);
+        }
+    }
+
+    if (s.getNode(p.title) === undefined) {
+        return text;
+    }
+
+    s.loadVars(-st.page.length());
+    var processedText = st.parser.procAllMarkup(p.title, text);
+    return processedText;
+};
+
 $(window).bind('beforeunload pagehide', function(){
     /*
     Restart upon browser refresh. Otherwise, upon browser refresh,
@@ -1404,37 +1436,17 @@ s.restart = function() {
     Engine.restart();
 }
 
-s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
-                    // the title of a passage, preProcText[i][1] is a
-                    // function to apply to that passage's text before
-                    // SC's text processing.
-
-Config.passages.onProcess = function(p) {
-    /*
-    Prepends passage text with an HTML linebreak if the passage is the
-    header passage or if the passage is tagged with `no-header`. Does
-    nothing further if the current passage is not associated with a
-    node.
-
-    Rewinds variables to a previous moment to account for embedded
-    passages. Variables will be restored on `:passagedisplay`. Then
-    processes the node markup.
-    */
-    var text = p.text;
-    for (var i = 0; i < s.preProcText.length; i++) {
-        if (p.title === s.preProcText[i][0]) {
-            text = s.preProcText[i][1](text);
-        }
-    }
-
-    if (s.getNode(p.title) === undefined) {
-        return text;
-    }
-
-    s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(p.title, text);
-    return processedText;
-};
+s.preProcText.push(['Start', function(text) {
+    return (
+        '<<timed 0s>>' +
+            '<<if recall("autoBegin", false)>>' +
+                '<<run forget("autoBegin")>>' +
+                '<<run s.loadNode("intro")>>' +
+            '<</if>>' +
+        '<</timed>>' +
+        text
+    );
+}])
 
 s.onPsgDisplay = function(ev) {
     /*
@@ -1839,9 +1851,10 @@ s.preProcText.push(['Start', function(text) {
     /*
     Adds the menu to the bottom of the Start passage.
     */
-    return text += (
-        '<br><div style="text-align:center">' +
-        s.menuMarkup() +
+    return (
+        text + '<br>' +
+        '<div style="text-align:center">' +
+            s.menuMarkup() +
         '</div>'
     );
 }]);
@@ -1954,7 +1967,7 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
     );
 }
 /* twine-user-script #15: "9000-main.js" */
-s.version.set(0,4,4);
+s.version.set(0,4,5);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 st.page.setContinuous(true); // make embedding passages the default
 
@@ -2050,12 +2063,6 @@ s.addLink('Cops bust in', 'continue', 'Next');
 &lt;p&gt;&lt;b class=&quot;headings&quot;&gt;Random outcomes.&lt;/b&gt; Some actions may have a random outcome which could be good or bad. Your chances of getting a good outcome are related to your character&#39;s traits. Click on &quot;view Character Sheet&quot; in the footer to better understand these traits. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.&lt;/p&gt;
 
 &lt;p&gt;&lt;b class=&quot;headings&quot;&gt;Saving.&lt;/b&gt; The story automatically saves your progress, so if you exit and reload later, you will be able to resume right where you left off. You can also manually save your progress in a bookmark that can be reloaded later. But think carefully about this. You only get one bookmark! (Warning: using private browsing or disabling or clearing your cookies will interfere with the story&#39;s saving feature.)&lt;/p&gt;</tw-passagedata><tw-passagedata pid="10" name="bio" tags="" position="1225,100" size="100,100">&lt;p&gt;This screen holds information about your character.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="11" name="Start" tags="" position="100,225" size="100,100">/* Cannot be used as a node; should not have branching choices. */
-&lt;&lt;timed 0s&gt;&gt;
-    &lt;&lt;if recall(&#39;autoBegin&#39;, false)&gt;&gt;
-        &lt;&lt;run forget(&#39;autoBegin&#39;)&gt;&gt;
-        &lt;&lt;run s.loadNode(&#39;intro&#39;)&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-&lt;&lt;/timed&gt;&gt;
 &lt;div style=&#39;text-align:center&#39;&gt;
     &lt;h1&gt;&lt;&lt;= Story.title&gt;&gt;&lt;/h1&gt;
     by&lt;br&gt;

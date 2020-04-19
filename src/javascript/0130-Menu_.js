@@ -167,9 +167,10 @@ s.preProcText.push(['Start', function(text) {
     /*
     Adds the menu to the bottom of the Start passage.
     */
-    return text += (
-        '<br><div style="text-align:center">' +
-        s.menuMarkup() +
+    return (
+        text + '<br>' +
+        '<div style="text-align:center">' +
+            s.menuMarkup() +
         '</div>'
     );
 }]);

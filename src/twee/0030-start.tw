@@ -1,0 +1,11 @@
+:: Start
+/* Cannot be used as a node; should not have branching choices. */
+<div style='text-align:center'>
+    <h1><<= Story.title>></h1>
+    by<br>
+    <<= Story.get('StoryAuthor').text>><br>
+    version <<= s.version.asString()>><br>
+    <br>
+    <br>
+    <br>
+</div>

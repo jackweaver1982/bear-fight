@@ -267,6 +267,38 @@ s.Page.prototype.load = function(node, embed, nobreak) {
 
 st.page = new s.Page();
 
+s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
+                    // the title of a passage, preProcText[i][1] is a
+                    // function to apply to that passage's text before
+                    // SC's text processing.
+
+Config.passages.onProcess = function(p) {
+    /*
+    Prepends passage text with an HTML linebreak if the passage is the
+    header passage or if the passage is tagged with `no-header`. Does
+    nothing further if the current passage is not associated with a
+    node.
+
+    Rewinds variables to a previous moment to account for embedded
+    passages. Variables will be restored on `:passagedisplay`. Then
+    processes the node markup.
+    */
+    var text = p.text;
+    for (var i = 0; i < s.preProcText.length; i++) {
+        if (p.title === s.preProcText[i][0]) {
+            text = s.preProcText[i][1](text);
+        }
+    }
+
+    if (s.getNode(p.title) === undefined) {
+        return text;
+    }
+
+    s.loadVars(-st.page.length());
+    var processedText = st.parser.procAllMarkup(p.title, text);
+    return processedText;
+};
+
 $(window).bind('beforeunload pagehide', function(){
     /*
     Restart upon browser refresh. Otherwise, upon browser refresh,
@@ -312,37 +344,17 @@ s.restart = function() {
     Engine.restart();
 }
 
-s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
-                    // the title of a passage, preProcText[i][1] is a
-                    // function to apply to that passage's text before
-                    // SC's text processing.
-
-Config.passages.onProcess = function(p) {
-    /*
-    Prepends passage text with an HTML linebreak if the passage is the
-    header passage or if the passage is tagged with `no-header`. Does
-    nothing further if the current passage is not associated with a
-    node.
-
-    Rewinds variables to a previous moment to account for embedded
-    passages. Variables will be restored on `:passagedisplay`. Then
-    processes the node markup.
-    */
-    var text = p.text;
-    for (var i = 0; i < s.preProcText.length; i++) {
-        if (p.title === s.preProcText[i][0]) {
-            text = s.preProcText[i][1](text);
-        }
-    }
-
-    if (s.getNode(p.title) === undefined) {
-        return text;
-    }
-
-    s.loadVars(-st.page.length());
-    var processedText = st.parser.procAllMarkup(p.title, text);
-    return processedText;
-};
+s.preProcText.push(['Start', function(text) {
+    return (
+        '<<timed 0s>>' +
+            '<<if recall("autoBegin", false)>>' +
+                '<<run forget("autoBegin")>>' +
+                '<<run s.loadNode("intro")>>' +
+            '<</if>>' +
+        '<</timed>>' +
+        text
+    );
+}])
 
 s.onPsgDisplay = function(ev) {
     /*

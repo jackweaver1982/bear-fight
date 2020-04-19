@@ -1,0 +1,50 @@
+:: StoryTitle
+Story Title
+
+:: StorySubtitle
+Story Subtitle
+
+:: StoryAuthor
+Story Author
+
+:: StoryDisplayTitle
+Story Display Title
+
+:: StoryBanner
+Story Banner
+
+:: StoryCaption
+Story Caption
+
+:: StoryMenu
+/* This passage needs to be here and should be empty */
+
+:: StoryData
+{
+    "ifid": "5406BF44-CF93-41CF-9DED-9824A52E2F82",
+    "format": "SugarCube",
+    "format-version": "2.31.0",
+    "start": "Start",
+    "zoom": 1
+}
+
+:: Story Stylesheet [stylesheet]
+
+:: Story JavaScript [script]
+
+:: StoryInit
+<<set $pounding = true>>
+<<set $crowbar = false>>
+<<set $knowledge = new Set()>>
+<<set $containedIn = new Map()>>
+<<run $containedIn.set("knife", "bedroom")>>
+<<set $body = {
+    searched: false
+}>>
+<<set $detective = {
+    discovered: false
+}>>
+<<set $inventory = new Set()>>
+
+:: PassageHeader
+/* This passage needs to be here and should be empty */

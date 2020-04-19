@@ -1,0 +1,11 @@
+:: help
+<p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>
+
+<p>In this story, you control the character by tapping (or clicking) on links. Tap a noun to examine that object in closer detail. Tap a command to follow that action. Tapping a noun will usually not advance the story. Tapping a command, though, is often irreversible.</p>
+
+<p><b class="headings">Random outcomes.</b> Some actions may have a random outcome which could be good or bad. Your chances of getting a good outcome are related to your character's traits. Click on "view Character Sheet" in the footer to better understand these traits. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.</p>
+
+<p><b class="headings">Saving.</b> The story automatically saves your progress, so if you exit and reload later, you will be able to resume right where you left off. You can also manually save your progress in a bookmark that can be reloaded later. But think carefully about this. You only get one bookmark! (Warning: using private browsing or disabling or clearing your cookies will interfere with the story's saving feature.)</p>
+
+:: bio
+<p>This screen holds information about your character.</p>
