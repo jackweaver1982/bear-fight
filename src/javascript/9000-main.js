@@ -1,4 +1,4 @@
-s.version.set(0,4,5);
+s.version.set(0,4,6);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 st.page.setContinuous(true); // make embedding passages the default
 

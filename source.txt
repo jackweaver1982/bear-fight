@@ -412,6 +412,21 @@ s.ActionList.prototype.addAction = function(
     this.insert(index, action);
     return this;
 }
+
+s.ActionList.prototype.getAction = function(actionText) {
+    /*
+    Returns the action from the list whose display text matches the
+    given `actionText`. If no such action exists, returns null.
+    */
+    var action;
+    for (var i = 0; i < this.length(); i++) {
+        action = this.get(i);
+        if (action.getText() === actionText) {
+            return action;
+        }
+    }
+    return null;
+}
 /* twine-user-script #6: "0060-Node_.js" */
 // ActionList
 
@@ -1346,23 +1361,11 @@ s.restart = function() {
     next passage in the story rather than simply refresh itself.
     */
     memorize('hardRestart', true);
-    if (passage() === 'Start' && st.page.length() === 0) {
-        memorize('autoBegin', true);
+    if (passage() === 'Start') {
+        memorize('autoStart', true);
     }
     Engine.restart();
 }
-
-s.preProcText.push(['Start', function(text) {
-    return (
-        '<<timed 0s>>' +
-            '<<if recall("autoBegin", false)>>' +
-                '<<run forget("autoBegin")>>' +
-                '<<run s.loadNode("intro")>>' +
-            '<</if>>' +
-        '<</timed>>' +
-        text
-    );
-}])
 
 s.onPsgDisplay = function(ev) {
     /*
@@ -1636,7 +1639,7 @@ s.Menu = function() {
     this.addAction(
         'restart',
         function() {
-            if (confirm('Really restart?')) {
+            if (ss.debugOn || confirm('Really restart?')) {
                 s.restart();
             }
         },
@@ -1709,6 +1712,25 @@ s.Menu.prototype.onBegin = function(func) {
 
 s.menu = new s.Menu();
 
+s.autoStart = function() {
+    /*
+    Automatically carry out the 'begin' or 'resume' actions, whichever
+    is available.
+    */
+    var begin = s.menu.getAction('begin');
+    if (begin.check()) {
+        begin.choose().carryOut();
+        return;
+    }
+    if (ss.debugOn) {
+        var resume = s.menu.getAction('resume');
+        if (resume.check()) {
+            resume.choose().carryOut();
+            return;
+        }
+    }
+}
+
 s.menuMarkup = function() {
     /*
     Returns the text of the SC markup that renders the links in the
@@ -1762,6 +1784,22 @@ s.preProcText.push(['PassageHeader', function(text) {
         '<</if>>'
     );
 }]);
+
+s.preProcText.push(['Start', function(text) {
+    /*
+    Use the autoStart metadata from the s.restart() function to skip the
+    title page.
+    */
+    return (
+        '<<timed 0s>>' +
+            '<<if ss.debugOn || recall("autoStart", false)>>' +
+                '<<run forget("autoStart")>>' +
+                '<<run s.autoStart()>>' +
+            '<</if>>' +
+        '<</timed>>' +
+        text
+    );
+}])
 
 s.preProcText.push(['Start', function(text) {
     /*
@@ -1828,33 +1866,6 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     return;
 }
 
-s.setSubCount = function(psgTitle, num) {
-    /*
-    Sets the sub count of the node associated with `psgTitle` to `num`.
-    If no such node exists, creates one. Returns the associated node.
-    */
-    var node = s.getNode(psgTitle);
-    if (node === undefined) {
-        node = new s.Node(psgTitle, num);
-        return node;
-    } else {
-        return node.setSubCount(num);
-    }
-}
-
-s.copyActions = function(fromPsgTitle, toPsgTitle) {
-    /*
-    For each action in the node associated with `fromPsgTitle`, pushes
-    that action to the node associated with `toPsgTitle`.
-    */
-    var fromNode = s.getNode(fromPsgTitle);
-    var toNode = s.getNode(toPsgTitle);
-    for (var i = 0; i < fromNode.length(); i++) {
-        toNode.push(fromNode.get(i));
-    }
-    return;
-}
-
 s.loadNode = function(psgTitle, embed) {
     st.page.load(s.getNode(psgTitle), embed);
     return;
@@ -1882,8 +1893,35 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         '"' + psgTitle + '" is not an info node'
     );
 }
+
+s.setSubCount = function(psgTitle, num) {
+    /*
+    Sets the sub count of the node associated with `psgTitle` to `num`.
+    If no such node exists, creates one. Returns the associated node.
+    */
+    var node = s.getNode(psgTitle);
+    if (node === undefined) {
+        node = new s.Node(psgTitle, num);
+        return node;
+    } else {
+        return node.setSubCount(num);
+    }
+}
+
+s.copyActions = function(fromPsgTitle, toPsgTitle) {
+    /*
+    For each action in the node associated with `fromPsgTitle`, pushes
+    that action to the node associated with `toPsgTitle`.
+    */
+    var fromNode = s.getNode(fromPsgTitle);
+    var toNode = s.getNode(toPsgTitle);
+    for (var i = 0; i < fromNode.length(); i++) {
+        toNode.push(fromNode.get(i));
+    }
+    return;
+}
 /* twine-user-script #15: "9000-main.js" */
-s.version.set(0,4,5);
+s.version.set(0,4,6);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 st.page.setContinuous(true); // make embedding passages the default
 

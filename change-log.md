@@ -4,6 +4,14 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.6
+
+* Added `getAction()` method to `ActionList`.
+* Removed restart confirmation in debug mode.
+* Added `s.autoStart()` function in `Menu_.js`.
+* Text processing now adds to 'Start' passage code which auto starts under appropriate circumstances.
+* 
+
 ## Version 0.4.5
 
 * Automated the insertion of the timed macro into the 'Start' passage.

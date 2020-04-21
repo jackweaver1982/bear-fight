@@ -51,33 +51,6 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     return;
 }
 
-s.setSubCount = function(psgTitle, num) {
-    /*
-    Sets the sub count of the node associated with `psgTitle` to `num`.
-    If no such node exists, creates one. Returns the associated node.
-    */
-    var node = s.getNode(psgTitle);
-    if (node === undefined) {
-        node = new s.Node(psgTitle, num);
-        return node;
-    } else {
-        return node.setSubCount(num);
-    }
-}
-
-s.copyActions = function(fromPsgTitle, toPsgTitle) {
-    /*
-    For each action in the node associated with `fromPsgTitle`, pushes
-    that action to the node associated with `toPsgTitle`.
-    */
-    var fromNode = s.getNode(fromPsgTitle);
-    var toNode = s.getNode(toPsgTitle);
-    for (var i = 0; i < fromNode.length(); i++) {
-        toNode.push(fromNode.get(i));
-    }
-    return;
-}
-
 s.loadNode = function(psgTitle, embed) {
     st.page.load(s.getNode(psgTitle), embed);
     return;
@@ -104,4 +77,31 @@ s.loadInfoNode = function(psgTitle, checkFunc) {
         'loadInfoNode():\n' +
         '"' + psgTitle + '" is not an info node'
     );
+}
+
+s.setSubCount = function(psgTitle, num) {
+    /*
+    Sets the sub count of the node associated with `psgTitle` to `num`.
+    If no such node exists, creates one. Returns the associated node.
+    */
+    var node = s.getNode(psgTitle);
+    if (node === undefined) {
+        node = new s.Node(psgTitle, num);
+        return node;
+    } else {
+        return node.setSubCount(num);
+    }
+}
+
+s.copyActions = function(fromPsgTitle, toPsgTitle) {
+    /*
+    For each action in the node associated with `fromPsgTitle`, pushes
+    that action to the node associated with `toPsgTitle`.
+    */
+    var fromNode = s.getNode(fromPsgTitle);
+    var toNode = s.getNode(toPsgTitle);
+    for (var i = 0; i < fromNode.length(); i++) {
+        toNode.push(fromNode.get(i));
+    }
+    return;
 }

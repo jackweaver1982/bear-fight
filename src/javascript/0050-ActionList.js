@@ -45,3 +45,18 @@ s.ActionList.prototype.addAction = function(
     this.insert(index, action);
     return this;
 }
+
+s.ActionList.prototype.getAction = function(actionText) {
+    /*
+    Returns the action from the list whose display text matches the
+    given `actionText`. If no such action exists, returns null.
+    */
+    var action;
+    for (var i = 0; i < this.length(); i++) {
+        action = this.get(i);
+        if (action.getText() === actionText) {
+            return action;
+        }
+    }
+    return null;
+}

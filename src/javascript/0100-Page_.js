@@ -338,23 +338,11 @@ s.restart = function() {
     next passage in the story rather than simply refresh itself.
     */
     memorize('hardRestart', true);
-    if (passage() === 'Start' && st.page.length() === 0) {
-        memorize('autoBegin', true);
+    if (passage() === 'Start') {
+        memorize('autoStart', true);
     }
     Engine.restart();
 }
-
-s.preProcText.push(['Start', function(text) {
-    return (
-        '<<timed 0s>>' +
-            '<<if recall("autoBegin", false)>>' +
-                '<<run forget("autoBegin")>>' +
-                '<<run s.loadNode("intro")>>' +
-            '<</if>>' +
-        '<</timed>>' +
-        text
-    );
-}])
 
 s.onPsgDisplay = function(ev) {
     /*

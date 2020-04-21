@@ -36,7 +36,7 @@ s.Menu = function() {
     this.addAction(
         'restart',
         function() {
-            if (confirm('Really restart?')) {
+            if (ss.debugOn || confirm('Really restart?')) {
                 s.restart();
             }
         },
@@ -109,6 +109,25 @@ s.Menu.prototype.onBegin = function(func) {
 
 s.menu = new s.Menu();
 
+s.autoStart = function() {
+    /*
+    Automatically carry out the 'begin' or 'resume' actions, whichever
+    is available.
+    */
+    var begin = s.menu.getAction('begin');
+    if (begin.check()) {
+        begin.choose().carryOut();
+        return;
+    }
+    if (ss.debugOn) {
+        var resume = s.menu.getAction('resume');
+        if (resume.check()) {
+            resume.choose().carryOut();
+            return;
+        }
+    }
+}
+
 s.menuMarkup = function() {
     /*
     Returns the text of the SC markup that renders the links in the
@@ -162,6 +181,22 @@ s.preProcText.push(['PassageHeader', function(text) {
         '<</if>>'
     );
 }]);
+
+s.preProcText.push(['Start', function(text) {
+    /*
+    Use the autoStart metadata from the s.restart() function to skip the
+    title page.
+    */
+    return (
+        '<<timed 0s>>' +
+            '<<if ss.debugOn || recall("autoStart", false)>>' +
+                '<<run forget("autoStart")>>' +
+                '<<run s.autoStart()>>' +
+            '<</if>>' +
+        '<</timed>>' +
+        text
+    );
+}])
 
 s.preProcText.push(['Start', function(text) {
     /*
