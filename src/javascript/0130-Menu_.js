@@ -37,7 +37,11 @@ s.Menu = function() {
         'restart',
         function() {
             if (ss.debugOn || confirm('Really restart?')) {
-                s.restart();
+                Save.autosave.delete();
+                if (passage() === 'Start') {
+                    memorize('autoStart', true);
+                }
+                Engine.restart();
             }
         },
         function() {
@@ -109,22 +113,15 @@ s.Menu.prototype.onBegin = function(func) {
 
 s.menu = new s.Menu();
 
+$('#menu-item-restart').remove() // remove default Restart button
+
 s.autoStart = function() {
     /*
-    Automatically carry out the 'begin' or 'resume' actions, whichever
-    is available.
+    Automatically carry out the 'begin' action.
     */
     var begin = s.menu.getAction('begin');
     if (begin.check()) {
         begin.choose().carryOut();
-        return;
-    }
-    if (ss.debugOn) {
-        var resume = s.menu.getAction('resume');
-        if (resume.check()) {
-            resume.choose().carryOut();
-            return;
-        }
     }
 }
 
@@ -184,8 +181,8 @@ s.preProcText.push(['PassageHeader', function(text) {
 
 s.preProcText.push(['Start', function(text) {
     /*
-    Use the autoStart metadata from the s.restart() function to skip the
-    title page.
+    Use the autoStart metadata from the restart action to skip the title
+    page.
     */
     return (
         '<<timed 0s>>' +

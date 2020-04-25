@@ -265,6 +265,16 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-047">Version 0.4.7</h2>
+
+<ul>
+<li>No longer restarts engine on refresh.</li>
+<li>No longer distinguishes between a hard and not hard restart.</li>
+<li>Added a piece of code to the <code>:storyready</code> event, written by Akjosch, that uses the <code>MutationObserver</code> class to ensure that the page scrolls to the bottom upon refresh. Works in Firefox and Chrome. Fails on Safari.</li>
+<li>Moved the code that removes the default Restart button from <code>Page</code> to <code>Menu</code>.</li>
+<li>Deleted the custom <code>restart()</code> function and rewrote the &apos;restart&apos; action in the <code>Menu</code>.</li>
+<li>Simplified the <code>autoStart()</code> function to not treat debug mode separately.</li>
+</ul>
 <h2 class="mume-header" id="version-046">Version 0.4.6</h2>
 
 <ul>

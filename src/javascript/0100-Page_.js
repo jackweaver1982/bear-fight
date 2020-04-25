@@ -299,50 +299,35 @@ Config.passages.onProcess = function(p) {
     return processedText;
 };
 
-$(window).bind('beforeunload pagehide', function(){
+$(document).one(':storyready', function() {
     /*
-    Restart upon browser refresh. Otherwise, upon browser refresh,
-    `Page.scrollToLast()` will not fire. (It fires too early, before the
-    reloaded page is ready, and we cannot bind to any event that
-    triggers after the page is fully reloaded.) This ad hoc solution
-    requires that the 'Start' passage offer a way to reload the
-    autosave.
+    Executes `st.page.scrollToLast()` upon browser refresh. Other, more
+    straightforward attempts to code this failed. According to Akjosch
+    in the Twine Games Discord server, "The 'problem' here is that the
+    modern browsers don't bother to calculate the sizes of things which
+    they don't have to render if they can help it, so while the
+    structure is there, it's all kinda hidden and wishy-washy until the
+    data-init value gets removed, which (via CSS rules) prompts the
+    browser to recalculate all relevant sizes and positions. And then
+    you can scroll."
     */
-    Engine.restart();
-});
-
-$(document).one(':enginerestart', function (ev) {
-    /*
-    To perform a 'hard restart' (i.e. to delete the autosave before
-    restarting), set 'hardRestart' to true in the metadata before
-    restarting.
-    */
-    if (recall('hardRestart', false)) {
-        Save.autosave.delete();
-        forget('hardRestart');
+    if (s.getNode(passage()) === undefined) {
+        return;
     }
+    var observer = new MutationObserver(function(m) {
+        for(var mut of m) {
+            if(mut.type === "attributes" && mut.attributeName === "data-init") {
+                // window.requestAnimationFrame(
+                //     st.page.scrollToLast.bind(st.page)
+                // );
+                st.page.scrollToLast();
+                observer.disconnect();
+            }
+        }
+    });
+    
+    observer.observe(document.scrollingElement, {attributes: true});
 });
-
-$('#menu-item-restart').remove() // remove default Restart button
-
-s.restart = function() {
-    /*
-    In general, this custom restart function is preferred over
-    `Engine.restart()` and is what should be triggered by any 'restart'
-    menu items. In particular, the default 'Restart' button in the UI
-    bar should be removed.
-
-    In general, this function performs a hard restart. If it was called
-    from the 'Start' passage, sets 'autoBegin' to true in the metadata.
-    The start passage can use this metadata to immediately move to the
-    next passage in the story rather than simply refresh itself.
-    */
-    memorize('hardRestart', true);
-    if (passage() === 'Start') {
-        memorize('autoStart', true);
-    }
-    Engine.restart();
-}
 
 s.onPsgDisplay = function(ev) {
     /*

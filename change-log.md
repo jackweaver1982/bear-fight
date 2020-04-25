@@ -4,6 +4,15 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.7
+
+* No longer restarts engine on refresh.
+* No longer distinguishes between a hard and not hard restart.
+* Added a piece of code to the `:storyready` event, written by Akjosch, that uses the `MutationObserver` class to ensure that the page scrolls to the bottom upon refresh. Works in Firefox and Chrome. Fails on Safari.
+* Moved the code that removes the default Restart button from `Page` to `Menu`.
+* Deleted the custom `restart()` function and rewrote the 'restart' action in the `Menu`.
+* Simplified the `autoStart()` function to not treat debug mode separately.
+
 ## Version 0.4.6
 
 * Added `getAction()` method to `ActionList`.
