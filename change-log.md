@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.8
+
+* Edit `Page.scrollToLast()` to not scroll so far that the top of the passage is buried under the header; added a 16 px border for paragraph spacing.
+
 ## Version 0.4.7
 
 * No longer restarts engine on refresh.

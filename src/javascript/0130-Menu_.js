@@ -170,7 +170,7 @@ s.preProcText.push(['PassageHeader', function(text) {
     */
     return (
         '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
-            '<div class="sticky"><br>' +
+            '<div id="header" class="sticky"><br>' +
                 s.menuMarkup() + '<br><hr>' +
             '</div>' +
         '<<else>>' +

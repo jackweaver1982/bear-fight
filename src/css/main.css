@@ -21,7 +21,7 @@ a {
     color: lime;
 }
 .sticky{
-    /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
+    /* Makes the header stick to the top of the screen. */
     position: sticky;
     position: -webkit-sticky;
     top: 0;

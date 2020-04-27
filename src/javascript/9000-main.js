@@ -1,6 +1,9 @@
-s.version.set(0,4,7);
+s.version.set(0,4,8);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 st.page.setContinuous(true); // make embedding passages the default
+
+new s.InfoNode('help');
+new s.InfoNode('bio');
 
 // build menu
 s.menu.onBegin(function() {

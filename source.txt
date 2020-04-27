@@ -37,7 +37,7 @@ a {
     color: lime;
 }
 .sticky{
-    /* Makes the header stick to the top of the screen. This is handled automatically by the `onProcess` function in `rendering.js`. */
+    /* Makes the header stick to the top of the screen. */
     position: sticky;
     position: -webkit-sticky;
     top: 0;
@@ -1193,8 +1193,18 @@ s.Page.prototype.scrollToLast = function() {
     /*
     Scrolls to put the innermost passage at the top.
     */
+    var headerHeight;
+    var header = document.getElementById('header');
+    if (header == null) {
+        headerHeight = 0;
+    } else {
+        headerHeight = header.offsetHeight;
+    }
     $('html, body').animate({
-        scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
+        scrollTop: (
+            $('#' + this.innerPsg().domId + '-body').position().top -
+            headerHeight - 16
+        )
     }, 0);
     return this;
 }
@@ -1253,8 +1263,6 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     unless the optional `nobreak` parameter is true.
 
     If node is an info node, `embed` and `nobreak` have no effect.
-    Instead, the associated passage is loaded without adding to the SC
-    history.
     */
     var code = s.debCon.getCheat();
     var L = code.length;
@@ -1758,7 +1766,7 @@ s.preProcText.push(['PassageHeader', function(text) {
     */
     return (
         '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
-            '<div class="sticky"><br>' +
+            '<div id="header" class="sticky"><br>' +
                 s.menuMarkup() + '<br><hr>' +
             '</div>' +
         '<<else>>' +
@@ -1903,9 +1911,12 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     return;
 }
 /* twine-user-script #15: "9000-main.js" */
-s.version.set(0,4,7);
+s.version.set(0,4,8);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 st.page.setContinuous(true); // make embedding passages the default
+
+new s.InfoNode('help');
+new s.InfoNode('bio');
 
 // build menu
 s.menu.onBegin(function() {
@@ -2086,6 +2097,36 @@ Story Caption
 
 {?D|<p>The murder weapon looks like the kind of knife they have hanging on the wall in a restaurant kitchen--the kind they use to cut meat or chop big vegetables. It has a wide blade and is about a foot long.</p>}
 
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
 
 :: Cops bust in
 <p>{0}</p>
@@ -2093,6 +2134,36 @@ Story Caption
 <p>{1}Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another.<</if>> They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are uniformed cops.</p>
 
 {?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
+
+<p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
+
+<p>That was last night. This morning, you wake up alone on a strange bed in a house you've never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It's then you realize your clothes are covered in blood.</p>
+
+<p>When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?</p>
 
 
 :: Taking knife

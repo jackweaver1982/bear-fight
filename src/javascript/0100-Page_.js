@@ -170,8 +170,18 @@ s.Page.prototype.scrollToLast = function() {
     /*
     Scrolls to put the innermost passage at the top.
     */
+    var headerHeight;
+    var header = document.getElementById('header');
+    if (header == null) {
+        headerHeight = 0;
+    } else {
+        headerHeight = header.offsetHeight;
+    }
     $('html, body').animate({
-        scrollTop: $('#' + this.innerPsg().domId + '-body').position().top
+        scrollTop: (
+            $('#' + this.innerPsg().domId + '-body').position().top -
+            headerHeight - 16
+        )
     }, 0);
     return this;
 }
@@ -230,8 +240,6 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     unless the optional `nobreak` parameter is true.
 
     If node is an info node, `embed` and `nobreak` have no effect.
-    Instead, the associated passage is loaded without adding to the SC
-    history.
     */
     var code = s.debCon.getCheat();
     var L = code.length;
