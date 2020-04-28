@@ -95,6 +95,28 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
     );
 }
 
+s.Menu.prototype.addInfoNode = function(text, psgTitle) {
+    /*
+    Adds a link with the given `text` to the info node with the given
+    passage title. If the given passage title is associated to a node
+    that is not an info node, throws an error. If the given passage
+    title is not associated to a node, an info node is created.
+    */
+    var node = s.getNode(psgTitle);
+    if (node === undefined) {
+        node = new s.InfoNode(psgTitle);
+    } else if (!(node instanceof s.InfoNode)) {
+        throw new Error(
+            'Menu.addInfoNode():\n' +
+            psgTitle + ' is not an info node'
+        );
+    }
+    this.addAction(text, function() {
+        s.loadNode(psgTitle);
+    });
+    return this;
+}
+
 s.Menu.prototype.onBegin = function(func) {
     /*
     Sets the `begin` action to carry out the given function.

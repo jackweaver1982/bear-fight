@@ -4,6 +4,11 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.9
+
+* Added `Page.ready()` to check that current passage is associated with a node. Called it from many other `Page` methods.
+* Added `Menu.addInfoNode()` to make menu links. Previous way of doing it (using `s.loadInfoNode()`, which is now deleted) had info nodes created dynamically upon the first time the player clicked the link, and this was causing problems. Objects on `s` should not be created during gameplay.
+
 ## Version 0.4.8
 
 * Edit `Page.scrollToLast()` to not scroll so far that the top of the passage is buried under the header; added a 16 px border for paragraph spacing.

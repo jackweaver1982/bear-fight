@@ -1,20 +1,13 @@
-s.version.set(0,4,8);
+s.version.set(0,4,9);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 st.page.setContinuous(true); // make embedding passages the default
-
-new s.InfoNode('help');
-new s.InfoNode('bio');
 
 // build menu
 s.menu.onBegin(function() {
     s.loadNode('intro');
 });
-s.menu.addAction('info', function() {
-    s.loadInfoNode('help');
-});
-s.menu.addAction('bio', function() {
-    s.loadInfoNode('bio');
-});
+s.menu.addInfoNode('info', 'help');
+s.menu.addInfoNode('bio', 'bio');
 
 // set cheat code for debug mode
 s.debCon.setCheat([

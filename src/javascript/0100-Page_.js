@@ -51,6 +51,19 @@ s.Page.prototype.toJSON = function () {
     );
 };
 
+s.Page.prototype.ready = function() {
+    /*
+    Throws an error if current passage is not associated with a node.
+    */
+    if (s.getNode(passage()) === undefined) {
+        throw new Error(
+            'Page.ready()\n' +
+            'Passage is not associated to a node.'
+        );
+    }
+    return this;
+}
+
 s.Page.prototype.length = function() {
     return this._embeddedPsgs.length;
 }
@@ -89,7 +102,7 @@ s.Page.prototype.innerPsg = function() {
 s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     /*
     Inserts the given passage into the given shell passage, preceded by
-    a scene break ("****"). The scene break is omitted is `nobreak` is
+    a scene break ("****"). The scene break is omitted if `nobreak` is
     true.
 
     The optional `time` parameter is used to set the moment in SC's
@@ -105,6 +118,8 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     @param {Boolean} nobreak - (optional) Defaults to false. Set to true
     to omit the scene break marker.
     */
+    this.ready();
+
     time = time || 0;
     if (time < 0) {
         s.loadVars(time);
@@ -130,6 +145,8 @@ s.Page.prototype.insertActions = function(psg) {
     it passes the check, it adds a link for the corresponding action.
     Does nothing if the incoming passage does not correspond to a node.
     */
+    this.ready();
+
     var node = s.nodes.get(psg);
     if (node === undefined) {
         return;
@@ -160,6 +177,8 @@ s.Page.prototype.refreshActions = function() {
     after dynamically changing variables on which action check functions
     depend.
     */
+    this.ready();
+
     var latestPsg = this.innerPsg();
     $('#' + latestPsg.domId + '-actions').empty();
     this.insertActions(latestPsg);
@@ -170,6 +189,8 @@ s.Page.prototype.scrollToLast = function() {
     /*
     Scrolls to put the innermost passage at the top.
     */
+    this.ready();
+
     var headerHeight;
     var header = document.getElementById('header');
     if (header == null) {
@@ -198,6 +219,8 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
     and sets the moment in history to use when parsing. See
     `Page.insertPsgText` for details.
     */
+    this.ready();
+
     if (s.getNode(passage()) == undefined) {
         throw new Error(
             'Page.embedPsg():\n' +

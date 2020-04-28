@@ -56,29 +56,6 @@ s.loadNode = function(psgTitle, embed) {
     return;
 }
 
-s.loadInfoNode = function(psgTitle, checkFunc) {
-    /*
-    If `psgTitle` is associated with an info node, loads the info node.
-    If `psgTitle` is associated with a non-info node, throws an error.
-    If `psgTitle` is not associated with a node, creates a new info
-    node with the given parameters and loads it.
-    */
-    var node = s.getNode(psgTitle);
-    if (node === undefined) {
-        var newNode = new s.InfoNode(psgTitle, checkFunc);
-        st.page.load(newNode);
-        return;
-    }
-    if (node instanceof s.InfoNode) {
-        st.page.load(node);
-        return;
-    }
-    throw new Error(
-        'loadInfoNode():\n' +
-        '"' + psgTitle + '" is not an info node'
-    );
-}
-
 s.setSubCount = function(psgTitle, num) {
     /*
     Sets the sub count of the node associated with `psgTitle` to `num`.
