@@ -265,6 +265,17 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-0410">Version 0.4.10</h2>
+
+<ul>
+<li>Redid comments in JS files.</li>
+<li>Adding scrolling buttons to header menu.</li>
+<li>Changed <code>s.loadVars()</code> and related functions/methods to use a positive integer for the time instead of a negative integer. Retained support for using a negative integer.</li>
+<li>Edited <code>Page.ready()</code> so it can be called in safe mode (i.e. with no error thrown).</li>
+<li>Edited <code>Page.load()</code> to check (in safe mode) that page is ready, rather than check if current passage is not <code>:: Start</code>.</li>
+<li>Moved <code>:storyready</code> event handler to its own functions, <code>s.onStoryReady()</code>.</li>
+<li>Added the <code>nobreak</code> parameter to <code>s.loadNode()</code>.</li>
+</ul>
 <h2 class="mume-header" id="version-049">Version 0.4.9</h2>
 
 <ul>

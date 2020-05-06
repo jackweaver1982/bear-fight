@@ -1,11 +1,16 @@
-// Node_
+/*Uses: Node_.
+
+Build the `Parser` class and instantiates it.
+
+Attributes:
+    st.parser (Parser): A `Parser` instance for use by other classes.
+*/
 
 s.Parser = function() {
-    /*
-    A Parser object manages the conversion of the given passage text to
-    the actual passage text used by SugarCube to display information.
+    /*A Parser object manages the conversion of the given passage text
+    to the actual passage text used by SugarCube to display information.
 
-    There is one instance (`st.parser`), built on State.variables, so
+    There is one instance (`st.parser`), built in State.variables, so
     its state can be stored in SugarCube's history. (This is needed,
     because the parser tracks dynamically generated text substitutions.)
     The class must therefore be made compatible with SugarCube by having
@@ -14,15 +19,13 @@ s.Parser = function() {
     constructor with no arguments and to have all its properties be SC
     supported types.
 
-    There are various methods for processing different kinds of markup.
-    The method, `procMarkup()`, runs them all in the appropriate order.
-    Through `Config.passages.onProcess`, we instruct SugarCube to apply
-    `procMarkup()` to passage text whenever a passage is rendered.
+    Attributes:
+        _textSubMap (map of str to arr of (str or func)): Maps passage
+            titles to arrays of text subs. A text sub can be a simple
+            string or a functions returning a string.
     */
-    this._textSubMap = new Map(); // Maps passage titles to arrays of
-                                  // text subs. A text sub can be a
-                                  // simple string or a functions
-                                  // returning a string.
+
+    this._textSubMap = new Map();
     return this;    
 };
 
@@ -51,16 +54,37 @@ s.Parser.prototype.toJSON = function () {
 };
 
 s.Parser.prototype.getSubs = function(psgTitle) {
+    /*Fetches the array of text subs associated with the given passage
+    title.
+
+    Args:
+        psgTitle (str): The title of the passage whose text subs to
+            fetch.
+
+    Returns:
+        arr of (str or func): The array of text subs associated with the
+            given passage title.
+    */
     return this._textSubMap.get(psgTitle);
 }
 
 s.Parser.prototype.setSubs = function(psgTitle, subArray) {
-    /*
-    Adds `psgTitle` key to `_textSubMap` with value `subArray`. Throws
-    an error if `psgTitle` doesn't correspond to a node, length of
-    `subArray` doesn't match the sub count of the node, or `subArray` is
-    not an array of strings or functions. Returns the calling Parser
-    object.
+    /*Sets the text subs for the given passage.
+
+    Args:
+        psgTitle (str): The title of the passage whose text subs are to
+            be set.
+        subArray (arr of (str or func)): The array of text subs to
+            assign to the given passage.
+
+    Returns:
+        Parser: The calling instance.
+
+    Raises:
+        Error: If the given passage is not associated with a node, the
+            number of given text substitutions does not match the given
+            passage, or any of the given text substitutions is the wrong
+            data type.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -90,22 +114,31 @@ s.Parser.prototype.setSubs = function(psgTitle, subArray) {
 }
 
 s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
-    /*
-    Fetches the array of text substitutions corresponding to `psgTitle`,
-    or `[]` if there is no such array, then replaces instances of
-    `{<number>}` in the given text with corresponding elements from that
-    array.
+    /*Fetches the array of text substitutions corresponding to
+    `psgTitle` from the instance's `_textSubMap` attribute (or `[]` if
+    there is no such array), then replaces occurrences of `{<number>}`
+    in the given text with corresponding elements from that array.
 
     Does nothing if the node associated with `psgTitle` has a sub count
-    of 0. Throws an error if the sub count doesn't match the length of
-    the substitution array, if any index is out of bounds, if any index
-    is repeated, or if there are not enough indices. Returns the
-    processed text.
+    of 0.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    This passage title must correspond to a node. Passing a title that
-    does not correspond to a node could have unexpected behavior.
-    @param {String} text - The text to process.
+    Args:
+        psgTitle (str): The title of the passage being processed. This
+            passage title must correspond to a node. Passing a title
+            that does not correspond to a node could have unexpected
+            behavior.
+        text (str): The text to process.
+
+    Returns:
+        str: The processed text.
+
+    Raises:
+        Error: If the passage's node expects more substitutions than are
+            provided in the the parser's `_textSubMap` attribute.
+        Error: If the passage text contains markup of the form '{n}',
+            where n is larger than expected by the passage's node.
+        Error: If the passage text contains markup of the form '{n}'
+            repeated more than once with the same value of n.
     */
     var subArray = (this.getSubs(psgTitle) || []);
     subArray = subArray.map(function(element) {
@@ -162,14 +195,15 @@ s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
 }
 
 s.Parser.prototype.showDetails = function(description, id) {
-    /*
-    Inserts the given description into the element with the given id and
-    clears all other elements with class `.description`. If the element
-    with the given id already contains the given description, the
-    function simply clears it.
+    /*Inserts the given description into the element with the given id
+    and clears all other elements with class `.description`. If the
+    element with the given id already contains the given description,
+    the function simply clears it.
 
-    @param {String} description - the description to insert
-    @param {String} id - the id of the containing element
+    Args:
+        description (str): The description to insert.
+        id (str): The HTML element id of the container into which to
+            insert the description.
     */
     var text = jQuery("#" + id).html();     // store the current content
                                             // for comparison
@@ -186,21 +220,24 @@ s.Parser.prototype.showDetails = function(description, id) {
 }
 
 s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
-    /*
-    Replaces instances of `{<link text>|id}` in text with links that
+    /*Replaces occurrences of `{<link text>|id}` in text with links that
     reveal a description. The description is found in a corresponding
-    instance of `{?id|description}` which is replaced by a div element
-    into which the description appears. The html id of the div element
+    occurrence of `{?id|description}` which is replaced by a div element
+    into which the description appears. The HTML id of the div element
     is determined by both the id in the markup and the given `psgTitle`.
-    The appearance of the description is controlled by the method
-    `Parser.showDetails()`.
+    The appearance of the description is controlled by the parser's
+    `showDetails` method.
 
     The link text cannot begin with a `?` and cannot contain a `|`. The
     id must contain only letters, numbers, and `_`, and must begin with
     a letter.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    @param {String} text - The text of the passage being processed.
+    Args:
+        psgTitle (str): The title of the passage being processed.
+        text (str): The text of the passage being processed.
+
+    Returns:
+        str: The processed text.
     */
     var psg = Story.get(psgTitle);
     var psgId = psg.domId;
@@ -274,16 +311,17 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 }
 
 s.Parser.prototype.addContainers = function(psgTitle, text) {
-    /*
-    Wraps the given text in a `body` container; adds an `action`
+    /*Wraps the given text in a `body` container; adds an `action`
     container for the action links; adds a `next` container in case the
-    next node is to be loaded without a passage transition. The html id
+    next node is to be loaded without a passage transition. The HTML id
     of the containers is determined by `psgTitle`.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    This passage title must correspond to a node. Passing a title that
-    does not correspond to a node could have unexpected behavior.
-    @param {String} text - The text to process.
+    Args:
+        psgTitle (str): The title of the passage being processed.
+        text (str): The text to process.
+
+    Returns:
+        str: The processed text.
     */
     var psg = Story.get(psgTitle);
     return (
@@ -297,8 +335,13 @@ s.Parser.prototype.addContainers = function(psgTitle, text) {
 }
 
 s.Parser.prototype.removeBreaks = function(text) {
-    /*
-    Removes line breaks from the given text.
+    /*Removes line breaks from the given text.
+
+    Args:
+        text (str): The text to process.
+
+    Returns:
+        str: The processed text.
     */
     var processedText = text.replace(/\r/g, '');
     processedText = processedText.replace(/^\n+|\n+$/g, '');
@@ -307,21 +350,22 @@ s.Parser.prototype.removeBreaks = function(text) {
 }
 
 s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
-    /*
-    Processes the special node markup in the given passage (inserts text
-    subs, processes the detail markup, adds the containers, and removes
-    breaks. Does nothing if the given passage is not associated with a
-    node. Returns the processed text.
+    /*Processes the special node markup in the given passage (inserts
+    text subs, processes the detail markup, adds the containers, and
+    removes breaks. Does nothing if the given passage is not associated
+    with a node. Returns the processed text.
 
     The optional `time` parameter is used to set the moment in SC's
     history from which to draw the values of variables. It allows for
-    the use of variables in passage content. It should be a nonpositive
-    integer. A value of 0 denotes the current moment. Defaults to zero.
+    the use of variables in passage content.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    @param {String} text - The text of the passage being processed.
-    @param {Integer} time - (optional) A nonpositive integer that
-    defaults to zero. Sets the moment in history to use when parsing.
+    Args:
+        psgTitle (str): The title of the passage being processed.
+        text (str): The text of the passage being processed.
+        time (int, optional): A nonnegative integer that defaults to
+            zero. Sets the moment in history to use when parsing. A
+            value of 0 denotes the current moment. A value of n > 0
+            means to go back n moments in SC's history.
     */
     var node = s.nodes.get(Story.get(psgTitle));
     if (node === undefined) {
@@ -329,7 +373,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     }
 
     time = time || 0;
-    if (time < 0) {
+    if (time > 0) {
         s.loadVars(time);
     }
 
@@ -339,7 +383,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     processedText = this.addContainers(psgTitle, processedText);
     processedText = this.removeBreaks(processedText);
 
-    if (time < 0) {
+    if (time > 0) {
         s.loadVars(0);
     }
 

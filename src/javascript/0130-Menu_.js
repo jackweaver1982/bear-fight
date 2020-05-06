@@ -1,36 +1,27 @@
-// SavesManager_, ActionList, Page_
+/*Uses: SavesManager_, ActionList, Page_.
 
-/*
-The `Menu` object will contain functionality to restart the story. But
-because of a technical issue, we need to redefine how SC restarts the
-story. Hence, we do both these things before defining the `Menu` class.
+Builds and instantiates the `Menu` class. Removes the default 'Restart'
+button from SC's UI bar, since the menu object will provide its own.
+Adds preprocessing arrays to `s.preProcText` from `Page_.js` which write
+the menu to SC's UI bar, the header, and the 'Start' passage. A
+'no-menu' tag on a passage will prevent the writing of the menu.
 
-The normal (and preferred) behavior in SC is for a browser refresh to
-leave the story in the same state, essentially reloading the current
-moment. But with embedded passages, the current displayed text could be
-quite long and it's important that at the end of reloading, the page is
-scrolled to the bottom.
-
-In it's current implementation, the browser refresh takes too long, so
-the scroll function is executed too early and has no effect. There
-doesn't seem to be any way to time it reliably, so the workaround is to
-have the story restart upon browser refresh, and have the `Start`
-passage offer a way to resume the story by loading the autosave.
-
-Ideally, the behavior of the 'Restart' button in the UI bar should be
-modified to accommodate this change. But its behavior is fixed, so we
-instead opt to remove it. A custom restart button should be added to
-preserve the desired functionality.
+Attributes:
+    s.menu (Menu): A `Menu` instance for use by other classes.
 */
 
 s.Menu = function() {
-    /*
-    A `Menu` object is an `ActionList` with built-in `begin`, `resume`,
-    and `restart` actions. The `restart` method is kept at the end of
-    the list. The `begin` method is customizable. These actions are
-    automatically inserted into various areas of the story (such as the
-    header under normal circumstance, the UI bar in debug mode, and the
-    bottom of the `Start` passage.)
+    /*A `Menu` object is an `ActionList` with built-in 'begin',
+    'resume', and 'restart' actions. The 'restart' method is kept at the
+    end of the list. The 'begin' method is customizable. These actions
+    are automatically inserted into various areas of the story (such as
+    the header, the UI bar, and the bottom of the 'Start' passage.)
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
+            Defaults to true.
     */
     s.ActionList.call(this, true);
     this.addAction(
@@ -76,18 +67,27 @@ Object.defineProperty(s.Menu.prototype, 'constructor', {
 });
 
 s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
-    /*
-    @override
+    /*(override) This method is for adding a simple action with one
+    outcome to the menu.
 
-    This method is for adding a simple action with one outcome to the
-    list. It creates an outcome that executes `carryOutFunc`, adds it as
-    the single outcome to a new action with link text `text` and check
-    function `checkFunc`. The default behavior of `checkFunc` is to
-    allow the action if not on the start screen.
+    Args:
+        text (str): The display text of the action.
+        carryOutFunc (func, optional): The function to be executed when
+            the action is taken. Defaults to a function that does
+            nothing.
+        checkFunc (func or bool, optional): Used to determine whether
+            the action should be displayed. Defaults to a function that
+            returns `true` if the current passage is not the 'Start'
+            passage.
+        index (int, optional): Where in the embedded array the new
+            action should be inserted. Defaults to the end of the array.
+
+    Returns:
+        Menu: The calling instance.
     */
-    if (checkFunc === undefined) {
+    if (checkFunc == null) {
         checkFunc = function() {
-            return (passage() !== `Start`);
+            return (passage() !== 'Start');
         }
     }
     return s.ActionList.prototype.addAction.call(
@@ -96,11 +96,20 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
 }
 
 s.Menu.prototype.addInfoNode = function(text, psgTitle) {
-    /*
-    Adds a link with the given `text` to the info node with the given
-    passage title. If the given passage title is associated to a node
-    that is not an info node, throws an error. If the given passage
-    title is not associated to a node, an info node is created.
+    /*Adds a link to an info node. If the given passage title is not
+    associated to a node, an info node is created and associated with
+    it.
+
+    Args:
+        text (str): The text of the link.
+        psgTitle (str): The title of the info node passage to link to.
+
+    Returns:
+        Menu: The calling instance.
+
+    Raises:
+        Error: If the given passage title is associated to a node that
+            is not an info node.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -118,8 +127,14 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
 }
 
 s.Menu.prototype.onBegin = function(func) {
-    /*
-    Sets the `begin` action to carry out the given function.
+    /*Sets the carry-out function of the 'begin' action.
+
+    Args:
+        func (function): The function to carry out upon selecting the
+            'begin' action.
+
+    Returns:
+        Menu: The calling instance.
     */
     if (this.get(0).getText() === 'begin') {
         this.delete(0);
@@ -134,12 +149,10 @@ s.Menu.prototype.onBegin = function(func) {
 }
 
 s.menu = new s.Menu();
-
-$('#menu-item-restart').remove() // remove default Restart button
+$('#menu-item-restart').remove()
 
 s.autoStart = function() {
-    /*
-    Automatically carry out the 'begin' action.
+    /*Check and carry out the 'begin' action.
     */
     var begin = s.menu.getAction('begin');
     if (begin.check()) {
@@ -148,9 +161,10 @@ s.autoStart = function() {
 }
 
 s.menuMarkup = function() {
-    /*
-    Returns the text of the SC markup that renders the links in the
-    displayed menu bar.
+    /*Processes the menu actions to create SC markup.
+
+    Returns:
+        str: SC markup for menu links.
     */
     var text = '';
     var action;
@@ -172,9 +186,14 @@ s.menuMarkup = function() {
 }
 
 s.preProcText.push(['StoryMenu', function(text) {
-    /*
-    Adds the menu to the UI bar if it is visible and the current passage
-    allows the menu.
+    /*Adds the menu to the UI bar if it is visible and the current
+    passage allows the menu.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
     if (!UIBar.isHidden() && !tags().includes('no-menu')) {
         return s.menuMarkup();
@@ -184,16 +203,37 @@ s.preProcText.push(['StoryMenu', function(text) {
 }]);
 
 s.preProcText.push(['PassageHeader', function(text) {
-    /*
-    Adds the menu to the header with the sticky class if the current passage
-    allows it, unless currently at the Start passage. Otherwise, adds a
-    line break to compensate for the reduced upper margin (needed to
-    have the sticky class work as intended).
+    /*Adds the menu to the header with the sticky class if the current
+    passage allows it, unless currently at the Start passage. Otherwise,
+    adds a line break to compensate for the reduced upper margin (needed
+    to have the sticky class work as intended).
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
+    var buttonMarkup = (
+        '<span title="Scroll to top">' +
+            '<<button &uarr;>>' +
+                '<<run st.page.scrollToFirst()>>' +
+            '<</button>>' +
+        '</span>' +
+        '<span title="Scroll to bottom">' +
+            '<<button &darr;>>' +
+                '<<run st.page.scrollToLast()>>' +
+            '<</button>>' +
+        '</span>'
+    );
+
     return (
         '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
             '<div id="header" class="sticky"><br>' +
-                s.menuMarkup() + '<br><hr>' +
+                s.menuMarkup() +
+                '<span style="float:right;">' +
+                    buttonMarkup +
+                '</span><br><hr>' +
             '</div>' +
         '<<else>>' +
             '<br>' +
@@ -202,9 +242,14 @@ s.preProcText.push(['PassageHeader', function(text) {
 }]);
 
 s.preProcText.push(['Start', function(text) {
-    /*
-    Use the autoStart metadata from the restart action to skip the title
-    page.
+    /*Use the autoStart metadata from the restart action to skip the
+    title page.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
     return (
         '<<timed 0s>>' +
@@ -218,8 +263,13 @@ s.preProcText.push(['Start', function(text) {
 }])
 
 s.preProcText.push(['Start', function(text) {
-    /*
-    Adds the menu to the bottom of the Start passage.
+    /*Adds the menu to the bottom of the Start passage.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
     return (
         text + '<br>' +

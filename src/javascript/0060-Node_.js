@@ -1,15 +1,17 @@
-// ActionList
+/*Uses: ActionList.
 
-s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
-                     // `Node` objects
+Build the `Node` class and defines some associated global variables.
 
-s.getNode = function(psgTitle) {
-    /*
-    Returns the Node object associate with the passage titled,
-    `psgTitle`.
-    */
-    return s.nodes.get(Story.get(psgTitle));
-}
+Attributes:
+    s.nodes (map of <<SC Passage>> to Node): Maps SugarCube `Passage`
+        objects to associated `Node` objects. Used to keep a record of
+        nodes created and to facilitate looking up nodes by passage
+        titles.
+    s.specialPsgs (arr of str): List of titles of SC special passages to
+        be excluded from use as nodes.
+*/
+
+s.nodes = new Map();
 
 s.specialPsgs = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady', 'Start', 
@@ -18,42 +20,66 @@ s.specialPsgs = [
     'StorySubtitle', 'StoryTitle'
 ];
 
+s.getNode = function(psgTitle) {
+    /*Returns the Node object associate with the given passage title.
+
+    Args:
+        psgTitle (str): The passage title to look for.
+
+    Returns:
+        node: The node associated with the given passage title.
+    */
+    return s.nodes.get(Story.get(psgTitle));
+}
+
 s.Node = function(psgTitle, subCount, func, outOfChar) {
-    /*
-    A `Node` object is like a wrapper around a passage. It contains the
-    passage which holds the narrative description of the situation, as
-    well as a list of possible actions for the reader to choose from.
+    /*A wrapper around a passage containing a list of `Action` objects.
 
     Structurally, a node is a list of actions with a passage for the
     narrative description, and some additional methods. As such, it is
     implemented as a subclass of `ActionList`.
 
     The associated passage may have slots available for dynamically
-    generated text substitutions. The node object has properties and
-    methods for managing this. The `subCount` property should match the
-    number of available text substitutions. It is there for a redundancy
-    check to prevent the error of sending the wrong number of text
-    substitutions when loading a node.
+    generated text substitutions. The `subCount` property should match
+    the number of available text substitutions. It is there for a
+    redundancy check to prevent the error of sending the wrong number of
+    text substitutions when loading a node.
 
     Node objects, and their associated Action and Outcome objects,
     should be built on `s` so they are not stored in the player's local
     storage. As such, they will not be saved from session to session, so
     they should not be changed dynamically during gameplay.
 
-    @param {String} psgTitle - The title of the associated passage.
-    @param {Integer} subCount - The number of expected text
-    substitutions. Defaults to 0.
-    @param {Function} func (optional) - The function to call when the
-    node is loaded. It runs immediately before the loading of the
-    passage associated with the calling node. By default, it does
-    nothing.
-    @param {Boolean} outOfChar (optional) - True if the node content
-    lies outside the narrative of the story (help screen, character
-    stats, etc.) Defaults to false.
+    Args:
+        psgTitle (str): The title of the passage to assign to the
+            `_passage` attribute.
+        subCount (int, optional): Assigned to `_subCount`. Defaults to
+            0.
+        func (func or null, optional): Assigned to `_userScript`.
+            Defaults to null.
+        outOfChar (bool, optional): Assigned to `_outOfChar`. Defaults
+            to `false`.
 
-    @property passage - The SugarCube `Passage` object whose title is
-    `psgTitle`
+    Raises:
+        Error: If the given passage title does not exist, is a special
+            passage, or has already been assigned to a node.
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
+            Defaults to `false`.
+        _passage (<<SC Passage>>): The passage associated with the node.
+        _subCount (int): The number of expected text substitutions in
+            the associated passage.
+        _userScript (func or null): The function to execute upon loading
+            the node. It runs immediately before the loading of the
+            passage associated with the calling node.
+        _outOfChar (bool): `true` if the node's content lies outside the
+            narrative flow of the story (e.g., help screen or character
+            sheet).
     */
+
     s.ActionList.call(this);
     if (!Story.has(psgTitle)) {
         throw new Error(
@@ -91,18 +117,38 @@ Object.defineProperty(s.Node.prototype, 'constructor', {
 });
 
 s.Node.prototype.getPassage = function() {
+    /*Fetches the `_passage` attribute.
+
+    Returns:
+        <<SC Passage>>: The `_passage` attribute of the calling
+            instance.
+    */
     return this._passage;
 }
 
 s.Node.prototype.getSubCount = function() {
+    /*Fetches the `_subCount` attribute.
+
+    Returns:
+        int: The `_subCount` attribute of the calling instance.
+    */
     return this._subCount;
 }
 
 s.Node.prototype.setSubCount = function(num) {
-    /*
-    Sets the sub count. Can only change it from its default value of 0
-    one time, to prevent unwanted errors. Sub counts are not meant to
-    dynamically change.
+    /*Sets the `_subCount` attribute. Can only change it from its
+    default value of 0 one time, to prevent unwanted errors. Sub counts
+    are not meant to dynamically change.
+
+    Args:
+        num (int): Assigned to the `_subCount` attribute of the calling
+            instance.
+
+    Returns:
+        Action: The calling instance.
+
+    Raises:
+        Error: If used when `_subCount` is not 0.
     */
     if (this._subCount !== 0) {
         throw new Error(
@@ -115,6 +161,12 @@ s.Node.prototype.setSubCount = function(num) {
 }
 
 s.Node.prototype.onLoad = function() {
+    /*Does nothing if `this._userScript` is `null` or `undefined`,
+    otherwise executes `this._userScript`.
+
+    Returns:
+        Returns the same value as `this._userScript`.
+    */
     if (this._userScript == null) {
         return;
     } else {

@@ -12,6 +12,10 @@ a {
     font-weight: bold;
     transition-duration: 200ms;
 }
+button {
+    color: #68d;
+    background-color: black;
+}
 .description {
     /* Detailed description information revealed when clicking a noun. */
     color: yellow;

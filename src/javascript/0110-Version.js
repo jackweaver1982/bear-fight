@@ -1,18 +1,28 @@
-// standard
+/*Uses: standard.
+
+Builds and instantiates the `Version` class.
+
+Attributes:
+    s.version (Version): A `Version` instance for other classes to use.
+*/
 
 s.Version = function(major, minor, patch) {
-    /*
-    Keeps track of a three-part version number and returns it in
-    multiple useful formats. There is one predefined instance,
-    `version`. (See below.)
+    /*Keeps track of a three-part version number.
 
-    @property {Integer} _major - Should be a nonnegative integer less
-    than 1000. Defaults to 0.
-    @property {Integer} _minor - Should be a nonnegative integer less
-    than 1000. Defaults to 0.
-    @property {Integer} _patch - Should be a nonnegative integer less
-    than 1000. Defaults to 1, if others are zero; otherwise, defaults to
-    0.
+    The version number is converted to a single integer and stored in
+    `Config.saves.version`.
+
+    Args:
+        major (int, optional): Assigned to `_major`. Defaults to 0.
+        minor (int, optional): Assigned to `_minor`. Defaults to 0.
+        patch (int, optional): Assigned to `_patch`. Defaults to 1, if
+            both `_major` and `_minor` are 0; otherwise, defaults to 0.
+
+    Attributes:
+        _major (int): A nonnegative integer less than 1000.
+        _minor (int): A nonnegative integer less than 1000.
+        _patch (int): A nonnegative integer less than 1000. Cannot be 0
+            if both `_major` and `_minor` are 0.
     */
     major = major || 0;
     minor = minor || 0;
@@ -22,17 +32,24 @@ s.Version = function(major, minor, patch) {
 }
 
 s.Version.prototype.asArray = function() {
-    /*
-    Returns the version number as an array of three integers.
+    /*Fetches the version number as an array.
+
+    Returns:
+        arr of int: The version number as an array of three integers.
     */
     return [this._major, this._minor, this._patch];
 }
 
 s.Version.prototype._arrToStr = function(arr) {
-    /*
-    Converts a version number formatted as an array to a string. Returns
-    the string. If the patch part is 0, it is not included in the
-    string.
+    /*Converts a version number formatted as an array to a string,
+    formatted with dot separators. If the `_patch` attribute is 0, it is
+    not included in the string.
+
+    Args:
+        arr (arr of int): The version number array to format.
+
+    Returns:
+        str: The formatted version number.
     */
     var string = arr[0].toString() + '.' + arr[1].toString();
     if (arr[2] > 0) {
@@ -42,9 +59,13 @@ s.Version.prototype._arrToStr = function(arr) {
 }
 
 s.Version.prototype._strToArr = function(string) {
-    /*
-    Converts a version number formatted as a string to an array. Returns
-    the array.
+    /*Converts a version number formatted as a string to an array.
+
+    Args:
+        string (str): The string to convert.
+
+    Returns:
+        arr of int: The converted string.
     */
     var arr = string.split('.').map(function(part) {
         return parseInt(part, 10);
@@ -56,17 +77,26 @@ s.Version.prototype._strToArr = function(string) {
 }
 
 s.Version.prototype._arrToInt = function(arr) {
-    /*
-    Converts a version number formatted as an array to an integer.
-    Returns the integer.
+    /*Converts a version number formatted as an array to a single
+    integer.
+
+    Args:
+        arr (arr of int): The version number array to convert.
+
+    Returns:
+        int: The converted integer.
     */
     return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
 }
 
 s.Version.prototype._intToArr = function(num) {
-    /*
-    Converts a version number formatted as an integer to an array.
-    Returns the array.
+    /*Converts a version number formatted as an integer to an array.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        arr of int: The converted array.
     */
     var arr = [0,0,0];
     arr[2] = num % 1000;
@@ -77,41 +107,52 @@ s.Version.prototype._intToArr = function(num) {
 }
 
 s.Version.prototype.intToStr = function(num) {
-    /*
-    Converts a version number formatted as an integer to an object with
-    `major`, `minor`, and `parts` properties. Returns the object.
+    /*Converts a version number formatted as an integer to a string with
+    dot separators.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        str: The converted string.
     */
     return this._arrToStr(this._intToArr(num));
 }
 
 s.Version.prototype.asString = function() {
-    /*
-    Returns the version number as a string, such as `'2.113.86'`. If the
-    `_patch` parameter is 0, it is not included in the string.
+    /*Returns the version number as a string, with dot separators. If
+    the `_patch` attribute is 0, it is not included in the string.
+
+    Returns:
+        str: The version number as a string.
     */
     return this._arrToStr(this.asArray());
 }
 
 s.Version.prototype.asInteger = function() {
-    /*
-    Returns the version number as a potentially nine-digit integer. For
-    example, 32.3.86 corresponds to 32003086.
+    /*Fetches the version number as a potentially nine-digit integer.
+    For example, 32.3.86 corresponds to 32003086.
+
+    Returns:
+        int: The version number as an integer.
     */
     return this._arrToInt(this.asArray());
 }
 
 s.Version.prototype.set = function(major, minor, patch) {
-    /*
-    Sets the corresponding properties. Throws an error if any
-    parameter is not a nonnegative integer less than 1000, or if all
-    parameters are 0. Returns the `Version` object.
+    /* Sets the version number.
 
-    @param {Integer} major - A nonnegative integer less than 1000.
-    @param {Integer} minor - A nonnegative integer less than 1000.
-    @param {Integer} patch - A nonnegative integer less than 1000.
-    Cannot be zero if both major and minor are zero.
+    Args:
+        major (int): Assigned to calling instance's `_major` attribute.
+        minor (int): Assigned to calling instance's `_minor` attribute.
+        patch (int): Assigned to calling instance's `_patch` attribute.
 
-    @return {Version}
+    Returns:
+        Version: The calling instance.
+
+    Raises:
+        Error: If any parameter is not a nonnegative integer less than
+            1000, or if all parameters are 0.
     */
     for (var i = 0; i < 3; i++) {
         if (arguments[i] !== parseInt(arguments[i], 10) ||

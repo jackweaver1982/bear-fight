@@ -115,6 +115,10 @@ a {
     font-weight: bold;
     transition-duration: 200ms;
 }
+button {
+    color: #68d;
+    background-color: black;
+}
 .description {
     /* Detailed description information revealed when clicking a noun. */
     color: yellow;
@@ -139,9 +143,27 @@ a {
 }
 /* twine-user-stylesheet #2: "Story Stylesheet" */
 </style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "0010-standard.js" */
-/*
-Establishes shorthand aliases for commonly used namespaces, and sets
+/*Establishes shorthand aliases for commonly used namespaces, and sets
 other basic properties.
+
+Attributes:
+    s (obj): Alias for `setup`.
+    ss (obj): Alias for `settings`.
+    v (obj): Alias for `State.variables`.
+    t (obj): Alias for `State.temporary`.
+    v.static (obj): We will occasionally make temporary journeys in time
+       via SC's history. This namespace is for variables that should be
+       unaffected by those journeys.
+    st (obj): Alias for `v.static`.
+    Config.passages.nobr (bool): Set to true, which applies `nobr` to
+        all SC passages.
+    Config.saves.autosave (bool): Set to true, which turns on SC's
+        autosave feature.
+    s.autosave.sufficient (array of functions): Array of Boolean-valued
+        functions giving sufficient conditions to allow autosaving.
+    s.autosave.necessary (array of functions): Array of Boolean-valued
+        functions giving necessary conditions to allow autosaving.
+
 */
 
 Object.defineProperty(window, "s", {
@@ -168,9 +190,7 @@ Object.defineProperty(window, "t", {
     }
 });
 
-v.static = {}; // We will occasionally make temporary journeys in time
-               // via SC's history. This namespace is for variables that
-               // should be unaffected by those journeys.
+v.static = {}; 
 
 Object.defineProperty(window, "st", {
     get: function() {
@@ -179,13 +199,24 @@ Object.defineProperty(window, "st", {
 });
 
 s.loadVars = function(time) {
-    // Replaces `v` with a copy of `State.variables` from the moment
-    // with index `time`. Does not touch `v.static`.
-    //
-    // @param {Integer} time - A nonpositive integer representing the
-    // time from which to take the variable data. A value of 0 denotes
-    // the present.
-    var oldVars = State.peek(-time).variables;
+    /*Replaces `v` with a copy of `State.variables` from the moment with
+    index `time`. Does not touch `v.static`.
+
+    Note:
+        This function originally required `time` to be a nonpositive
+        integer. For compatibility with code that may use the original
+        version of this function, a negative value of `time` is still
+        accepted, but immediately replaced by its absolute value.
+
+    Args:
+        time (int): A nonnegative integer representing the time from
+        which to take the variable data. A value of 0 denotes the
+        present. A value of n > 0 means to go back n moments in SC's
+        history.
+    */
+    time = (time < 0) ? -time : time
+
+    var oldVars = State.peek(time).variables;
     Object.keys(v).forEach(function(pn) {
         if (pn !== 'static') {
             delete v[pn];
@@ -199,13 +230,20 @@ s.loadVars = function(time) {
     return;
 }
 
-Config.passages.nobr = true; // sets all passages to `nobr`
+Config.passages.nobr = true;
 
 window.onerror = function(msg, url, linenumber) {
-    /*
-    Ensures that errors appear in a pop-up for greater visibility. Works
-    in Firefox, but doesn't seem to work in Safari. Be sure to do
+    /*Ensures that errors appear in a pop-up for greater visibility.
+    Works in Firefox, but doesn't seem to work in Safari. Be sure to do
     testing in Firefox.
+
+    Args:
+        msg (str): Error message.
+        url (str): Error URL.
+        linenumber (int): Error line number.
+
+    Returns:
+        bool: Returns `true`.
     */
     alert(
         'Error message: ' + msg + '\n' +
@@ -215,53 +253,73 @@ window.onerror = function(msg, url, linenumber) {
     return true;
 }
 
-Config.saves.autosave = true; // turn on autosave feature
+Config.saves.autosave = true;
 
 s.autosave = {
-    sufficient: [], // array of Boolean-valued functions giving
-                    // sufficient conditions to allow autosaving
-    necessary: []   // array of Boolean-valued functions giving
-                    // necessary conditions to allow autosaving
+    sufficient: [],
+    necessary: []
 }
 
 Config.saves.isAllowed = function () {
+    /*Uses `s.autosave` to determine if the autosave is allowed. Passing
+    any sufficient check allows the save; failing any necessary check
+    prevents the save. Otherwise, save is allowed.
+
+    Returns:
+        bool: `true` if the the save is allowed, `false` otherwise.
+    */
     var i;
     for (i = 0; i < s.autosave.sufficient.length; i++) {
-        // passing any sufficient check allows the save
         if (!s.autosave.sufficient[i]()) {
             continue;
         }
         return true;
     }
     for (i = 0; i < s.autosave.necessary.length; i++) {
-        // failing any necessary check prevents the save
         if (s.autosave.necessary[i]()) {
             continue;
         }
         return false;
     }
-    return true; // otherwise defaults to true
+    return true;
 };
 
 s.autosave.necessary.push(function() {
-    // do not autosave at the 'Start' passage
+    /*Prevents autosave at the 'Start' passage.
+
+    Returns:
+        bool: `true` if current passage title is not `Start`.
+    */
     return (passage() !== 'Start');
 });
 /* twine-user-script #2: "0020-Outcome.js" */
-// standard
+/*Uses: standard.
+
+Builds the `Outcome` class.
+*/
 
 s.Outcome = function(func) {
-    /*
-    Represents one possible result of a player action.
+    /*Represents one possible result of a player action.
 
-    @param {Function} func - The function to call when the outcome is
-    carried out.
+    Args:
+        func (func, optional): Assigned to the `_userScript`
+            attribute. Defaults to a function that does nothing.
+
+    Attributes:
+        _userScript (func): The function to call when the outcome is
+            carried out. Should take no parameters.
     */
     this._userScript = func;
     return this;
 }
 
 s.Outcome.prototype.carryOut = function() {
+    /*Does nothing if `this._userScript` is `null` or `undefined`,
+    otherwise executes `this._userScript`.
+
+    Returns:
+        Returns the same value as `this._userScript`.
+    */
     if (this._userScript == null) {
         return;
     } else {
@@ -269,15 +327,25 @@ s.Outcome.prototype.carryOut = function() {
     }
 }
 /* twine-user-script #3: "0030-List.js" */
-// standard
+/*Uses: standard
+
+Creates the `List` class.
+*/
 
 s.List = function(fixedEnd) {
-    /*
-    A wrapper around an array with methods for controlling manipulation
-    and access of elements.
+    /*A wrapper around an array.
 
-    @param {Boolean} fixedEnd - Defaults to false. If true, the `push`
-    method will keep the last element is _array in the last position.
+    The `List` class offers methods for controlling manipulation of and
+    access to elements in the embedded array.
+
+    Args:
+        fixedEnd (bool, optional): Assigned to `_fixedEnd` attribute.
+            Defaults to `false`.
+
+    Attributes:
+        _array (arr): The embedded array.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
     */
     this._array = [];
     if (fixedEnd === undefined) {
@@ -289,21 +357,35 @@ s.List = function(fixedEnd) {
 }
 
 s.List.prototype._verify = function(obj) {
-    /*
-    Checks if `obj` qualifies to be in the list. Should be overwritten
+    /*Checks if `obj` qualifies to be in the list. Should be overridden
     by subclasses.
+
+    Args:
+        obj (obj): The object to test.
+
+    Returns:
+        bool: `true` if the object qualifies, `false` otherwise.
     */
     return true;
 }
 
 s.List.prototype.insert = function(index, obj) {
-    /*
-    If the object passes the `_verify` test, inserts it at index. (E.g.,
+    /*If the object passes the `_verify` test, inserts it at index. (E.g.,
     an index of 0 inserts it at the beginning, and index equal to the
     length of _array inserts it at the end.)
 
     If you try to insert to the end of the list when _fixedEnd is true,
     will insert to the second to the last spot.
+
+    Args:
+        index (int): The index at which to insert.
+        obj (obj): The object to insert.
+
+    Returns:
+        List: The calling instance.
+
+    Raises:
+        Error: If `obj` fails the `_verify` test.
     */
     if (this._verify(obj)) {
         if (index === this._array.length && index > 0 && this._fixedEnd) {
@@ -320,10 +402,16 @@ s.List.prototype.insert = function(index, obj) {
 }
 
 s.List.prototype.push = function() {
-    /*
-    Takes any number of objects as parameters. If any given object
-    fails the `_verify` test, throws an error. Otherwise, adds all
-    objects to `_array` and returns the calling `List` object.
+    /*Takes any number of objects as parameters and passes them, in
+    order, to the `insert` method, inserting each one at the end of the
+    embedded array.
+
+    Args:
+        arguments (array): The objects to insert, in order, at the end
+        of the embedded array.
+
+    Returns:
+        List: The calling instance.
     */
     if (arguments.length > 0) {
         var args = Array.prototype.slice.call(arguments);
@@ -335,10 +423,16 @@ s.List.prototype.push = function() {
 }
 
 s.List.prototype.delete = function(index) {
-    /*
-    Deletes the list element at the given index and returns the modified
-    `List` object. Throws an error if index is out of range. Returns the
-    calling `List` object.
+    /*Deletes the list element at the given index of the embedded array.
+
+    Args:
+        index (int): The index of the element to delete.
+
+    Returns:
+        List: The calling instance.
+
+    Raises:
+        Error: If `index` is out of range.
     */
     if (index !== parseInt(index, 10) || index < 0 ||
         index >= this._array.length) {
@@ -352,21 +446,46 @@ s.List.prototype.delete = function(index) {
 }
 
 s.List.prototype.get = function(index) {
+    /*Gets an element from the embedded array.
+
+    Args:
+        index (int): The index of the element to get.
+
+    Returns:
+        obj: The element gotten.
+    */
     return this._array[index];
 }
 
 s.List.prototype.indexOf = function(obj) {
+    /*Finds the given object in the embedded array.
+
+    Args:
+        obj (obj): The object to look for.
+
+    Returns:
+        int: The index of the object if found; -1 otherwise.
+    */
     return this._array.indexOf(obj);
 }
 
 s.List.prototype.length = function() {
+    /*Gets the length of the embedded array.
+
+    Returns:
+        int: The length of the embedded array.
+    */
     return this._array.length;
 }
 /* twine-user-script #4: "0040-Action.js" */
-// List
+/*Uses: List.
+
+Builds the `Action` class.
+*/
 
 s.Action = function(text, checkFunc, chooseFunc) {
-    /*
+    /*A `List` of `Outcome`s representing an action the user may take.
+
     In a given passage, the reader will choose from a list of actions.
     Each action can be displayed as a link, and when it is selected,
     the story will choose from a list of that action's possible
@@ -376,16 +495,29 @@ s.Action = function(text, checkFunc, chooseFunc) {
     text for the link, and some additional methods available. As such,
     it is implemented as a subclass of `List`.
 
-    @param {String} text - The text to appear in the link.
-    @param {Function|Boolean} checkFunc (optional) - The function to
-    call when checking if the action should be displayed. Should return
-    a boolean. If a boolean is provided, simply returns that boolean.
-    Defaults to true.
-    @param {Function} chooseFunc (optional) - The function to call when
-    choosing an outcome. Should return an outcome from the action. If
-    not provided, the first outcome in the list will be chosen.
-    @param {String} align (optional) - The CSS text-align value for the
-    link associated with this action. Defaults to 'left'.
+    Args:
+        text (str): Assigned to the `_displayText` attribute.
+        checkFunc (func or bool, optional): Assigned to the
+            `_userScriptCheck` attribute. Defaults to `true`.
+        chooseFunc (func, optional): Assigned to the `_userScriptChoose`
+            attribute. Defaults to a function that returns the first
+            outcome in the list.
+
+    Attributes:
+        _array (arr): The embedded array of `Outcome` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position. Set
+            to false by the constructor.
+        _displayTest (str): The text to appear in the link.
+        _userScriptCheck (func or bool): The function to call when
+            checking if the action should be displayed. Should take no
+            parameters and return a boolean. If it is a boolean, simply
+            returns that boolean.
+        _userScriptChoose (func): The function to call when choosing an
+            outcome. Should take no parameters and return an outcome
+            from the action.
+        _align (str): The CSS text-align value for the link associated
+            with this action. Defaults to 'left'.
     */
     s.List.call(this);
     this._displayText = text;
@@ -412,28 +544,58 @@ Object.defineProperty(s.Action.prototype, 'constructor', {
 });
 
 s.Action.prototype._verify = function(obj) {
-    /*
-    @override
+    /*(override) Members of an `Action` must be `Outcome` objects.
 
-    Members of an `Action` must be Outcome objects.
+    Args:
+        obj (obj): The object to test.
+
+    Returns:
+        bool: `true` if the object is an `Outcome`, `false` otherwise.
     */
     return (obj instanceof s.Outcome);
 }
 
 s.Action.prototype.getText = function() {
+    /*Fetches the `_displayText` attribute.
+
+    Returns:
+        str: The `_displayText` attribute of the calling instance.
+    */
     return this._displayText;
 }
 
 s.Action.prototype.getAlign = function() {
+    /*Fetches the `_align` attribute.
+
+    Returns:
+        str: The `_align` attribute of the calling instance.
+    */
     return this._align;
 }
 
 s.Action.prototype.setAlign = function(align) {
+    /*Sets the `_align` attribute.
+
+    Args:
+        align (str): Assigned to the `_align` attribute of the calling
+            instance.
+
+    Returns:
+        Action: The calling instance.
+    */
     this._align = align;
     return this;
 }
 
 s.Action.prototype.check = function() {
+    /*Uses the `_userScriptCheck` attribute to check whether the
+    action's link should be displayed.
+
+    Returns:
+        bool: The value of the attribute `_userScriptCheck`, if it is a
+            boolean, or the return value of `_userScriptCheck`, if it is
+            a function.
+    */
     if (typeof(this._userScriptCheck) === 'boolean') {
         return this._userScriptCheck;
     } else {
@@ -442,6 +604,13 @@ s.Action.prototype.check = function() {
 }
 
 s.Action.prototype.choose = function() {
+    /*Uses the `_userScriptChoose` attribute to choose an outcome from
+    the action.
+
+    Returns:
+        Outcome: `null`, if the action is empty, otherwise the return
+            value of `_userScriptCheck`.
+    */
     if (this.length() === 0) {
         return null;
     } else {
@@ -449,12 +618,22 @@ s.Action.prototype.choose = function() {
     }
 }
 /* twine-user-script #5: "0050-ActionList.js" */
-// List, Action
+/*Uses: List, Action.
+
+Builds the `ActionList` class.
+*/
 
 s.ActionList = function(fixedEnd) {
-    /*
-    Action List is a subclass of List whose instance can contain only
-    actions.
+    /*A subclass of List whose instance can contain only actions.
+
+    Args:
+        fixedEnd (bool, optional): Assigned to `_fixedEnd` attribute.
+            Defaults to `false`.
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
     */
     s.List.call(this, fixedEnd);
     return this;
@@ -469,8 +648,13 @@ Object.defineProperty(s.ActionList.prototype, 'constructor', {
 });
 
 s.ActionList.prototype._verify = function(obj) {
-    /*
-    @override
+    /*(override) Members of an `ActionList` must be `Action` objects.
+
+    Args:
+        obj (obj): The object to test.
+
+    Returns:
+        bool: `true` if the object is an `Action`, `false` otherwise.
     */
     return (obj instanceof s.Action);
 }
@@ -478,14 +662,21 @@ s.ActionList.prototype._verify = function(obj) {
 s.ActionList.prototype.addAction = function(
     text, carryOutFunc, checkFunc, index
 ) {
-    /*
-    This method is for adding a simple action with one outcome to the
-    list. It creates an outcome that executes `carryOutFunc`, adds it as
-    the single outcome to a new action with link text `text` and check
-    function `checkFunc`. The `checkFunc` parameter defaults to true.
+    /*This method is for adding a simple action with one outcome to the
+    list.
 
-    If an `index` parameter is given, will insert the action at the
-    given index, otherwise will push the action.
+    Args:
+        text (str): The display text of the action.
+        carryOutFunc (func, optional): The function to be executed when
+            the action is taken. Defaults to a function that does
+            nothing.
+        checkFunc (func or bool, optional): Used to determine whether
+            the action should be displayed. Defaults to `true`.
+        index (int, optional): Where in the embedded array the new
+            action should be inserted. Defaults to the end of the array.
+
+    Returns:
+        ActionList: The calling instance.
     */
     if (index == null) {
         index = this.length();
@@ -498,9 +689,15 @@ s.ActionList.prototype.addAction = function(
 }
 
 s.ActionList.prototype.getAction = function(actionText) {
-    /*
-    Returns the action from the list whose display text matches the
-    given `actionText`. If no such action exists, returns null.
+    /*Returns the action from the list whose display text matches the
+    given argument. If no such action exists, returns null.
+
+    Args:
+        actionText (str): The display text to search for.
+
+    Returns:
+        Action: The matching `Action` object, if found.
+        null: If no match is found.
     */
     var action;
     for (var i = 0; i < this.length(); i++) {
@@ -512,18 +709,20 @@ s.ActionList.prototype.getAction = function(actionText) {
     return null;
 }
 /* twine-user-script #6: "0060-Node_.js" */
-// ActionList
+/*Uses: ActionList.
 
-s.nodes = new Map(); // maps SugarCube `Passage` objects to associated
-                     // `Node` objects
+Build the `Node` class and defines some associated global variables.
 
-s.getNode = function(psgTitle) {
-    /*
-    Returns the Node object associate with the passage titled,
-    `psgTitle`.
-    */
-    return s.nodes.get(Story.get(psgTitle));
-}
+Attributes:
+    s.nodes (map of <<SC Passage>> to Node): Maps SugarCube `Passage`
+        objects to associated `Node` objects. Used to keep a record of
+        nodes created and to facilitate looking up nodes by passage
+        titles.
+    s.specialPsgs (arr of str): List of titles of SC special passages to
+        be excluded from use as nodes.
+*/
+
+s.nodes = new Map();
 
 s.specialPsgs = [
     'PassageDone', 'PassageFooter', 'PassageHeader', 'PassageReady', 'Start', 
@@ -532,42 +731,66 @@ s.specialPsgs = [
     'StorySubtitle', 'StoryTitle'
 ];
 
+s.getNode = function(psgTitle) {
+    /*Returns the Node object associate with the given passage title.
+
+    Args:
+        psgTitle (str): The passage title to look for.
+
+    Returns:
+        node: The node associated with the given passage title.
+    */
+    return s.nodes.get(Story.get(psgTitle));
+}
+
 s.Node = function(psgTitle, subCount, func, outOfChar) {
-    /*
-    A `Node` object is like a wrapper around a passage. It contains the
-    passage which holds the narrative description of the situation, as
-    well as a list of possible actions for the reader to choose from.
+    /*A wrapper around a passage containing a list of `Action` objects.
 
     Structurally, a node is a list of actions with a passage for the
     narrative description, and some additional methods. As such, it is
     implemented as a subclass of `ActionList`.
 
     The associated passage may have slots available for dynamically
-    generated text substitutions. The node object has properties and
-    methods for managing this. The `subCount` property should match the
-    number of available text substitutions. It is there for a redundancy
-    check to prevent the error of sending the wrong number of text
-    substitutions when loading a node.
+    generated text substitutions. The `subCount` property should match
+    the number of available text substitutions. It is there for a
+    redundancy check to prevent the error of sending the wrong number of
+    text substitutions when loading a node.
 
     Node objects, and their associated Action and Outcome objects,
     should be built on `s` so they are not stored in the player's local
     storage. As such, they will not be saved from session to session, so
     they should not be changed dynamically during gameplay.
 
-    @param {String} psgTitle - The title of the associated passage.
-    @param {Integer} subCount - The number of expected text
-    substitutions. Defaults to 0.
-    @param {Function} func (optional) - The function to call when the
-    node is loaded. It runs immediately before the loading of the
-    passage associated with the calling node. By default, it does
-    nothing.
-    @param {Boolean} outOfChar (optional) - True if the node content
-    lies outside the narrative of the story (help screen, character
-    stats, etc.) Defaults to false.
+    Args:
+        psgTitle (str): The title of the passage to assign to the
+            `_passage` attribute.
+        subCount (int, optional): Assigned to `_subCount`. Defaults to
+            0.
+        func (func or null, optional): Assigned to `_userScript`.
+            Defaults to null.
+        outOfChar (bool, optional): Assigned to `_outOfChar`. Defaults
+            to `false`.
 
-    @property passage - The SugarCube `Passage` object whose title is
-    `psgTitle`
+    Raises:
+        Error: If the given passage title does not exist, is a special
+            passage, or has already been assigned to a node.
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
+            Defaults to `false`.
+        _passage (<<SC Passage>>): The passage associated with the node.
+        _subCount (int): The number of expected text substitutions in
+            the associated passage.
+        _userScript (func or null): The function to execute upon loading
+            the node. It runs immediately before the loading of the
+            passage associated with the calling node.
+        _outOfChar (bool): `true` if the node's content lies outside the
+            narrative flow of the story (e.g., help screen or character
+            sheet).
     */
+
     s.ActionList.call(this);
     if (!Story.has(psgTitle)) {
         throw new Error(
@@ -605,18 +828,38 @@ Object.defineProperty(s.Node.prototype, 'constructor', {
 });
 
 s.Node.prototype.getPassage = function() {
+    /*Fetches the `_passage` attribute.
+
+    Returns:
+        <<SC Passage>>: The `_passage` attribute of the calling
+            instance.
+    */
     return this._passage;
 }
 
 s.Node.prototype.getSubCount = function() {
+    /*Fetches the `_subCount` attribute.
+
+    Returns:
+        int: The `_subCount` attribute of the calling instance.
+    */
     return this._subCount;
 }
 
 s.Node.prototype.setSubCount = function(num) {
-    /*
-    Sets the sub count. Can only change it from its default value of 0
-    one time, to prevent unwanted errors. Sub counts are not meant to
-    dynamically change.
+    /*Sets the `_subCount` attribute. Can only change it from its
+    default value of 0 one time, to prevent unwanted errors. Sub counts
+    are not meant to dynamically change.
+
+    Args:
+        num (int): Assigned to the `_subCount` attribute of the calling
+            instance.
+
+    Returns:
+        Action: The calling instance.
+
+    Raises:
+        Error: If used when `_subCount` is not 0.
     */
     if (this._subCount !== 0) {
         throw new Error(
@@ -629,18 +872,28 @@ s.Node.prototype.setSubCount = function(num) {
 }
 
 s.Node.prototype.onLoad = function() {
+    /*Does nothing if `this._userScript` is `null` or `undefined`,
+    otherwise executes `this._userScript`.
+
+    Returns:
+        Returns the same value as `this._userScript`.
+    */
     if (this._userScript == null) {
         return;
     } else {
         return this._userScript();
     }
 }
-/* twine-user-script #7: "0070-InfoNode.js" */
-// Node_
+/* twine-user-script #7: "0070-InfoNode_.js" */
+/*Uses: Node_.js
+
+Builds the `InfoNode` class and adds a function to
+`s.autosave.necessary`, prevent autosave from occurring when loading an
+InfoNode.
+*/
 
 s.InfoNode = function(psgTitle, checkFunc) {
-    /*
-    `InfoNode` is a subclass of `Node`. It is a special kind of node
+    /*`InfoNode` is a subclass of `Node`. It is a special kind of node
     which lies outside the narrative context of the game. Visiting an
     info node does not trigger an autosave. An info node has a default
     action with text, 'return to story', that takes the player back to
@@ -651,6 +904,30 @@ s.InfoNode = function(psgTitle, checkFunc) {
     call when checking if the `return to story` action should be
     displayed. Should return a boolean. If a boolean is provided, simply
     returns that boolean. Defaults to true.
+
+    Args:
+        psgTitle (str): The title of the passage assigned to the
+            `_passage` attribute.
+        checkFunc (func or bool, optional): The function to call when
+            checking if the `return to story` action should be
+            displayed. Should return a boolean. If a boolean is
+            provided, simply returns that boolean. Defaults to true.
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
+            Defaults to `true`.
+        _passage (<<SC Passage>>): The passage associated with the node.
+        _subCount (int): The number of expected text substitutions in
+            the associated passage. Defaults to 0.
+        _userScript (func or null): The function to execute upon loading
+            the node. It runs immediately before the loading of the
+            passage associated with the calling node. Defaults to
+            `null`.
+        _outOfChar (bool): `true` if the node's content lies outside the
+            narrative flow of the story (e.g., help screen or character
+            sheet). Defaults to `true`.
     */
     s.Node.call(this, psgTitle);
 
@@ -669,18 +946,22 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
 });
 
 s.autosave.necessary.push(function() {
-    // do not autosave when visiting an info node
     return (!(s.getNode(passage()) instanceof s.InfoNode));
 });
 /* twine-user-script #8: "0080-Parser_.js" */
-// Node_
+/*Uses: Node_.
+
+Build the `Parser` class and instantiates it.
+
+Attributes:
+    st.parser (Parser): A `Parser` instance for use by other classes.
+*/
 
 s.Parser = function() {
-    /*
-    A Parser object manages the conversion of the given passage text to
-    the actual passage text used by SugarCube to display information.
+    /*A Parser object manages the conversion of the given passage text
+    to the actual passage text used by SugarCube to display information.
 
-    There is one instance (`st.parser`), built on State.variables, so
+    There is one instance (`st.parser`), built in State.variables, so
     its state can be stored in SugarCube's history. (This is needed,
     because the parser tracks dynamically generated text substitutions.)
     The class must therefore be made compatible with SugarCube by having
@@ -689,15 +970,13 @@ s.Parser = function() {
     constructor with no arguments and to have all its properties be SC
     supported types.
 
-    There are various methods for processing different kinds of markup.
-    The method, `procMarkup()`, runs them all in the appropriate order.
-    Through `Config.passages.onProcess`, we instruct SugarCube to apply
-    `procMarkup()` to passage text whenever a passage is rendered.
+    Attributes:
+        _textSubMap (map of str to arr of (str or func)): Maps passage
+            titles to arrays of text subs. A text sub can be a simple
+            string or a functions returning a string.
     */
-    this._textSubMap = new Map(); // Maps passage titles to arrays of
-                                  // text subs. A text sub can be a
-                                  // simple string or a functions
-                                  // returning a string.
+
+    this._textSubMap = new Map();
     return this;    
 };
 
@@ -726,16 +1005,37 @@ s.Parser.prototype.toJSON = function () {
 };
 
 s.Parser.prototype.getSubs = function(psgTitle) {
+    /*Fetches the array of text subs associated with the given passage
+    title.
+
+    Args:
+        psgTitle (str): The title of the passage whose text subs to
+            fetch.
+
+    Returns:
+        arr of (str or func): The array of text subs associated with the
+            given passage title.
+    */
     return this._textSubMap.get(psgTitle);
 }
 
 s.Parser.prototype.setSubs = function(psgTitle, subArray) {
-    /*
-    Adds `psgTitle` key to `_textSubMap` with value `subArray`. Throws
-    an error if `psgTitle` doesn't correspond to a node, length of
-    `subArray` doesn't match the sub count of the node, or `subArray` is
-    not an array of strings or functions. Returns the calling Parser
-    object.
+    /*Sets the text subs for the given passage.
+
+    Args:
+        psgTitle (str): The title of the passage whose text subs are to
+            be set.
+        subArray (arr of (str or func)): The array of text subs to
+            assign to the given passage.
+
+    Returns:
+        Parser: The calling instance.
+
+    Raises:
+        Error: If the given passage is not associated with a node, the
+            number of given text substitutions does not match the given
+            passage, or any of the given text substitutions is the wrong
+            data type.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -765,22 +1065,31 @@ s.Parser.prototype.setSubs = function(psgTitle, subArray) {
 }
 
 s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
-    /*
-    Fetches the array of text substitutions corresponding to `psgTitle`,
-    or `[]` if there is no such array, then replaces instances of
-    `{<number>}` in the given text with corresponding elements from that
-    array.
+    /*Fetches the array of text substitutions corresponding to
+    `psgTitle` from the instance's `_textSubMap` attribute (or `[]` if
+    there is no such array), then replaces occurrences of `{<number>}`
+    in the given text with corresponding elements from that array.
 
     Does nothing if the node associated with `psgTitle` has a sub count
-    of 0. Throws an error if the sub count doesn't match the length of
-    the substitution array, if any index is out of bounds, if any index
-    is repeated, or if there are not enough indices. Returns the
-    processed text.
+    of 0.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    This passage title must correspond to a node. Passing a title that
-    does not correspond to a node could have unexpected behavior.
-    @param {String} text - The text to process.
+    Args:
+        psgTitle (str): The title of the passage being processed. This
+            passage title must correspond to a node. Passing a title
+            that does not correspond to a node could have unexpected
+            behavior.
+        text (str): The text to process.
+
+    Returns:
+        str: The processed text.
+
+    Raises:
+        Error: If the passage's node expects more substitutions than are
+            provided in the the parser's `_textSubMap` attribute.
+        Error: If the passage text contains markup of the form '{n}',
+            where n is larger than expected by the passage's node.
+        Error: If the passage text contains markup of the form '{n}'
+            repeated more than once with the same value of n.
     */
     var subArray = (this.getSubs(psgTitle) || []);
     subArray = subArray.map(function(element) {
@@ -837,14 +1146,15 @@ s.Parser.prototype.insertTextSubs = function(psgTitle, text) {
 }
 
 s.Parser.prototype.showDetails = function(description, id) {
-    /*
-    Inserts the given description into the element with the given id and
-    clears all other elements with class `.description`. If the element
-    with the given id already contains the given description, the
-    function simply clears it.
+    /*Inserts the given description into the element with the given id
+    and clears all other elements with class `.description`. If the
+    element with the given id already contains the given description,
+    the function simply clears it.
 
-    @param {String} description - the description to insert
-    @param {String} id - the id of the containing element
+    Args:
+        description (str): The description to insert.
+        id (str): The HTML element id of the container into which to
+            insert the description.
     */
     var text = jQuery("#" + id).html();     // store the current content
                                             // for comparison
@@ -861,21 +1171,24 @@ s.Parser.prototype.showDetails = function(description, id) {
 }
 
 s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
-    /*
-    Replaces instances of `{<link text>|id}` in text with links that
+    /*Replaces occurrences of `{<link text>|id}` in text with links that
     reveal a description. The description is found in a corresponding
-    instance of `{?id|description}` which is replaced by a div element
-    into which the description appears. The html id of the div element
+    occurrence of `{?id|description}` which is replaced by a div element
+    into which the description appears. The HTML id of the div element
     is determined by both the id in the markup and the given `psgTitle`.
-    The appearance of the description is controlled by the method
-    `Parser.showDetails()`.
+    The appearance of the description is controlled by the parser's
+    `showDetails` method.
 
     The link text cannot begin with a `?` and cannot contain a `|`. The
     id must contain only letters, numbers, and `_`, and must begin with
     a letter.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    @param {String} text - The text of the passage being processed.
+    Args:
+        psgTitle (str): The title of the passage being processed.
+        text (str): The text of the passage being processed.
+
+    Returns:
+        str: The processed text.
     */
     var psg = Story.get(psgTitle);
     var psgId = psg.domId;
@@ -949,16 +1262,17 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 }
 
 s.Parser.prototype.addContainers = function(psgTitle, text) {
-    /*
-    Wraps the given text in a `body` container; adds an `action`
+    /*Wraps the given text in a `body` container; adds an `action`
     container for the action links; adds a `next` container in case the
-    next node is to be loaded without a passage transition. The html id
+    next node is to be loaded without a passage transition. The HTML id
     of the containers is determined by `psgTitle`.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    This passage title must correspond to a node. Passing a title that
-    does not correspond to a node could have unexpected behavior.
-    @param {String} text - The text to process.
+    Args:
+        psgTitle (str): The title of the passage being processed.
+        text (str): The text to process.
+
+    Returns:
+        str: The processed text.
     */
     var psg = Story.get(psgTitle);
     return (
@@ -972,8 +1286,13 @@ s.Parser.prototype.addContainers = function(psgTitle, text) {
 }
 
 s.Parser.prototype.removeBreaks = function(text) {
-    /*
-    Removes line breaks from the given text.
+    /*Removes line breaks from the given text.
+
+    Args:
+        text (str): The text to process.
+
+    Returns:
+        str: The processed text.
     */
     var processedText = text.replace(/\r/g, '');
     processedText = processedText.replace(/^\n+|\n+$/g, '');
@@ -982,21 +1301,22 @@ s.Parser.prototype.removeBreaks = function(text) {
 }
 
 s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
-    /*
-    Processes the special node markup in the given passage (inserts text
-    subs, processes the detail markup, adds the containers, and removes
-    breaks. Does nothing if the given passage is not associated with a
-    node. Returns the processed text.
+    /*Processes the special node markup in the given passage (inserts
+    text subs, processes the detail markup, adds the containers, and
+    removes breaks. Does nothing if the given passage is not associated
+    with a node. Returns the processed text.
 
     The optional `time` parameter is used to set the moment in SC's
     history from which to draw the values of variables. It allows for
-    the use of variables in passage content. It should be a nonpositive
-    integer. A value of 0 denotes the current moment. Defaults to zero.
+    the use of variables in passage content.
 
-    @param {String} psgTitle - The title of the passage being processed.
-    @param {String} text - The text of the passage being processed.
-    @param {Integer} time - (optional) A nonpositive integer that
-    defaults to zero. Sets the moment in history to use when parsing.
+    Args:
+        psgTitle (str): The title of the passage being processed.
+        text (str): The text of the passage being processed.
+        time (int, optional): A nonnegative integer that defaults to
+            zero. Sets the moment in history to use when parsing. A
+            value of 0 denotes the current moment. A value of n > 0
+            means to go back n moments in SC's history.
     */
     var node = s.nodes.get(Story.get(psgTitle));
     if (node === undefined) {
@@ -1004,7 +1324,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     }
 
     time = time || 0;
-    if (time < 0) {
+    if (time > 0) {
         s.loadVars(time);
     }
 
@@ -1014,7 +1334,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     processedText = this.addContainers(psgTitle, processedText);
     processedText = this.removeBreaks(processedText);
 
-    if (time < 0) {
+    if (time > 0) {
         s.loadVars(0);
     }
 
@@ -1023,37 +1343,65 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
 st.parser = new s.Parser();
 /* twine-user-script #9: "0090-DebugController_.js" */
-// standard
+/*Uses: standard.
+
+Builds the `DebugController` class and instantiates it. Then adds the
+`debugOn` boolean variable to `settings`, adds a toggle switch for it to
+the setting menu in the UI Bar, and binds the relevant methods to the UI
+toggle switch.
+
+Attributes:
+    s.debCon (DebugController): A `DebugController` instance for use by
+        other classes.
+    ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
+*/
 
 s.DebugController = function() {
-    /*
-    The Debug Controller controls debug mode, a developer mode that can
-    be used to activate certain capabilities and functionalities not
+    /*The Debug Controller controls debug mode, a developer mode that
+    can be used to activate certain capabilities and functionalities not
     present in ordinary gameplay. The state of debug mode is stored in
     the boolean property `debugOn` in SugarCube's `settings` namespace,
     which has `ss` as an alias.
 
-    @property {Array} _cheatCode - An array of passage title strings.
-    Loading the nodes associated to these passage titles in the given
-    order toggles the state of debug mode.
+    Attributes:
+        _cheaCode (arr of str): An array of passage title strings.
+            Loading the nodes associated to these passage titles in the
+            given order toggles the state of debug mode.
     */
     this._cheatCode = [];
     return this;    
 };
 
 s.DebugController.prototype.getCheat = function() {
+    /*Fetches the `_cheaCode` attribute.
+
+    Returns:
+        arr of str: The `_cheatCode` attribute of the calling
+            instance.
+    */
     return this._cheatCode;
 }
 
 s.DebugController.prototype.setCheat = function(psgTitles) {
+    /*Sets the `_cheatCode` attribute.
+
+    Args:
+        psgTitles (arr of str): Assigned to the `_cheatCode` attribute
+            of the calling instance.
+
+    Returns:
+        DebugController: The calling instance.
+    */
     this._cheatCode = psgTitles;
     return this;
 }
 
 s.DebugController.prototype.checkUIBar = function() {
-    /*
-    By default, SugarCube's UI Bar is only visible during debug mode.
+    /*By default, SugarCube's UI Bar is only visible during debug mode.
     This method ensures that the UI Bar is in the correct state.
+
+    Returns:
+        DebugController: The calling instance.
     */
     if (ss.debugOn) {
       UIBar.unstow().show();
@@ -1064,17 +1412,15 @@ s.DebugController.prototype.checkUIBar = function() {
 }
 
 s.DebugController.prototype.onInit = function() {
-    /*
-    Runs on story initialization.
+    /*Runs on story initialization.
     */
     this.checkUIBar();
     return;
 }
 
 s.DebugController.prototype.onChange = function() {
-    /*
-    Runs when the debug state changes. Refreshes the current passage in
-    order to display visible changes that might occur with the state
+    /*Runs when the debug state changes. Refreshes the current passage
+    in order to display visible changes that might occur with the state
     change.
     */
     this.checkUIBar();
@@ -1083,8 +1429,10 @@ s.DebugController.prototype.onChange = function() {
 }
 
 s.DebugController.prototype.toggle = function() {
-    /*
-    Toggles the debug state.
+    /*Toggles the debug state.
+
+    Returns:
+        DebugController: The calling instance.
     */
     ss.debugOn = !ss.debugOn;
     Setting.save();
@@ -1095,21 +1443,27 @@ s.DebugController.prototype.toggle = function() {
 s.debCon = new s.DebugController();
 
 Setting.addToggle('debugOn', {
-    /*
-    Adds the `debugOn` boolean variable to `settings` and adds a toggle
-    switch for it to the setting menu in the UI Bar. Binds the relevant
-    `debCon` methods to the UI toggle switch.
-    */
     label:      'debug mode',
     onInit:     s.debCon.onInit.bind(s.debCon),
     onChange:   s.debCon.onChange.bind(s.debCon)
 });
 /* twine-user-script #10: "0100-Page_.js" */
-// InfoNode, Parser_, DebugController_
+/*Uses: InfoNode, Parser_, DebugController_.
+
+Builds the `Page` class, instantiates it, and creates functions for
+managing SC's display of incoming passages.
+
+Attributes:
+    st.page (Page): A `Page` instance for use by other classes.
+    s.preProcText (arr of arr(str, func)): Each element of this array is
+        a size-2 array, the first element of which is the title of a
+        passage, and the second element of which is a function to apply
+        to that passage's text before SC's text processing. The function
+        should take a string as an argument and return a string.
+*/
 
 s.Page = function() {
-    /*
-    A `Page` object represents the content which is displayed on the
+    /*A `Page` object represents the content which is displayed on the
     screen. Traditionally in SugarCube, this is just a passage. But with
     the node system, multiple passages can be displayed at a time, in
     order. The first passage is the main one and the one which SugarCube
@@ -1124,13 +1478,19 @@ s.Page = function() {
     object sharing. To achieve this, we also require it to have a
     constructor with no arguments and to have all its properties be SC
     supported types.
+
+    Attributes:
+        _embeddedPsgs (arr of str): Array of embedded passage titles;
+            does not include the first (main) passage.
+        _noBreakFlags (arr of bool): Array of nobreak flags (true if
+            passage was embedded without a scene break, i.e. a visual
+            separator between embedded passages)
+        _continuous (bool): Defaults to `false`. Set to `true` to make
+            the passages embed by default.
     */
-    this._embeddedPsgs = [];  // list of embedded passage titles; does
-                              // not include the first (main) passage
-    this._noBreakFlags = [];  // list of nobreak flags (true if passage
-                              // was embedded without a scene break)
-    this._continuous = false; // set true to have passages embed by
-                              // default
+    this._embeddedPsgs = [];
+    this._noBreakFlags = [];
+    this._continuous = false;
     return this;    
 };
 
@@ -1158,42 +1518,92 @@ s.Page.prototype.toJSON = function () {
     );
 };
 
-s.Page.prototype.ready = function() {
-    /*
-    Throws an error if current passage is not associated with a node.
+s.Page.prototype.ready = function(safe) {
+    /*Throws an error if current passage is not associated with a node.
+
+    Args:
+        safe (bool, optional): If `true`, does not throw an error but
+            returns `false` instead.
+
+    Returns:
+        bool: `true` if current passage is a node, `false` otherwise.
+
+    Raises:
+        Error: If current passage is not a node.
     */
     if (s.getNode(passage()) === undefined) {
+        if (safe) {
+            return false;
+        }
         throw new Error(
             'Page.ready()\n' +
             'Passage is not associated to a node.'
         );
     }
+    return true;
 }
 
 s.Page.prototype.length = function() {
+    /*Fetches the number of embedded passages.
+
+    Returns:
+        int: The length of the `_embeddedPsgs` attribute.
+    */
     return this._embeddedPsgs.length;
 }
 
 s.Page.prototype.getPsg = function(index) {
+    /*Fetches the title of the embedded passage at the given index.
+
+    Args:
+        index (int): The index from which to retrieve the passage.
+
+    Returns:
+        str: The passage title at that index.
+    */
     return this._embeddedPsgs[index];
 }
 
 s.Page.prototype.getFlag = function(index) {
+    /*Fetches the no-break flag embedded passage at the given index.
+
+    Args:
+        index (int): The index from which to retrieve the no-break flag.
+
+    Returns:
+        str: The no-break flag at that index.
+    */
     return this._noBreakFlags[index];
 }
 
 s.Page.prototype.isContinuous = function() {
+    /*Used to check if passage-embedding is the default behavior.
+
+    Returns:
+        bool: The value of the `_continuous` attribute.
+    */
     return this._continuous;
 }
 
 s.Page.prototype.setContinuous = function(val) {
+    /*Sets the passage-embedding default behavior.
+
+    Args:
+        val (bool): The value assigned to the `_continuous` attribute.
+
+    Returns:
+        Page: The calling `Page` instance.
+    */
     this._continuous = val;
     return this;
 }
 
 s.Page.prototype.innerPsg = function() {
-    /*
-    Returns the innermost passage on the page as a SC Passage object.
+    /*Returns the innermost passage on the page as a SC Passage object.
+
+    Returns:
+        <<SC Passage>>: The current passage if `_embeddedPsgs` is empty;
+            otherwise, the last element of `_embeddedPsgs`
     */
     var psg;
     if (this._embeddedPsgs.length === 0) {
@@ -1206,23 +1616,28 @@ s.Page.prototype.innerPsg = function() {
 }
 
 s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
-    /*
-    Inserts the given passage into the given shell passage, preceded by
-    a scene break ("****"). The scene break is omitted if `nobreak` is
-    true.
+    /*Inserts the given passage into the given shell passage, preceded
+    by a scene break ("****"). The scene break is omitted if the
+    optional `nobreak` is true.
 
     The optional `time` parameter is used to set the moment in SC's
     history from which to draw the values of variables. It allows for
-    the use of variables in passage content. It should be a nonpositive
+    the use of variables in passage content. It should be a nonnegative
     integer. A value of 0 denotes the current moment. Defaults to zero.
 
-    @param {<<SC Passage object>>} psg - The passage to embed.
-    @param {<<SC Passage object>>} shellPsg - The passage into which to
-    embed.
-    @param {Integer} time - (optional) A nonpositive integer that
-    defaults to zero. Sets the moment in history to use when parsing.
-    @param {Boolean} nobreak - (optional) Defaults to false. Set to true
-    to omit the scene break marker.
+    Uses `Page.ready()` to check if the incoming passage corresponds to
+    a node.
+
+    Args:
+        psg (<<SC Passage>>): The passage to embed.
+        shellPsg (<<SC Passage>>): The passage into which to embed.
+        time (int, optional): A nonnegative integer that defaults to
+            zero. Sets the moment in history to use when parsing.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break.
+
+    Returns:
+        Page: The calling `Page` instance.
     */
     this.ready();
 
@@ -1245,11 +1660,21 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
 }
 
 s.Page.prototype.insertActions = function(psg) {
-    /*
-    For each action in the node corresponding to the given SC passage
-    object, this function checks if the action should be displayed. If
-    it passes the check, it adds a link for the corresponding action.
-    Does nothing if the incoming passage does not correspond to a node.
+    /*Takes the given SC Passage object, finds the node associated with
+    it, and retrieves the actions from that node. For each action,
+    checks if the action should be displayed. If it passes the check,
+    adds a link for the corresponding action to the node's action div
+    container.
+
+    Uses `Page.ready()` to check if the incoming passage corresponds to
+    a node.
+
+    Args:
+        psg (<<SC Passage>>): The passage into whose node to insert
+            actions.
+
+    Returns:
+        Page: The calling `Page` instance.
     */
     this.ready();
 
@@ -1278,10 +1703,15 @@ s.Page.prototype.insertActions = function(psg) {
 }
 
 s.Page.prototype.refreshActions = function() {
-    /*
-    Deletes the actions on the page and reinserts them. Can be used
+    /*Deletes the actions on the page and reinserts them. Can be used
     after dynamically changing variables on which action check functions
     depend.
+
+    Uses `Page.ready()` to check if the incoming passage corresponds to
+    a node.
+
+    Returns:
+        Page: The calling `Page` instance.
     */
     this.ready();
 
@@ -1292,8 +1722,13 @@ s.Page.prototype.refreshActions = function() {
 }
 
 s.Page.prototype.scrollToLast = function() {
-    /*
-    Scrolls to put the innermost passage at the top.
+    /*Scrolls to put the innermost passage at the top.
+
+    Uses `Page.ready()` to check if the incoming passage corresponds to
+    a node.
+
+    Returns:
+        Page: The calling `Page` instance.
     */
     this.ready();
 
@@ -1313,26 +1748,50 @@ s.Page.prototype.scrollToLast = function() {
     return this;
 }
 
-s.Page.prototype.embedPsg = function(node, time, nobreak) {
-    /*
-    Removes the current actions from the page, inserts the given node
-    and its actions into the bottom of the page, scrolls to put the new
-    content at the top, appends the page's list of embedded passages,
-    and adds a new moment to SC's history. The embedded passage is
-    preceded by a scene break ("****") unless `nobreak` is true.
+s.Page.prototype.scrollToFirst = function() {
+    /*Scrolls to put the outermost passage at the top.
 
-    The time parameter is a nonpositive integer that defaults to zero
-    and sets the moment in history to use when parsing. See
-    `Page.insertPsgText` for details.
+    Uses `Page.ready()` to check if the incoming passage corresponds to
+    a node.
+
+    Returns:
+        Page: The calling `Page` instance.
     */
     this.ready();
 
-    if (s.getNode(passage()) == undefined) {
-        throw new Error(
-            'Page.embedPsg():\n' +
-            'shell passage not associated with a node'
-        );
-    }
+    jQuery('html,body').animate({scrollTop:0},0);
+    return this;
+}
+
+s.Page.prototype.embedPsg = function(node, time, nobreak) {
+    /*Removes the current actions from the page, inserts the given node
+    and its actions into the bottom of the page, scrolls to put the new
+    content at the top, appends the page's list of embedded passages,
+    and adds a new moment to SC's history. The embedded passage is
+    preceded by a scene break ("****") unless the optional `nobreak`
+    argument is true.
+
+    The time parameter is a nonnegative integer that defaults to zero
+    and sets the moment in history to use when parsing. See
+    `Page.insertPsgText` for details.
+
+    Uses `Page.ready()` to check if the incoming passage corresponds to
+    a node.
+
+    Args:
+        node (Node): The node to embed.
+        time (int, optional): A nonnegative integer that defaults to
+            zero. Sets the moment in history to use when parsing.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break.
+
+    Returns:
+        Page: The calling `Page` instance.
+
+    Raises:
+        Error: If trying to embed a passage into itself.
+    */
+    this.ready();
 
     var nodePsg = node.getPassage();
     if (nodePsg.title === passage() ||
@@ -1356,19 +1815,30 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
 }
 
 s.Page.prototype.load = function(node, embed, nobreak) {
-    /*
-    Checks the debug controller's cheat code and toggles debug mode if
-    necessary.
+    /*Checks the debug controller's cheat code and toggles debug mode if
+    necessary, runs the given node's `onLoad` function, then renders the
+    node's passage.
 
-    Runs the given node's `onLoad` function, then renders the node's
-    passage. If the optional parameter `embed` is true, then rather than
+    If the optional parameter `embed` is true, then rather than
     rendering the passage, the passage's contents are appended to the
     end of the last embedded passage, the page is scrolled to put the
     new passage content at the top, and a new moment is added to SC's
     history. The appended content is preceded by a scene break ("****"),
     unless the optional `nobreak` parameter is true.
 
-    If node is an info node, `embed` and `nobreak` have no effect.
+    If `node` is an info node or the current passage is not associated
+    with a node, `embed` and `nobreak` have no effect.
+
+    Args:
+        node (Node): The node to load.
+        embed (bool, optional): If `true`, the node's passage will be
+            embedded in the currently loaded page. Defaults to the value
+            of the calling `Page` instance's `_continuous` attribute.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break when embedding.
+
+    Returns:
+        Page: The calling `Page` instance.
     */
     var code = s.debCon.getCheat();
     var L = code.length;
@@ -1385,7 +1855,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     if (embed === undefined) {
         embed = this._continuous;
     }
-    if (passage() === 'Start' || node instanceof s.InfoNode) {
+    if (!this.ready(true) || node instanceof s.InfoNode) {
         embed = false;
     }
 
@@ -1403,15 +1873,10 @@ s.Page.prototype.load = function(node, embed, nobreak) {
 }
 
 st.page = new s.Page();
-
-s.preProcText = []; // an array of size-2 arrays; preProcText[i][0] is
-                    // the title of a passage, preProcText[i][1] is a
-                    // function to apply to that passage's text before
-                    // SC's text processing.
+s.preProcText = [];
 
 Config.passages.onProcess = function(p) {
-    /*
-    Prepends passage text with an HTML linebreak if the passage is the
+    /*Prepends passage text with an HTML linebreak if the passage is the
     header passage or if the passage is tagged with `no-header`. Does
     nothing further if the current passage is not associated with a
     node.
@@ -1419,6 +1884,13 @@ Config.passages.onProcess = function(p) {
     Rewinds variables to a previous moment to account for embedded
     passages. Variables will be restored on `:passagedisplay`. Then
     processes the node markup.
+
+    Args:
+        p (<<abbr SC Passage>>): The abbreviated SC Passage object
+            representing the passage being processed.
+
+    Returns:
+        str: The processed text.
     */
     var text = p.text;
     for (var i = 0; i < s.preProcText.length; i++) {
@@ -1431,32 +1903,28 @@ Config.passages.onProcess = function(p) {
         return text;
     }
 
-    s.loadVars(-st.page.length());
+    s.loadVars(st.page.length());
     var processedText = st.parser.procAllMarkup(p.title, text);
     return processedText;
 };
 
-$(document).one(':storyready', function() {
-    /*
-    Executes `st.page.scrollToLast()` upon browser refresh. Other, more
-    straightforward attempts to code this failed. According to Akjosch
-    in the Twine Games Discord server, "The 'problem' here is that the
-    modern browsers don't bother to calculate the sizes of things which
-    they don't have to render if they can help it, so while the
-    structure is there, it's all kinda hidden and wishy-washy until the
-    data-init value gets removed, which (via CSS rules) prompts the
+s.onStoryReady = function() {
+    /*Executes `st.page.scrollToLast()` upon browser refresh. Other,
+    more straightforward attempts to code this failed. According to
+    Akjosch in the Twine Games Discord server, "The 'problem' here is
+    that the modern browsers don't bother to calculate the sizes of
+    things which they don't have to render if they can help it, so while
+    the structure is there, it's all kinda hidden and wishy-washy until
+    the data-init value gets removed, which (via CSS rules) prompts the
     browser to recalculate all relevant sizes and positions. And then
     you can scroll."
     */
-    if (s.getNode(passage()) === undefined) {
+    if (!st.page.ready(true)) {
         return;
     }
     var observer = new MutationObserver(function(m) {
         for(var mut of m) {
             if(mut.type === "attributes" && mut.attributeName === "data-init") {
-                // window.requestAnimationFrame(
-                //     st.page.scrollToLast.bind(st.page)
-                // );
                 st.page.scrollToLast();
                 observer.disconnect();
             }
@@ -1464,12 +1932,21 @@ $(document).one(':storyready', function() {
     });
     
     observer.observe(document.scrollingElement, {attributes: true});
-});
+}
+
+$(document).one(':storyready', s.onStoryReady);
 
 s.onPsgDisplay = function(ev) {
-    /*
-    Triggered by the `:passagedisplay` event. Rebuilds the current page.
-    Does nothing if the current passage is not associated with a node.
+    /*Triggered by the `:passagedisplay` event. First resets variables
+    to the current time, to undo any changes made by
+    `Config.passages.onProcess`. Then re-inserts embedded passage text
+    one at a time. Finally, inserts actions and scrolls to the latest
+    embedded passage. Does nothing if the current passage is not
+    associated with a node.
+
+    Args:
+        ev (<<SC passagedisplay event obj>>): The event object passed to
+            the  passagedisplay event handler.
     */
     if (s.getNode(ev.passage.title) === undefined) {
         return;
@@ -1484,7 +1961,7 @@ s.onPsgDisplay = function(ev) {
         Re-inserts embedded passage text one at a time.
         */
         nextPsg = Story.get(st.page.getPsg(i));
-        time = i - (st.page.length() - 1)
+        time = st.page.length() - (i + 1)
         st.page.insertPsgText(
             nextPsg, currentPsg, time, st.page.getFlag(i)
         );
@@ -1498,21 +1975,31 @@ s.onPsgDisplay = function(ev) {
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
 /* twine-user-script #11: "0110-Version.js" */
-// standard
+/*Uses: standard.
+
+Builds and instantiates the `Version` class.
+
+Attributes:
+    s.version (Version): A `Version` instance for other classes to use.
+*/
 
 s.Version = function(major, minor, patch) {
-    /*
-    Keeps track of a three-part version number and returns it in
-    multiple useful formats. There is one predefined instance,
-    `version`. (See below.)
+    /*Keeps track of a three-part version number.
 
-    @property {Integer} _major - Should be a nonnegative integer less
-    than 1000. Defaults to 0.
-    @property {Integer} _minor - Should be a nonnegative integer less
-    than 1000. Defaults to 0.
-    @property {Integer} _patch - Should be a nonnegative integer less
-    than 1000. Defaults to 1, if others are zero; otherwise, defaults to
-    0.
+    The version number is converted to a single integer and stored in
+    `Config.saves.version`.
+
+    Args:
+        major (int, optional): Assigned to `_major`. Defaults to 0.
+        minor (int, optional): Assigned to `_minor`. Defaults to 0.
+        patch (int, optional): Assigned to `_patch`. Defaults to 1, if
+            both `_major` and `_minor` are 0; otherwise, defaults to 0.
+
+    Attributes:
+        _major (int): A nonnegative integer less than 1000.
+        _minor (int): A nonnegative integer less than 1000.
+        _patch (int): A nonnegative integer less than 1000. Cannot be 0
+            if both `_major` and `_minor` are 0.
     */
     major = major || 0;
     minor = minor || 0;
@@ -1522,17 +2009,24 @@ s.Version = function(major, minor, patch) {
 }
 
 s.Version.prototype.asArray = function() {
-    /*
-    Returns the version number as an array of three integers.
+    /*Fetches the version number as an array.
+
+    Returns:
+        arr of int: The version number as an array of three integers.
     */
     return [this._major, this._minor, this._patch];
 }
 
 s.Version.prototype._arrToStr = function(arr) {
-    /*
-    Converts a version number formatted as an array to a string. Returns
-    the string. If the patch part is 0, it is not included in the
-    string.
+    /*Converts a version number formatted as an array to a string,
+    formatted with dot separators. If the `_patch` attribute is 0, it is
+    not included in the string.
+
+    Args:
+        arr (arr of int): The version number array to format.
+
+    Returns:
+        str: The formatted version number.
     */
     var string = arr[0].toString() + '.' + arr[1].toString();
     if (arr[2] > 0) {
@@ -1542,9 +2036,13 @@ s.Version.prototype._arrToStr = function(arr) {
 }
 
 s.Version.prototype._strToArr = function(string) {
-    /*
-    Converts a version number formatted as a string to an array. Returns
-    the array.
+    /*Converts a version number formatted as a string to an array.
+
+    Args:
+        string (str): The string to convert.
+
+    Returns:
+        arr of int: The converted string.
     */
     var arr = string.split('.').map(function(part) {
         return parseInt(part, 10);
@@ -1556,17 +2054,26 @@ s.Version.prototype._strToArr = function(string) {
 }
 
 s.Version.prototype._arrToInt = function(arr) {
-    /*
-    Converts a version number formatted as an array to an integer.
-    Returns the integer.
+    /*Converts a version number formatted as an array to a single
+    integer.
+
+    Args:
+        arr (arr of int): The version number array to convert.
+
+    Returns:
+        int: The converted integer.
     */
     return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
 }
 
 s.Version.prototype._intToArr = function(num) {
-    /*
-    Converts a version number formatted as an integer to an array.
-    Returns the array.
+    /*Converts a version number formatted as an integer to an array.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        arr of int: The converted array.
     */
     var arr = [0,0,0];
     arr[2] = num % 1000;
@@ -1577,41 +2084,52 @@ s.Version.prototype._intToArr = function(num) {
 }
 
 s.Version.prototype.intToStr = function(num) {
-    /*
-    Converts a version number formatted as an integer to an object with
-    `major`, `minor`, and `parts` properties. Returns the object.
+    /*Converts a version number formatted as an integer to a string with
+    dot separators.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        str: The converted string.
     */
     return this._arrToStr(this._intToArr(num));
 }
 
 s.Version.prototype.asString = function() {
-    /*
-    Returns the version number as a string, such as `'2.113.86'`. If the
-    `_patch` parameter is 0, it is not included in the string.
+    /*Returns the version number as a string, with dot separators. If
+    the `_patch` attribute is 0, it is not included in the string.
+
+    Returns:
+        str: The version number as a string.
     */
     return this._arrToStr(this.asArray());
 }
 
 s.Version.prototype.asInteger = function() {
-    /*
-    Returns the version number as a potentially nine-digit integer. For
-    example, 32.3.86 corresponds to 32003086.
+    /*Fetches the version number as a potentially nine-digit integer.
+    For example, 32.3.86 corresponds to 32003086.
+
+    Returns:
+        int: The version number as an integer.
     */
     return this._arrToInt(this.asArray());
 }
 
 s.Version.prototype.set = function(major, minor, patch) {
-    /*
-    Sets the corresponding properties. Throws an error if any
-    parameter is not a nonnegative integer less than 1000, or if all
-    parameters are 0. Returns the `Version` object.
+    /* Sets the version number.
 
-    @param {Integer} major - A nonnegative integer less than 1000.
-    @param {Integer} minor - A nonnegative integer less than 1000.
-    @param {Integer} patch - A nonnegative integer less than 1000.
-    Cannot be zero if both major and minor are zero.
+    Args:
+        major (int): Assigned to calling instance's `_major` attribute.
+        minor (int): Assigned to calling instance's `_minor` attribute.
+        patch (int): Assigned to calling instance's `_patch` attribute.
 
-    @return {Version}
+    Returns:
+        Version: The calling instance.
+
+    Raises:
+        Error: If any parameter is not a nonnegative integer less than
+            1000, or if all parameters are 0.
     */
     for (var i = 0; i < 3; i++) {
         if (arguments[i] !== parseInt(arguments[i], 10) ||
@@ -1638,15 +2156,25 @@ s.Version.prototype.set = function(major, minor, patch) {
 
 s.version = new s.Version();
 /* twine-user-script #12: "0120-SavesManager_.js" */
-// Version
+/*Uses: Version
+
+Builds and instantiates the `SavesManager` class.
+
+Attributes:
+    s.savesMgr (SavesManager): A `SavesManager` instance for use by
+        other classes.
+*/
 
 s.SavesManager = function(block) {
-    /*
-    A `SavesManager` object manages the autosave, the bookmark(s), and
-    any checkpoints that might have been created.
+    /*Manages the autosave, bookmark(s), and checkpoints.
 
-    @property {Boolean} block - If true, will block the loading of saves
-    whose version does not match the current version. Defaults to false.
+    Args:
+        block (bool, optional): Assigned to the `_block` attribute.
+            Defaults to `false`.
+
+    Attributes:
+        _block (bool): If `true`, will block the loading of saves whose
+            version does not match the current version.
     */
     if (block == null) {
         this._block = false;
@@ -1656,15 +2184,30 @@ s.SavesManager = function(block) {
     return this;    
 };
 
-s.SavesManager.prototype.setBlock = function(bool) {
-    this._block = bool;
+s.SavesManager.prototype.setBlock = function(block) {
+    /*Sets the `_block` attribute.
+
+    Args:
+        block (bool): Assigned to the `_block` attribute of the calling
+            instance.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    this._block = block;
     return this;
 }
 
 s.SavesManager.prototype.get = function(num) {
-    /*
-    Returns the save whose label in the saves dialog box matched `num`.
-    If `num` is 0, returns the autosave.
+    /*Fetches save objects by their label in the saves dialog box. Saves
+    are numbered in the saves dialog box starting with 1.
+
+    Args:
+        num (int): The label whose save to retrieve. If 0, retrieves the
+            autosave.
+
+    Returns:
+        <<SC save obj>>: The retrieved save object.
     */
     if (num === 0) {
         return Save.autosave.get();
@@ -1674,7 +2217,17 @@ s.SavesManager.prototype.get = function(num) {
 }
 
 s.SavesManager.prototype.load = function(num) {
-    /*
+    /*Loads save objects by their label in the saves dialog box. Saves
+    are numbered in the saves dialog box starting with 1.
+
+    Blocks the load if the calling instance's `_block` is true and the
+    version number of the save object doesn't match the current version
+    number.
+
+    Args:
+        num (int): The label whose save to load. If 0, loads the
+            autosave.
+
     Loads the save whose label in the saves dialog box matched `num`. If
     `num` is 0, loads the autosave.
     */
@@ -1695,44 +2248,35 @@ s.SavesManager.prototype.load = function(num) {
     } else {
         Save.slots.load(num - 1);
     }
-    return this;
+    return;
 }
 
 s.savesMgr = new s.SavesManager();
 /* twine-user-script #13: "0130-Menu_.js" */
-// SavesManager_, ActionList, Page_
+/*Uses: SavesManager_, ActionList, Page_.
 
-/*
-The `Menu` object will contain functionality to restart the story. But
-because of a technical issue, we need to redefine how SC restarts the
-story. Hence, we do both these things before defining the `Menu` class.
+Builds and instantiates the `Menu` class. Removes the default 'Restart'
+button from SC's UI bar, since the menu object will provide its own.
+Adds preprocessing arrays to `s.preProcText` from `Page_.js` which write
+the menu to SC's UI bar, the header, and the 'Start' passage. A
+'no-menu' tag on a passage will prevent the writing of the menu.
 
-The normal (and preferred) behavior in SC is for a browser refresh to
-leave the story in the same state, essentially reloading the current
-moment. But with embedded passages, the current displayed text could be
-quite long and it's important that at the end of reloading, the page is
-scrolled to the bottom.
-
-In it's current implementation, the browser refresh takes too long, so
-the scroll function is executed too early and has no effect. There
-doesn't seem to be any way to time it reliably, so the workaround is to
-have the story restart upon browser refresh, and have the `Start`
-passage offer a way to resume the story by loading the autosave.
-
-Ideally, the behavior of the 'Restart' button in the UI bar should be
-modified to accommodate this change. But its behavior is fixed, so we
-instead opt to remove it. A custom restart button should be added to
-preserve the desired functionality.
+Attributes:
+    s.menu (Menu): A `Menu` instance for use by other classes.
 */
 
 s.Menu = function() {
-    /*
-    A `Menu` object is an `ActionList` with built-in `begin`, `resume`,
-    and `restart` actions. The `restart` method is kept at the end of
-    the list. The `begin` method is customizable. These actions are
-    automatically inserted into various areas of the story (such as the
-    header under normal circumstance, the UI bar in debug mode, and the
-    bottom of the `Start` passage.)
+    /*A `Menu` object is an `ActionList` with built-in 'begin',
+    'resume', and 'restart' actions. The 'restart' method is kept at the
+    end of the list. The 'begin' method is customizable. These actions
+    are automatically inserted into various areas of the story (such as
+    the header, the UI bar, and the bottom of the 'Start' passage.)
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (bool): If `true`, the `push` method will keep the
+            last element in the embedded array in the last position.
+            Defaults to true.
     */
     s.ActionList.call(this, true);
     this.addAction(
@@ -1778,18 +2322,27 @@ Object.defineProperty(s.Menu.prototype, 'constructor', {
 });
 
 s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
-    /*
-    @override
+    /*(override) This method is for adding a simple action with one
+    outcome to the menu.
 
-    This method is for adding a simple action with one outcome to the
-    list. It creates an outcome that executes `carryOutFunc`, adds it as
-    the single outcome to a new action with link text `text` and check
-    function `checkFunc`. The default behavior of `checkFunc` is to
-    allow the action if not on the start screen.
+    Args:
+        text (str): The display text of the action.
+        carryOutFunc (func, optional): The function to be executed when
+            the action is taken. Defaults to a function that does
+            nothing.
+        checkFunc (func or bool, optional): Used to determine whether
+            the action should be displayed. Defaults to a function that
+            returns `true` if the current passage is not the 'Start'
+            passage.
+        index (int, optional): Where in the embedded array the new
+            action should be inserted. Defaults to the end of the array.
+
+    Returns:
+        Menu: The calling instance.
     */
-    if (checkFunc === undefined) {
+    if (checkFunc == null) {
         checkFunc = function() {
-            return (passage() !== `Start`);
+            return (passage() !== 'Start');
         }
     }
     return s.ActionList.prototype.addAction.call(
@@ -1798,11 +2351,20 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
 }
 
 s.Menu.prototype.addInfoNode = function(text, psgTitle) {
-    /*
-    Adds a link with the given `text` to the info node with the given
-    passage title. If the given passage title is associated to a node
-    that is not an info node, throws an error. If the given passage
-    title is not associated to a node, an info node is created.
+    /*Adds a link to an info node. If the given passage title is not
+    associated to a node, an info node is created and associated with
+    it.
+
+    Args:
+        text (str): The text of the link.
+        psgTitle (str): The title of the info node passage to link to.
+
+    Returns:
+        Menu: The calling instance.
+
+    Raises:
+        Error: If the given passage title is associated to a node that
+            is not an info node.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -1820,8 +2382,14 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
 }
 
 s.Menu.prototype.onBegin = function(func) {
-    /*
-    Sets the `begin` action to carry out the given function.
+    /*Sets the carry-out function of the 'begin' action.
+
+    Args:
+        func (function): The function to carry out upon selecting the
+            'begin' action.
+
+    Returns:
+        Menu: The calling instance.
     */
     if (this.get(0).getText() === 'begin') {
         this.delete(0);
@@ -1836,12 +2404,10 @@ s.Menu.prototype.onBegin = function(func) {
 }
 
 s.menu = new s.Menu();
-
-$('#menu-item-restart').remove() // remove default Restart button
+$('#menu-item-restart').remove()
 
 s.autoStart = function() {
-    /*
-    Automatically carry out the 'begin' action.
+    /*Check and carry out the 'begin' action.
     */
     var begin = s.menu.getAction('begin');
     if (begin.check()) {
@@ -1850,9 +2416,10 @@ s.autoStart = function() {
 }
 
 s.menuMarkup = function() {
-    /*
-    Returns the text of the SC markup that renders the links in the
-    displayed menu bar.
+    /*Processes the menu actions to create SC markup.
+
+    Returns:
+        str: SC markup for menu links.
     */
     var text = '';
     var action;
@@ -1874,9 +2441,14 @@ s.menuMarkup = function() {
 }
 
 s.preProcText.push(['StoryMenu', function(text) {
-    /*
-    Adds the menu to the UI bar if it is visible and the current passage
-    allows the menu.
+    /*Adds the menu to the UI bar if it is visible and the current
+    passage allows the menu.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
     if (!UIBar.isHidden() && !tags().includes('no-menu')) {
         return s.menuMarkup();
@@ -1886,16 +2458,37 @@ s.preProcText.push(['StoryMenu', function(text) {
 }]);
 
 s.preProcText.push(['PassageHeader', function(text) {
-    /*
-    Adds the menu to the header with the sticky class if the current passage
-    allows it, unless currently at the Start passage. Otherwise, adds a
-    line break to compensate for the reduced upper margin (needed to
-    have the sticky class work as intended).
+    /*Adds the menu to the header with the sticky class if the current
+    passage allows it, unless currently at the Start passage. Otherwise,
+    adds a line break to compensate for the reduced upper margin (needed
+    to have the sticky class work as intended).
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
+    var buttonMarkup = (
+        '<span title="Scroll to top">' +
+            '<<button &uarr;>>' +
+                '<<run st.page.scrollToFirst()>>' +
+            '<</button>>' +
+        '</span>' +
+        '<span title="Scroll to bottom">' +
+            '<<button &darr;>>' +
+                '<<run st.page.scrollToLast()>>' +
+            '<</button>>' +
+        '</span>'
+    );
+
     return (
         '<<if !tags().includes("no-menu") && passage() !== "Start">>' +
             '<div id="header" class="sticky"><br>' +
-                s.menuMarkup() + '<br><hr>' +
+                s.menuMarkup() +
+                '<span style="float:right;">' +
+                    buttonMarkup +
+                '</span><br><hr>' +
             '</div>' +
         '<<else>>' +
             '<br>' +
@@ -1904,9 +2497,14 @@ s.preProcText.push(['PassageHeader', function(text) {
 }]);
 
 s.preProcText.push(['Start', function(text) {
-    /*
-    Use the autoStart metadata from the restart action to skip the title
-    page.
+    /*Use the autoStart metadata from the restart action to skip the
+    title page.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
     return (
         '<<timed 0s>>' +
@@ -1920,8 +2518,13 @@ s.preProcText.push(['Start', function(text) {
 }])
 
 s.preProcText.push(['Start', function(text) {
-    /*
-    Adds the menu to the bottom of the Start passage.
+    /*Adds the menu to the bottom of the Start passage.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
     */
     return (
         text + '<br>' +
@@ -1931,20 +2534,39 @@ s.preProcText.push(['Start', function(text) {
     );
 }]);
 /* twine-user-script #14: "8000-functions.js" */
-// Page_
+/*Uses: Page_.
+
+Defines a collection of useful functions for designing a story with the
+node system.
+*/
 
 s.addLink = function(startPsgTitle, text, endPsgTitle,
                       func, checkFunc, embed, nobreak) {
-    /*
-    Creates a new Outcome that runs `func`, then loads the node
-    associated with `endPsgTitle`. Then adds that Outcome to a new
-    Action with the given `text` as its link text. Then adds that Action
-    to the associated with `startPsgTitle`. The target node is loaded
-    with the optional `embed` and `nobreak` parameters. The action is
-    given `checkFunc` as its check function.
+    /*Creates a link (i.e. an action with a single outcome) in the node
+    associated with the given passage title.
 
-    If there are no nodes associated with the given passage titles, they
-    will be created.
+    Args:
+        startPsgTitle (str): The title of the passage on which to create
+            the link. If this passage is not associated to a node, a
+            new node will be created and associated with it.
+        text (str): The text of the link.
+        endPsgTitle (str, optional): If provided, the link will load the
+            node associated with this passage title. If no such node
+            exists, one will be created.
+        func (func, optional): If provided, this function will be
+            carried out just prior to loading the node associated with
+            `endPsgTitle`.
+        checkFunc (func or bool, optional): Used to determine whether
+            the link should be displayed. Defaults to `true`.
+        embed (bool, optional): If `true`, the node associated with 
+            `endPsgTitle` will be embedded in the currently loaded page.
+            Defaults to the value of `st.page._continuous`.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break when embedding.
+
+    Raises:
+        Error: If neither the `endPsgTitle` nor the `func` arguments are
+            provided..
     */
     if (endPsgTitle == null && func == null) {
         throw new Error(
@@ -1984,15 +2606,35 @@ s.addLink = function(startPsgTitle, text, endPsgTitle,
     return;
 }
 
-s.loadNode = function(psgTitle, embed) {
-    st.page.load(s.getNode(psgTitle), embed);
+s.loadNode = function(psgTitle, embed, nobreak) {
+    /*A shortcut for `Page.load()` which allows a passage title to be
+    passed as an argument.
+
+    Args:
+        psgTitle (str): The passage title associated with the node that
+            will be loaded.
+        embed (bool, optional): If `true`, the passage will be embedded
+            in the currently loaded page. Defaults to the value of
+            `st.page._continuous`.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break when embedding.
+    */
+    st.page.load(s.getNode(psgTitle), embed, nobreak);
     return;
 }
 
 s.setSubCount = function(psgTitle, num) {
-    /*
-    Sets the sub count of the node associated with `psgTitle` to `num`.
-    If no such node exists, creates one. Returns the associated node.
+    /*Sets the sub count of the node associated with the given passage
+    title. If no such node exists, one is created. Returns the
+    associated node.
+
+    Args:
+        psgTitle (str): A passage title.
+        num (int): The number of sub counts to assign to the passage's
+            node.
+
+    Returns:
+        Node: The node, after its sub count is set.
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -2004,9 +2646,13 @@ s.setSubCount = function(psgTitle, num) {
 }
 
 s.copyActions = function(fromPsgTitle, toPsgTitle) {
-    /*
-    For each action in the node associated with `fromPsgTitle`, pushes
-    that action to the node associated with `toPsgTitle`.
+    /*Copies actions from one node to another.
+
+    Args:
+        fromPsgTitle (str): The title of the passage associated with the
+            node whose actions are to be copied.
+        toPsgTitle (str): The title of the passage associated with the
+            node into which the copied actions are to be inserted.
     */
     var fromNode = s.getNode(fromPsgTitle);
     var toNode = s.getNode(toPsgTitle);

@@ -4,6 +4,16 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.10
+
+* Redid comments in JS files.
+* Adding scrolling buttons to header menu.
+* Changed `s.loadVars()` and related functions/methods to use a positive integer for the time instead of a negative integer. Retained support for using a negative integer.
+* Edited `Page.ready()` so it can be called in safe mode (i.e. with no error thrown).
+* Edited `Page.load()` to check (in safe mode) that page is ready, rather than check if current passage is not `:: Start`.
+* Moved `:storyready` event handler to its own functions, `s.onStoryReady()`.
+* Added the `nobreak` parameter to `s.loadNode()`.
+
 ## Version 0.4.9
 
 * Added `Page.ready()` to check that current passage is associated with a node. Called it from many other `Page` methods.
