@@ -1,4 +1,4 @@
-s.version.set(0,5,0);
+s.version.set(0,5,1);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
