@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.1
+
+* Created the `Path` class with attributes `_nodeLengths`, `_axnChoices`, `_axnLengths`, and `_outcomes`. Created an instance, `_st.path`.
+
 ## Version 0.5.0
 
 * Reordered and renumbered JS files.
