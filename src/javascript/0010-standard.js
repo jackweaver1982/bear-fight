@@ -7,8 +7,8 @@ Attributes:
     v (obj): Alias for `State.variables`.
     t (obj): Alias for `State.temporary`.
     v.static (obj): We will occasionally make temporary journeys in time
-       via SC's history. This namespace is for variables that should be
-       unaffected by those journeys.
+         via SC's history. This namespace is for variables that should be
+         unaffected by those journeys.
     st (obj): Alias for `v.static`.
     Config.passages.nobr (bool): Set to true, which applies `nobr` to
         all SC passages.

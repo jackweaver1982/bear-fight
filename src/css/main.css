@@ -12,10 +12,6 @@ a {
     font-weight: bold;
     transition-duration: 200ms;
 }
-button {
-    color: #68d;
-    background-color: black;
-}
 .description {
     /* Detailed description information revealed when clicking a noun. */
     color: yellow;
@@ -37,4 +33,8 @@ button {
 #story {
     /* Removes the top margin, so the header sticks seamlessly. Line breaks should be added manually at the top of the header and any passage with a `no-header` tag. This is handled automatically by the `onProcess` function in `rendering.js`. */
     margin-top: 0px;
+}
+#header button {
+    color: #68d;
+    background-color: black;
 }

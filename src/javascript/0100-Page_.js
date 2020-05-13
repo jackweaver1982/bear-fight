@@ -175,6 +175,12 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     the use of variables in passage content. It should be a nonnegative
     integer. A value of 0 denotes the current moment. Defaults to zero.
 
+    After processing the node markup, sets the `_excerpt` attribute of
+    the node associated with the given passage in the same way that SC's
+    `Passage.render()` does to `Passage._excerpt`. (See
+    https://github.com/tmedwards/sugarcube-2/blob/
+    7e13f2665c2df989ccd498d2d7162f58b9392192/src/passage.js#L220)
+
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
 
@@ -198,9 +204,16 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
 
     var sceneBreak = nobreak ? '' : '<p style="text-align:center">****</p>';
     $('#' + shellPsg.domId + '-next').wiki(
-        sceneBreak +
-        st.parser.procAllMarkup(psg.title, psg.text)
+        sceneBreak + st.parser.procAllMarkup(psg.title, psg.text)
     );
+
+    var element = document.getElementById(psg.domId + '-body');
+    var excerpt = element.textContent.trim();
+    if (excerpt !== '') {
+        const excerptRe = new RegExp(`(\\S+(?:\\s+\\S+){0,${7}})`);
+        excerpt = excerpt.replace(/\s+/g, ' ').match(excerptRe);
+    }
+    s.nodes.get(psg)._excerpt = excerpt ? `${excerpt[1]}\u2026` : '\u2026';
 
     if (time < 0) {
         s.loadVars(0);
@@ -426,9 +439,8 @@ st.page = new s.Page();
 s.preProcText = [];
 
 Config.passages.onProcess = function(p) {
-    /*Prepends passage text with an HTML linebreak if the passage is the
-    header passage or if the passage is tagged with `no-header`. Does
-    nothing further if the current passage is not associated with a
+    /*Performs all the necessary pre-processing on the passage text.
+    Does nothing further if the current passage is not associated with a
     node.
 
     Rewinds variables to a previous moment to account for embedded
@@ -502,14 +514,11 @@ s.onPsgDisplay = function(ev) {
         return;
     }
 
-    s.loadVars(0); // resets variables to current time
+    s.loadVars(0);
 
     var currentPsg = ev.passage;
     var nextPsg, time;
     for (var i = 0; i < st.page.length(); i++) {
-        /*
-        Re-inserts embedded passage text one at a time.
-        */
         nextPsg = Story.get(st.page.getPsg(i));
         time = st.page.length() - (i + 1)
         st.page.insertPsgText(
@@ -524,3 +533,27 @@ s.onPsgDisplay = function(ev) {
 }
 
 $(document).on(':passagedisplay', s.onPsgDisplay);
+
+Config.passages.descriptions = function() {
+    /*Provides a description of the `this` passage. If `this` is the
+    outermost passage of the current page and the node associated with
+    the innermost passage has a non-null `_excerpt` attribute, returns
+    that attribute as the description. Otherwise, returns `null`,
+    triggering SugarCube to use its default excerpt as the description.
+
+    (SC's `Passage.description()` returns the passage object's
+    `_excerpt` attribute, if that attribute is not null. See
+    https://github.com/tmedwards/sugarcube-2/blob/
+    7e13f2665c2df989ccd498d2d7162f58b9392192/src/passage.js#L145)
+
+    Returns:
+        str or null: The passage description, if the given passage is
+        the current passage and the inner node's `_excerpt` attribute is
+        non-null; otherwise, null.
+    */
+    if (this.title !== passage()) {
+        return null;
+    }
+    var psg = st.page.innerPsg();
+    return s.nodes.get(psg).getExcerpt();
+}

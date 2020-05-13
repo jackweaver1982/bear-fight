@@ -1,10 +1,11 @@
 /*Uses: SavesManager_, ActionList, Page_.
 
-Builds and instantiates the `Menu` class. Removes the default 'Restart'
-button from SC's UI bar, since the menu object will provide its own.
-Adds preprocessing arrays to `s.preProcText` from `Page_.js` which write
-the menu to SC's UI bar, the header, and the 'Start' passage. A
-'no-menu' tag on a passage will prevent the writing of the menu.
+Builds and instantiates the `Menu` class. Removes the default 'Saves'
+and 'Restart' buttons from SC's UI bar, since the menu object will
+provide its own. Adds preprocessing arrays to `s.preProcText` from
+`Page_.js` which write the menu to SC's UI bar, the header, and the
+'Start' passage. A 'no-menu' tag on a passage will prevent the writing
+of the menu.
 
 Attributes:
     s.menu (Menu): A `Menu` instance for use by other classes.
@@ -12,23 +13,23 @@ Attributes:
 
 s.Menu = function() {
     /*A `Menu` object is an `ActionList` with built-in 'begin',
-    'resume', and 'restart' actions. The 'restart' method is kept at the
-    end of the list. The 'begin' method is customizable. These actions
-    are automatically inserted into various areas of the story (such as
-    the header, the UI bar, and the bottom of the 'Start' passage.)
+    'resume', 'save', 'load', and 'restart' actions. The 'save', 'load',
+    and 'restart' methods are kept at the end of the list. The 'begin'
+    method is customizable. These actions are automatically inserted
+    into various areas of the story (such as the header, the UI bar, and
+    the bottom of the 'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
-        _fixedEnd (bool): If `true`, the `push` method will keep the
-            last element in the embedded array in the last position.
-            Defaults to true.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place. Defaults to 3.
     */
-    s.ActionList.call(this, true);
+    s.ActionList.call(this, 3);
     this.addAction(
         'restart',
         function() {
             if (ss.debugOn || confirm('Really restart?')) {
-                Save.autosave.delete();
+                Save.clear();
                 if (passage() === 'Start') {
                     memorize('autoStart', true);
                 }
@@ -41,6 +42,24 @@ s.Menu = function() {
                 Save.autosave.has()
             );
         }
+    );
+    this.addAction(
+        'load',
+        function() {
+            if (Save.slots.isEmpty()) {
+                alert("No bookmark to load.");
+            } else {
+                UI.saves();
+            }
+        },
+        Config.saves.isAllowed
+    );
+    this.addAction(
+        'save',
+        function() {
+            s.savesMgr.saveBkMark();
+        },
+        Config.saves.isAllowed
     );
     this.onBegin();
     this.addAction(
@@ -150,6 +169,7 @@ s.Menu.prototype.onBegin = function(func) {
 
 s.menu = new s.Menu();
 $('#menu-item-restart').remove()
+$('#menu-item-saves').remove()
 
 s.autoStart = function() {
     /*Check and carry out the 'begin' action.

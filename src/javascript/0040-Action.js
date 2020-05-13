@@ -25,9 +25,8 @@ s.Action = function(text, checkFunc, chooseFunc) {
 
     Attributes:
         _array (arr): The embedded array of `Outcome` objects.
-        _fixedEnd (bool): If `true`, the `push` method will keep the
-            last element in the embedded array in the last position. Set
-            to false by the constructor.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place. Set to 0 by the constructor.
         _displayTest (str): The text to appear in the link.
         _userScriptCheck (func or bool): The function to call when
             checking if the action should be displayed. Should take no

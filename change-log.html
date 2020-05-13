@@ -265,6 +265,15 @@ pre[data-line] .line-highlight[data-end]:after {
       <div class="mume markdown-preview  ">
       <h1 class="mume-header" id="change-log">Change Log</h1>
 
+<h2 class="mume-header" id="version-0411">Version 0.4.11</h2>
+
+<ul>
+<li>Edited button CSS to only affect buttons in the header.</li>
+<li>Edited <code>_fixedEnd</code> attribute of <code>List</code> so that more than one item can be fixed at the end.</li>
+<li>Added a <code>_bkMarks</code> attributes to <code>SavesManager</code>, as well as the methods <code>_setMaxSaves()</code>, <code>setBkMarks()</code>, and <code>saveBkMark()</code>. Created a <code>:dialogopened</code> event handler that alters the layout of SC&apos;s default saves dialog.</li>
+<li>Added save and load actions to the <code>Menu</code> class.</li>
+<li>Added an <code>_excerpt</code> attribute to <code>Node</code> that is used analogously to the SC&apos;s <code>Passage._excerpt</code>. Added <code>Node.getExcerpt</code>. Edited <code>Page.insertPsgText()</code> to set the <code>_excerpt</code> property. Set SC&apos;s <code>Config.passages.description</code> to use the excerpt of the innermost passage for its passage description when there is embedding.</li>
+</ul>
 <h2 class="mume-header" id="version-0410">Version 0.4.10</h2>
 
 <ul>

@@ -7,13 +7,14 @@ s.ActionList = function(fixedEnd) {
     /*A subclass of List whose instance can contain only actions.
 
     Args:
-        fixedEnd (bool, optional): Assigned to `_fixedEnd` attribute.
-            Defaults to `false`.
+        fixedEnd (int or bool, optional): If an integer, assigned to
+            `_fixedEnd` attribute. If a boolean value, converted to 0 or
+            1 before being assigned. Defaults to 0.
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
-        _fixedEnd (bool): If `true`, the `push` method will keep the
-            last element in the embedded array in the last position.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place.
     */
     s.List.call(this, fixedEnd);
     return this;

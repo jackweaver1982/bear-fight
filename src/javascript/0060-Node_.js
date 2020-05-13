@@ -66,10 +66,11 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
-        _fixedEnd (bool): If `true`, the `push` method will keep the
-            last element in the embedded array in the last position.
-            Defaults to `false`.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place. Defaults to 0.
         _passage (<<SC Passage>>): The passage associated with the node.
+        _excerpt (str): Give an excerpt of the associated passage, much
+            like SugarCube's `Passage._excerpt`.
         _subCount (int): The number of expected text substitutions in
             the associated passage.
         _userScript (func or null): The function to execute upon loading
@@ -101,6 +102,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
         );
     }
     this._passage = psg;
+    this._excerpt = null;
     s.nodes.set(psg, this);
     this._subCount = subCount || 0;
     this._userScript = func;
@@ -124,6 +126,20 @@ s.Node.prototype.getPassage = function() {
             instance.
     */
     return this._passage;
+}
+
+s.Node.prototype.getExcerpt = function() {
+    /*Fetches the excerpt of the associated passage.
+
+    Returns:
+        str: The `_excerpt` property, if it is non-null; otherwise, the
+            `_excerpt` property of the associated passage.
+    */
+    var excerpt = this._excerpt;
+    if (excerpt === null) {
+        excerpt = this._passage._excerpt;
+    }
+    return excerpt;
 }
 
 s.Node.prototype.getSubCount = function() {

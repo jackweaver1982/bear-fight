@@ -4,6 +4,14 @@ title: Change Log
 
 # Change Log
 
+## Version 0.4.11
+
+* Edited button CSS to only affect buttons in the header.
+* Edited `_fixedEnd` attribute of `List` so that more than one item can be fixed at the end.
+* Added a `_bkMarks` attributes to `SavesManager`, as well as the methods `_setMaxSaves()`, `setBkMarks()`, and `saveBkMark()`. Created a `:dialogopened` event handler that alters the layout of SC's default saves dialog.
+* Added save and load actions to the `Menu` class.
+* Added an `_excerpt` attribute to `Node` that is used analogously to the SC's `Passage._excerpt`. Added `Node.getExcerpt`. Edited `Page.insertPsgText()` to set the `_excerpt` property. Set SC's `Config.passages.description` to use the excerpt of the innermost passage for its passage description when there is embedding.
+
 ## Version 0.4.10
 
 * Redid comments in JS files.

@@ -28,9 +28,8 @@ s.InfoNode = function(psgTitle, checkFunc) {
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
-        _fixedEnd (bool): If `true`, the `push` method will keep the
-            last element in the embedded array in the last position.
-            Defaults to `true`.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place. Defaults to 0.
         _passage (<<SC Passage>>): The passage associated with the node.
         _subCount (int): The number of expected text substitutions in
             the associated passage. Defaults to 0.

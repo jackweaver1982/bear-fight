@@ -10,17 +10,20 @@ s.List = function(fixedEnd) {
     access to elements in the embedded array.
 
     Args:
-        fixedEnd (bool, optional): Assigned to `_fixedEnd` attribute.
-            Defaults to `false`.
+        fixedEnd (int or bool, optional): If an integer, assigned to
+            `_fixedEnd` attribute. If a boolean value, converted to 0 or
+            1 before being assigned. Defaults to 0.
 
     Attributes:
         _array (arr): The embedded array.
-        _fixedEnd (bool): If `true`, the `push` method will keep the
-            last element in the embedded array in the last position.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place.
     */
     this._array = [];
     if (fixedEnd === undefined) {
-        this._fixedEnd = false;
+        this._fixedEnd = 0;
+    } else if (typeof fixedEnd === 'boolean') {
+        this._fixedEnd = fixedEnd ? 1 : 0;
     } else {
         this._fixedEnd = fixedEnd;
     }
@@ -45,8 +48,8 @@ s.List.prototype.insert = function(index, obj) {
     an index of 0 inserts it at the beginning, and index equal to the
     length of _array inserts it at the end.)
 
-    If you try to insert to the end of the list when _fixedEnd is true,
-    will insert to the second to the last spot.
+    If _fixedEnd is positive and you try to insert past a fixed element,
+    will insert just before the first fixed element instead.
 
     Args:
         index (int): The index at which to insert.
@@ -59,9 +62,8 @@ s.List.prototype.insert = function(index, obj) {
         Error: If `obj` fails the `_verify` test.
     */
     if (this._verify(obj)) {
-        if (index === this._array.length && index > 0 && this._fixedEnd) {
-            index -= 1;
-        }
+        var end = Math.max(0,this._array.length - this._fixedEnd);
+        index = Math.min(index, end);
         this._array.splice(index, 0, obj);
     } else {
         throw new Error(
