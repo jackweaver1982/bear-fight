@@ -4,11 +4,12 @@
 import os
 import re
 
-here = os.getcwd()
+here = os.getcwd() + '/src/javascript'
+os.chdir(here)
 files = next(os.walk(here))[2]
 files.sort()
 
-pattern = re.compile(r'^\d\d\d\d-')
+pattern = re.compile(r'^0\d\d\d-')
 numFiles = [file for file in files if pattern.search(file)]
 
 i = 10

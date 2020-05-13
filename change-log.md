@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.0
+
+* Reordered and renumbered JS files.
+
 ## Version 0.4.11
 
 * Edited button CSS to only affect buttons in the header.

@@ -902,7 +902,453 @@ s.Node.prototype.onLoad = function() {
         return this._userScript();
     }
 }
-/* twine-user-script #7: "0070-InfoNode_.js" */
+/* twine-user-script #7: "0070-Version.js" */
+/*Uses: standard.
+
+Builds and instantiates the `Version` class.
+
+Attributes:
+    s.version (Version): A `Version` instance for other classes to use.
+*/
+
+s.Version = function(major, minor, patch) {
+    /*Keeps track of a three-part version number.
+
+    The version number is converted to a single integer and stored in
+    `Config.saves.version`.
+
+    Args:
+        major (int, optional): Assigned to `_major`. Defaults to 0.
+        minor (int, optional): Assigned to `_minor`. Defaults to 0.
+        patch (int, optional): Assigned to `_patch`. Defaults to 1, if
+            both `_major` and `_minor` are 0; otherwise, defaults to 0.
+
+    Attributes:
+        _major (int): A nonnegative integer less than 1000.
+        _minor (int): A nonnegative integer less than 1000.
+        _patch (int): A nonnegative integer less than 1000. Cannot be 0
+            if both `_major` and `_minor` are 0.
+    */
+    major = major || 0;
+    minor = minor || 0;
+    patch = patch || ((major === 0 && minor === 0) ? 1 : 0);
+    this.set(major, minor, patch);
+    return this;
+}
+
+s.Version.prototype.asArray = function() {
+    /*Fetches the version number as an array.
+
+    Returns:
+        arr of int: The version number as an array of three integers.
+    */
+    return [this._major, this._minor, this._patch];
+}
+
+s.Version.prototype._arrToStr = function(arr) {
+    /*Converts a version number formatted as an array to a string,
+    formatted with dot separators. If the `_patch` attribute is 0, it is
+    not included in the string.
+
+    Args:
+        arr (arr of int): The version number array to format.
+
+    Returns:
+        str: The formatted version number.
+    */
+    var string = arr[0].toString() + '.' + arr[1].toString();
+    if (arr[2] > 0) {
+        string += '.' + arr[2].toString();
+    }
+    return string;
+}
+
+s.Version.prototype._strToArr = function(string) {
+    /*Converts a version number formatted as a string to an array.
+
+    Args:
+        string (str): The string to convert.
+
+    Returns:
+        arr of int: The converted string.
+    */
+    var arr = string.split('.').map(function(part) {
+        return parseInt(part, 10);
+    });
+    if (arr.length === 2) {
+        arr.push(0);
+    }
+    return arr;
+}
+
+s.Version.prototype._arrToInt = function(arr) {
+    /*Converts a version number formatted as an array to a single
+    integer.
+
+    Args:
+        arr (arr of int): The version number array to convert.
+
+    Returns:
+        int: The converted integer.
+    */
+    return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
+}
+
+s.Version.prototype._intToArr = function(num) {
+    /*Converts a version number formatted as an integer to an array.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        arr of int: The converted array.
+    */
+    var arr = [0,0,0];
+    arr[2] = num % 1000;
+    num = (num - arr[2])/1000;
+    arr[1] = num % 1000;
+    arr[0] = (num - arr[1])/1000;
+    return arr;
+}
+
+s.Version.prototype.intToStr = function(num) {
+    /*Converts a version number formatted as an integer to a string with
+    dot separators.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        str: The converted string.
+    */
+    return this._arrToStr(this._intToArr(num));
+}
+
+s.Version.prototype.asString = function() {
+    /*Returns the version number as a string, with dot separators. If
+    the `_patch` attribute is 0, it is not included in the string.
+
+    Returns:
+        str: The version number as a string.
+    */
+    return this._arrToStr(this.asArray());
+}
+
+s.Version.prototype.asInteger = function() {
+    /*Fetches the version number as a potentially nine-digit integer.
+    For example, 32.3.86 corresponds to 32003086.
+
+    Returns:
+        int: The version number as an integer.
+    */
+    return this._arrToInt(this.asArray());
+}
+
+s.Version.prototype.set = function(major, minor, patch) {
+    /* Sets the version number.
+
+    Args:
+        major (int): Assigned to calling instance's `_major` attribute.
+        minor (int): Assigned to calling instance's `_minor` attribute.
+        patch (int): Assigned to calling instance's `_patch` attribute.
+
+    Returns:
+        Version: The calling instance.
+
+    Raises:
+        Error: If any parameter is not a nonnegative integer less than
+            1000, or if all parameters are 0.
+    */
+    for (var i = 0; i < 3; i++) {
+        if (arguments[i] !== parseInt(arguments[i], 10) ||
+            arguments[i] < 0 ||
+            arguments[i] > 999) {
+            throw new Error(
+                'Version._init():\n' +
+                'numbers must be nonnegative integers less than 1000'
+            );
+        }
+    }
+    if (major + minor + patch === 0) {
+        throw new Error(
+            'Version._init():\n' +
+            'parts cannot all be 0'
+        );
+    }
+    this._major = major;
+    this._minor = minor;
+    this._patch = patch;
+    Config.saves.version = this.asInteger();
+    return this;
+}
+
+s.version = new s.Version();
+/* twine-user-script #8: "0080-DebugController_.js" */
+/*Uses: standard.
+
+Builds the `DebugController` class and instantiates it. Then adds the
+`debugOn` boolean variable to `settings`, adds a toggle switch for it to
+the setting menu in the UI Bar, and binds the relevant methods to the UI
+toggle switch.
+
+Attributes:
+    s.debCon (DebugController): A `DebugController` instance for use by
+        other classes.
+    ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
+*/
+
+s.DebugController = function() {
+    /*The Debug Controller controls debug mode, a developer mode that
+    can be used to activate certain capabilities and functionalities not
+    present in ordinary gameplay. The state of debug mode is stored in
+    the boolean property `debugOn` in SugarCube's `settings` namespace,
+    which has `ss` as an alias.
+
+    Attributes:
+        _cheaCode (arr of str): An array of passage title strings.
+            Loading the nodes associated to these passage titles in the
+            given order toggles the state of debug mode.
+    */
+    this._cheatCode = [];
+    return this;    
+};
+
+s.DebugController.prototype.getCheat = function() {
+    /*Fetches the `_cheaCode` attribute.
+
+    Returns:
+        arr of str: The `_cheatCode` attribute of the calling
+            instance.
+    */
+    return this._cheatCode;
+}
+
+s.DebugController.prototype.setCheat = function(psgTitles) {
+    /*Sets the `_cheatCode` attribute.
+
+    Args:
+        psgTitles (arr of str): Assigned to the `_cheatCode` attribute
+            of the calling instance.
+
+    Returns:
+        DebugController: The calling instance.
+    */
+    this._cheatCode = psgTitles;
+    return this;
+}
+
+s.DebugController.prototype.checkUIBar = function() {
+    /*By default, SugarCube's UI Bar is only visible during debug mode.
+    This method ensures that the UI Bar is in the correct state.
+
+    Returns:
+        DebugController: The calling instance.
+    */
+    if (ss.debugOn) {
+      UIBar.unstow().show();
+    } else {
+      UIBar.hide().stow();
+    }
+    return this;
+}
+
+s.DebugController.prototype.onInit = function() {
+    /*Runs on story initialization.
+    */
+    this.checkUIBar();
+    return;
+}
+
+s.DebugController.prototype.onChange = function() {
+    /*Runs when the debug state changes. Refreshes the current passage
+    in order to display visible changes that might occur with the state
+    change.
+    */
+    this.checkUIBar();
+    Engine.show();
+    return;
+}
+
+s.DebugController.prototype.toggle = function() {
+    /*Toggles the debug state.
+
+    Returns:
+        DebugController: The calling instance.
+    */
+    ss.debugOn = !ss.debugOn;
+    Setting.save();
+    this.onChange();
+    return this;
+}
+
+s.debCon = new s.DebugController();
+
+Setting.addToggle('debugOn', {
+    label:      'debug mode',
+    onInit:     s.debCon.onInit.bind(s.debCon),
+    onChange:   s.debCon.onChange.bind(s.debCon)
+});
+/* twine-user-script #9: "0090-SavesManager_.js" */
+/*Uses: DebugController_, Version
+
+Builds and instantiates the `SavesManager` class. Then alters SC's
+default saves dialog.
+
+Attributes:
+    s.savesMgr (SavesManager): A `SavesManager` instance for use by
+        other classes.
+*/
+
+s.SavesManager = function(bkMarks, block) {
+    /*Manages the autosave, bookmark(s), and checkpoints.
+
+    Args:
+        bkMarks (int): Assigned to the `_bkMarks` attribute. Defaults to
+            1. Also synchronized to SC's maximum allowed save slots.
+        block (bool, optional): Assigned to the `_block` attribute.
+            Defaults to `false`.
+
+    Attributes:
+        _block (bool): If `true`, will block the loading of saves whose
+            version does not match the current version.
+        _bkMarks (int): The maximum number of allowed bookmarks.
+    */
+    this._block = (block == null) ? false : block;
+    this._bkMarks = (bkMarks == null) ? 0 : bkMarks;
+    this._setMaxSaves();
+    return this;    
+};
+
+s.SavesManager.prototype._setMaxSaves = function() {
+    /*Sets the maximum number of allows saves in SugarCube.
+    */
+    Config.saves.slots = this._bkMarks;
+}
+
+s.SavesManager.prototype.setBlock = function(block) {
+    /*Sets the `_block` attribute.
+
+    Args:
+        block (bool): Assigned to the `_block` attribute of the calling
+            instance.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    this._block = block;
+    return this;
+}
+
+s.SavesManager.prototype.setBkMarks = function(bkMarks) {
+    /*Sets the `_bkMarks` attribute and syncs it with SC's maximum
+    allowed save slots.
+
+    Args:
+        bkMarks (int): Assigned to the `_bkMarks` attribute of the
+            calling instance.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    this._bkMarks = bkMarks;
+    this._setMaxSaves();
+    return this;
+}
+
+s.SavesManager.prototype.get = function(num) {
+    /*Fetches save objects by their label in the saves dialog box. Saves
+    are numbered in the saves dialog box starting with 1.
+
+    Args:
+        num (int): The label whose save to retrieve. If 0, retrieves the
+            autosave.
+
+    Returns:
+        <<SC save obj>>: The retrieved save object.
+    */
+    if (num === 0) {
+        return Save.autosave.get();
+    } else {
+        return Save.slots.get(num - 1);
+    }
+}
+
+s.SavesManager.prototype.load = function(num) {
+    /*Loads save objects by their label in the saves dialog box. Saves
+    are numbered in the saves dialog box starting with 1.
+
+    Blocks the load if the calling instance's `_block` is true and the
+    version number of the save object doesn't match the current version
+    number.
+
+    Args:
+        num (int): The label whose save to load. If 0, loads the
+            autosave.
+    */
+    if (this._block) {
+        var verInt = this.get(num).version;
+        if (verInt !== s.version.asInteger()) {
+            var verStr = s.version.intToStr(verInt);
+            alert(
+                'save file is from version ' + verStr + ';\n' +
+                'current version is ' + s.version.asString() + ';\n' + 
+                'unable to load.'
+            );
+            return;
+        }
+    }
+    if (num === 0) {
+        Save.autosave.load();
+    } else {
+        Save.slots.load(num - 1);
+    }
+    return;
+}
+
+s.SavesManager.prototype.saveBkMark = function() {
+    /*If there is an empty bookmark slot, saves a bookmark after
+    confirming with the player; otherwise, alerts that no bookmarks
+    slots are available.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    var filled = Save.slots.count();
+    var empty = this._bkMarks - filled;
+    if (empty > 0) {
+        if (confirm(
+            'Save bookmark? You have ' + empty + ' of ' + this._bkMarks +
+                ' remaining.\n\n' +
+            '(If you just want to quit and resume later, you should not need ' +
+                'to save. See the info screen for details.)'
+        )) {
+            Save.slots.save(filled);
+        }
+    } else {
+        alert('All bookmarks already filled. Restart to delete them.');
+    }
+    return this;
+}
+
+s.savesMgr = new s.SavesManager();
+
+$(document).on(':dialogopened', function (ev) {
+    /*Alters SC's saves dialog by changing the title to 'Bookmarks',
+    showing only filled save slots, removing the autosave from the
+    display, removing the bottom button bar, and removing the delete
+    buttons if debug mode is not on.
+    */
+    if (Dialog.isOpen('saves')) {
+        $('#ui-dialog-title').html('Bookmarks');
+        $('#saves-list').find('tr:gt(' + Save.slots.count() + ')').remove();
+        $('tr:first-child').remove();
+        $(ev.target).children('ul.buttons').remove();
+        if (!ss.debugOn) {
+            $('button[id^="saves-delete"]').remove();
+        }
+    }
+});
+/* twine-user-script #10: "0100-InfoNode_.js" */
 /*Uses: Node_.js
 
 Builds the `InfoNode` class and adds a function to
@@ -965,7 +1411,7 @@ Object.defineProperty(s.InfoNode.prototype, 'constructor', {
 s.autosave.necessary.push(function() {
     return (!(s.getNode(passage()) instanceof s.InfoNode));
 });
-/* twine-user-script #8: "0080-Parser_.js" */
+/* twine-user-script #11: "0110-Parser_.js" */
 /*Uses: Node_.
 
 Build the `Parser` class and instantiates it.
@@ -1359,112 +1805,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 }
 
 st.parser = new s.Parser();
-/* twine-user-script #9: "0090-DebugController_.js" */
-/*Uses: standard.
-
-Builds the `DebugController` class and instantiates it. Then adds the
-`debugOn` boolean variable to `settings`, adds a toggle switch for it to
-the setting menu in the UI Bar, and binds the relevant methods to the UI
-toggle switch.
-
-Attributes:
-    s.debCon (DebugController): A `DebugController` instance for use by
-        other classes.
-    ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
-*/
-
-s.DebugController = function() {
-    /*The Debug Controller controls debug mode, a developer mode that
-    can be used to activate certain capabilities and functionalities not
-    present in ordinary gameplay. The state of debug mode is stored in
-    the boolean property `debugOn` in SugarCube's `settings` namespace,
-    which has `ss` as an alias.
-
-    Attributes:
-        _cheaCode (arr of str): An array of passage title strings.
-            Loading the nodes associated to these passage titles in the
-            given order toggles the state of debug mode.
-    */
-    this._cheatCode = [];
-    return this;    
-};
-
-s.DebugController.prototype.getCheat = function() {
-    /*Fetches the `_cheaCode` attribute.
-
-    Returns:
-        arr of str: The `_cheatCode` attribute of the calling
-            instance.
-    */
-    return this._cheatCode;
-}
-
-s.DebugController.prototype.setCheat = function(psgTitles) {
-    /*Sets the `_cheatCode` attribute.
-
-    Args:
-        psgTitles (arr of str): Assigned to the `_cheatCode` attribute
-            of the calling instance.
-
-    Returns:
-        DebugController: The calling instance.
-    */
-    this._cheatCode = psgTitles;
-    return this;
-}
-
-s.DebugController.prototype.checkUIBar = function() {
-    /*By default, SugarCube's UI Bar is only visible during debug mode.
-    This method ensures that the UI Bar is in the correct state.
-
-    Returns:
-        DebugController: The calling instance.
-    */
-    if (ss.debugOn) {
-      UIBar.unstow().show();
-    } else {
-      UIBar.hide().stow();
-    }
-    return this;
-}
-
-s.DebugController.prototype.onInit = function() {
-    /*Runs on story initialization.
-    */
-    this.checkUIBar();
-    return;
-}
-
-s.DebugController.prototype.onChange = function() {
-    /*Runs when the debug state changes. Refreshes the current passage
-    in order to display visible changes that might occur with the state
-    change.
-    */
-    this.checkUIBar();
-    Engine.show();
-    return;
-}
-
-s.DebugController.prototype.toggle = function() {
-    /*Toggles the debug state.
-
-    Returns:
-        DebugController: The calling instance.
-    */
-    ss.debugOn = !ss.debugOn;
-    Setting.save();
-    this.onChange();
-    return this;
-}
-
-s.debCon = new s.DebugController();
-
-Setting.addToggle('debugOn', {
-    label:      'debug mode',
-    onInit:     s.debCon.onInit.bind(s.debCon),
-    onChange:   s.debCon.onChange.bind(s.debCon)
-});
-/* twine-user-script #10: "0100-Page_.js" */
+/* twine-user-script #12: "0120-Page_.js" */
 /*Uses: InfoNode, Parser_, DebugController_.
 
 Builds the `Page` class, instantiates it, and creates functions for
@@ -2024,347 +2365,6 @@ Config.passages.descriptions = function() {
     var psg = st.page.innerPsg();
     return s.nodes.get(psg).getExcerpt();
 }
-/* twine-user-script #11: "0110-Version.js" */
-/*Uses: standard.
-
-Builds and instantiates the `Version` class.
-
-Attributes:
-    s.version (Version): A `Version` instance for other classes to use.
-*/
-
-s.Version = function(major, minor, patch) {
-    /*Keeps track of a three-part version number.
-
-    The version number is converted to a single integer and stored in
-    `Config.saves.version`.
-
-    Args:
-        major (int, optional): Assigned to `_major`. Defaults to 0.
-        minor (int, optional): Assigned to `_minor`. Defaults to 0.
-        patch (int, optional): Assigned to `_patch`. Defaults to 1, if
-            both `_major` and `_minor` are 0; otherwise, defaults to 0.
-
-    Attributes:
-        _major (int): A nonnegative integer less than 1000.
-        _minor (int): A nonnegative integer less than 1000.
-        _patch (int): A nonnegative integer less than 1000. Cannot be 0
-            if both `_major` and `_minor` are 0.
-    */
-    major = major || 0;
-    minor = minor || 0;
-    patch = patch || ((major === 0 && minor === 0) ? 1 : 0);
-    this.set(major, minor, patch);
-    return this;
-}
-
-s.Version.prototype.asArray = function() {
-    /*Fetches the version number as an array.
-
-    Returns:
-        arr of int: The version number as an array of three integers.
-    */
-    return [this._major, this._minor, this._patch];
-}
-
-s.Version.prototype._arrToStr = function(arr) {
-    /*Converts a version number formatted as an array to a string,
-    formatted with dot separators. If the `_patch` attribute is 0, it is
-    not included in the string.
-
-    Args:
-        arr (arr of int): The version number array to format.
-
-    Returns:
-        str: The formatted version number.
-    */
-    var string = arr[0].toString() + '.' + arr[1].toString();
-    if (arr[2] > 0) {
-        string += '.' + arr[2].toString();
-    }
-    return string;
-}
-
-s.Version.prototype._strToArr = function(string) {
-    /*Converts a version number formatted as a string to an array.
-
-    Args:
-        string (str): The string to convert.
-
-    Returns:
-        arr of int: The converted string.
-    */
-    var arr = string.split('.').map(function(part) {
-        return parseInt(part, 10);
-    });
-    if (arr.length === 2) {
-        arr.push(0);
-    }
-    return arr;
-}
-
-s.Version.prototype._arrToInt = function(arr) {
-    /*Converts a version number formatted as an array to a single
-    integer.
-
-    Args:
-        arr (arr of int): The version number array to convert.
-
-    Returns:
-        int: The converted integer.
-    */
-    return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
-}
-
-s.Version.prototype._intToArr = function(num) {
-    /*Converts a version number formatted as an integer to an array.
-
-    Args:
-        num (int): The version number integer to convert.
-
-    Returns:
-        arr of int: The converted array.
-    */
-    var arr = [0,0,0];
-    arr[2] = num % 1000;
-    num = (num - arr[2])/1000;
-    arr[1] = num % 1000;
-    arr[0] = (num - arr[1])/1000;
-    return arr;
-}
-
-s.Version.prototype.intToStr = function(num) {
-    /*Converts a version number formatted as an integer to a string with
-    dot separators.
-
-    Args:
-        num (int): The version number integer to convert.
-
-    Returns:
-        str: The converted string.
-    */
-    return this._arrToStr(this._intToArr(num));
-}
-
-s.Version.prototype.asString = function() {
-    /*Returns the version number as a string, with dot separators. If
-    the `_patch` attribute is 0, it is not included in the string.
-
-    Returns:
-        str: The version number as a string.
-    */
-    return this._arrToStr(this.asArray());
-}
-
-s.Version.prototype.asInteger = function() {
-    /*Fetches the version number as a potentially nine-digit integer.
-    For example, 32.3.86 corresponds to 32003086.
-
-    Returns:
-        int: The version number as an integer.
-    */
-    return this._arrToInt(this.asArray());
-}
-
-s.Version.prototype.set = function(major, minor, patch) {
-    /* Sets the version number.
-
-    Args:
-        major (int): Assigned to calling instance's `_major` attribute.
-        minor (int): Assigned to calling instance's `_minor` attribute.
-        patch (int): Assigned to calling instance's `_patch` attribute.
-
-    Returns:
-        Version: The calling instance.
-
-    Raises:
-        Error: If any parameter is not a nonnegative integer less than
-            1000, or if all parameters are 0.
-    */
-    for (var i = 0; i < 3; i++) {
-        if (arguments[i] !== parseInt(arguments[i], 10) ||
-            arguments[i] < 0 ||
-            arguments[i] > 999) {
-            throw new Error(
-                'Version._init():\n' +
-                'numbers must be nonnegative integers less than 1000'
-            );
-        }
-    }
-    if (major + minor + patch === 0) {
-        throw new Error(
-            'Version._init():\n' +
-            'parts cannot all be 0'
-        );
-    }
-    this._major = major;
-    this._minor = minor;
-    this._patch = patch;
-    Config.saves.version = this.asInteger();
-    return this;
-}
-
-s.version = new s.Version();
-/* twine-user-script #12: "0120-SavesManager_.js" */
-/*Uses: DebugController_, Version
-
-Builds and instantiates the `SavesManager` class. Then alters SC's
-default saves dialog.
-
-Attributes:
-    s.savesMgr (SavesManager): A `SavesManager` instance for use by
-        other classes.
-*/
-
-s.SavesManager = function(bkMarks, block) {
-    /*Manages the autosave, bookmark(s), and checkpoints.
-
-    Args:
-        bkMarks (int): Assigned to the `_bkMarks` attribute. Defaults to
-            1. Also synchronized to SC's maximum allowed save slots.
-        block (bool, optional): Assigned to the `_block` attribute.
-            Defaults to `false`.
-
-    Attributes:
-        _block (bool): If `true`, will block the loading of saves whose
-            version does not match the current version.
-        _bkMarks (int): The maximum number of allowed bookmarks.
-    */
-    this._block = (block == null) ? false : block;
-    this._bkMarks = (bkMarks == null) ? 0 : bkMarks;
-    this._setMaxSaves();
-    return this;    
-};
-
-s.SavesManager.prototype._setMaxSaves = function() {
-    /*Sets the maximum number of allows saves in SugarCube.
-    */
-    Config.saves.slots = this._bkMarks;
-}
-
-s.SavesManager.prototype.setBlock = function(block) {
-    /*Sets the `_block` attribute.
-
-    Args:
-        block (bool): Assigned to the `_block` attribute of the calling
-            instance.
-
-    Returns:
-        SavesManager: The calling instance.
-    */
-    this._block = block;
-    return this;
-}
-
-s.SavesManager.prototype.setBkMarks = function(bkMarks) {
-    /*Sets the `_bkMarks` attribute and syncs it with SC's maximum
-    allowed save slots.
-
-    Args:
-        bkMarks (int): Assigned to the `_bkMarks` attribute of the
-            calling instance.
-
-    Returns:
-        SavesManager: The calling instance.
-    */
-    this._bkMarks = bkMarks;
-    this._setMaxSaves();
-    return this;
-}
-
-s.SavesManager.prototype.get = function(num) {
-    /*Fetches save objects by their label in the saves dialog box. Saves
-    are numbered in the saves dialog box starting with 1.
-
-    Args:
-        num (int): The label whose save to retrieve. If 0, retrieves the
-            autosave.
-
-    Returns:
-        <<SC save obj>>: The retrieved save object.
-    */
-    if (num === 0) {
-        return Save.autosave.get();
-    } else {
-        return Save.slots.get(num - 1);
-    }
-}
-
-s.SavesManager.prototype.load = function(num) {
-    /*Loads save objects by their label in the saves dialog box. Saves
-    are numbered in the saves dialog box starting with 1.
-
-    Blocks the load if the calling instance's `_block` is true and the
-    version number of the save object doesn't match the current version
-    number.
-
-    Args:
-        num (int): The label whose save to load. If 0, loads the
-            autosave.
-    */
-    if (this._block) {
-        var verInt = this.get(num).version;
-        if (verInt !== s.version.asInteger()) {
-            var verStr = s.version.intToStr(verInt);
-            alert(
-                'save file is from version ' + verStr + ';\n' +
-                'current version is ' + s.version.asString() + ';\n' + 
-                'unable to load.'
-            );
-            return;
-        }
-    }
-    if (num === 0) {
-        Save.autosave.load();
-    } else {
-        Save.slots.load(num - 1);
-    }
-    return;
-}
-
-s.SavesManager.prototype.saveBkMark = function() {
-    /*If there is an empty bookmark slot, saves a bookmark after
-    confirming with the player; otherwise, alerts that no bookmarks
-    slots are available.
-
-    Returns:
-        SavesManager: The calling instance.
-    */
-    var filled = Save.slots.count();
-    var empty = this._bkMarks - filled;
-    if (empty > 0) {
-        if (confirm(
-            'Save bookmark? You have ' + empty + ' of ' + this._bkMarks +
-                ' remaining.\n\n' +
-            '(If you just want to quit and resume later, you should not need ' +
-                'to save. See the info screen for details.)'
-        )) {
-            Save.slots.save(filled);
-        }
-    } else {
-        alert('All bookmarks already filled. Restart to delete them.');
-    }
-    return this;
-}
-
-s.savesMgr = new s.SavesManager();
-
-$(document).on(':dialogopened', function (ev) {
-    /*Alters SC's saves dialog by changing the title to 'Bookmarks',
-    showing only filled save slots, removing the autosave from the
-    display, removing the bottom button bar, and removing the delete
-    buttons if debug mode is not on.
-    */
-    if (Dialog.isOpen('saves')) {
-        $('#ui-dialog-title').html('Bookmarks');
-        $('#saves-list').find('tr:gt(' + Save.slots.count() + ')').remove();
-        $('tr:first-child').remove();
-        $(ev.target).children('ul.buttons').remove();
-        if (!ss.debugOn) {
-            $('button[id^="saves-delete"]').remove();
-        }
-    }
-});
 /* twine-user-script #13: "0130-Menu_.js" */
 /*Uses: SavesManager_, ActionList, Page_.
 
