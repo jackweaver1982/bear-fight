@@ -9,6 +9,7 @@ Attributes:
     s.debCon (DebugController): A `DebugController` instance for use by
         other classes.
     ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
+
 */
 
 s.DebugController = function() {
@@ -22,7 +23,9 @@ s.DebugController = function() {
         _cheaCode (arr of str): An array of passage title strings.
             Loading the nodes associated to these passage titles in the
             given order toggles the state of debug mode.
+
     */
+    
     this._cheatCode = [];
     return this;    
 };

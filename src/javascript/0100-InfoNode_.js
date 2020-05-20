@@ -3,6 +3,7 @@
 Builds the `InfoNode` class and adds a function to
 `s.autosave.necessary`, prevent autosave from occurring when loading an
 InfoNode.
+
 */
 
 s.InfoNode = function(psgTitle, checkFunc) {
@@ -40,7 +41,9 @@ s.InfoNode = function(psgTitle, checkFunc) {
         _outOfChar (bool): `true` if the node's content lies outside the
             narrative flow of the story (e.g., help screen or character
             sheet). Defaults to `true`.
+
     */
+    
     s.Node.call(this, psgTitle);
 
     this._outOfChar = true;

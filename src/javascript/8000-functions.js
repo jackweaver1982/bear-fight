@@ -2,71 +2,60 @@
 
 Defines a collection of useful functions for designing a story with the
 node system.
+
 */
 
-s.addLink = function(startPsgTitle, text, endPsgTitle,
-                      func, checkFunc, embed, nobreak) {
+s.getAction = function(actionPsg, actionText) {
+    /*Get an `Action` object.
+
+    Args:
+        actionPsg (str): The title of the passage containing the action.
+        actionText (str): The text of the action to get.
+
+    Returns:
+        Action: The action object determined by the arguments.
+    */
+    return s.getNode(actionPsg).getAction(actionText);
+}
+
+s.addLink = function(
+        startPsg, text, func, targetPsg, checkFunc, embed, nobreak
+    ) {
     /*Creates a link (i.e. an action with a single outcome) in the node
     associated with the given passage title.
 
     Args:
-        startPsgTitle (str): The title of the passage on which to create
+        startPsg (str): The title of the passage on which to create
             the link. If this passage is not associated to a node, a
             new node will be created and associated with it.
         text (str): The text of the link.
-        endPsgTitle (str, optional): If provided, the link will load the
-            node associated with this passage title. If no such node
-            exists, one will be created.
         func (func, optional): If provided, this function will be
             carried out just prior to loading the node associated with
-            `endPsgTitle`.
+            `targetPsg`.
+        targetPsg (str, optional): If provided, the link will load the
+            node associated with this passage title. If no such node
+            exists, one will be created.
         checkFunc (func or bool, optional): Used to determine whether
             the link should be displayed. Defaults to `true`.
         embed (bool, optional): If `true`, the node associated with 
-            `endPsgTitle` will be embedded in the currently loaded page.
+            `targetPsg` will be embedded in the currently loaded page.
             Defaults to the value of `st.page._continuous`.
         nobreak (bool, optional): Defaults to false. Set to true to omit
             the scene break when embedding.
 
     Raises:
-        Error: If neither the `endPsgTitle` nor the `func` arguments are
-            provided..
+        Error: If neither the `targetPsg` nor the `func` arguments are
+            provided.
     */
-    if (endPsgTitle == null && func == null) {
-        throw new Error(
-            'addLink():\n' +
-            'link must load a node or execute a function'
-        );
-    }
-
-    var startNode = s.nodes.get(Story.get(startPsgTitle));
+    var startNode = s.getNode(startPsg);
     if (startNode === undefined) {
-        startNode = new s.Node(startPsgTitle);
+        startNode = new s.Node(startPsg);
     }
 
-    var targetNode;
-    if (endPsgTitle != null) {
-        targetNode = s.nodes.get(Story.get(endPsgTitle));
-        if (targetNode === undefined) {
-            targetNode = new s.Node(endPsgTitle);
-        }
-    }
+    var action = new s.Action(text, checkFunc);
 
-    var carryOutFunc;
-    if (endPsgTitle == null) {
-        carryOutFunc = func;
-    } else if (func == null) {
-        carryOutFunc = function() {
-            st.page.load(targetNode, embed, nobreak);
-        }
-    } else {
-        carryOutFunc = function() {
-            func();
-            st.page.load(targetNode, embed, nobreak);
-        }
-    }
-
-    startNode.addAction(text, carryOutFunc, checkFunc);
+    startNode.push(action);
+    action.addOutcome(func, targetPsg, null, embed, nobreak);
     return;
 }
 

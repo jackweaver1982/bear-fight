@@ -9,6 +9,7 @@ Attributes:
         titles.
     s.specialPsgs (arr of str): List of titles of SC special passages to
         be excluded from use as nodes.
+
 */
 
 s.nodes = new Map();
@@ -79,6 +80,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
         _outOfChar (bool): `true` if the node's content lies outside the
             narrative flow of the story (e.g., help screen or character
             sheet).
+
     */
 
     s.ActionList.call(this);

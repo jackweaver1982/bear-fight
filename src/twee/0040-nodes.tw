@@ -35,6 +35,9 @@
 
 {?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
 
+:: Cat involved
+<p>You can see scratches on the neck of the victim, like from a small animal. //A cat?// you wonder. There are more scratches on his hands and wrists. Looking closer, you see fur on his collar and sleeves. Glancing around the room, though, you see no trace of a cat.</p>
+
 :: Taking knife
 <p>You take the knife and carefully slide it under your belt. You may need this for later.</p>
 

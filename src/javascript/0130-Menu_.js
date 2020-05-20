@@ -9,6 +9,7 @@ of the menu.
 
 Attributes:
     s.menu (Menu): A `Menu` instance for use by other classes.
+
 */
 
 s.Menu = function() {
@@ -23,7 +24,9 @@ s.Menu = function() {
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
             array to keep fixed in place. Defaults to 3.
+
     */
+    
     s.ActionList.call(this, 3);
     this.addAction(
         'restart',

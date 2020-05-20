@@ -1,6 +1,7 @@
 /*Uses: List, Action.
 
 Builds the `ActionList` class.
+
 */
 
 s.ActionList = function(fixedEnd) {
@@ -15,7 +16,9 @@ s.ActionList = function(fixedEnd) {
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
             array to keep fixed in place.
+
     */
+    
     s.List.call(this, fixedEnd);
     return this;
 };
@@ -41,8 +44,8 @@ s.ActionList.prototype._verify = function(obj) {
 }
 
 s.ActionList.prototype.addAction = function(
-    text, carryOutFunc, checkFunc, index
-) {
+        text, carryOutFunc, checkFunc, index
+    ) {
     /*This method is for adding a simple action with one outcome to the
     list.
 

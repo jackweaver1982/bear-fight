@@ -1,6 +1,7 @@
 /*Uses: standard.
 
 Builds the `Outcome` class.
+
 */
 
 s.Outcome = function(func) {
@@ -13,7 +14,9 @@ s.Outcome = function(func) {
     Attributes:
         _userScript (func): The function to call when the outcome is
             carried out. Should take no parameters.
+
     */
+    
     this._userScript = func;
     return this;
 }

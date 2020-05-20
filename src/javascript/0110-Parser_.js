@@ -4,6 +4,7 @@ Build the `Parser` class and instantiates it.
 
 Attributes:
     st.parser (Parser): A `Parser` instance for use by other classes.
+
 */
 
 s.Parser = function() {
@@ -23,6 +24,7 @@ s.Parser = function() {
         _textSubMap (map of str to arr of (str or func)): Maps passage
             titles to arrays of text subs. A text sub can be a simple
             string or a functions returning a string.
+            
     */
 
     this._textSubMap = new Map();
@@ -367,7 +369,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
             value of 0 denotes the current moment. A value of n > 0
             means to go back n moments in SC's history.
     */
-    var node = s.nodes.get(Story.get(psgTitle));
+    var node = s.getNode(psgTitle);
     if (node === undefined) {
         return text;
     }

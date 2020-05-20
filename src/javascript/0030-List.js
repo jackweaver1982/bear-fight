@@ -1,6 +1,7 @@
 /*Uses: standard
 
 Creates the `List` class.
+
 */
 
 s.List = function(fixedEnd) {
@@ -18,7 +19,9 @@ s.List = function(fixedEnd) {
         _array (arr): The embedded array.
         _fixedEnd (int): Indicates how many elements at the end of the
             array to keep fixed in place.
+
     */
+
     this._array = [];
     if (fixedEnd === undefined) {
         this._fixedEnd = 0;

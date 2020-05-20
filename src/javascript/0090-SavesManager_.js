@@ -6,6 +6,7 @@ default saves dialog.
 Attributes:
     s.savesMgr (SavesManager): A `SavesManager` instance for use by
         other classes.
+
 */
 
 s.SavesManager = function(bkMarks, block) {
@@ -21,7 +22,9 @@ s.SavesManager = function(bkMarks, block) {
         _block (bool): If `true`, will block the loading of saves whose
             version does not match the current version.
         _bkMarks (int): The maximum number of allowed bookmarks.
+
     */
+    
     this._block = (block == null) ? false : block;
     this._bkMarks = (bkMarks == null) ? 0 : bkMarks;
     this._setMaxSaves();

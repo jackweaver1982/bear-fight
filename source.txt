@@ -212,6 +212,7 @@ s.autosave.necessary.push(function() {
 /*Uses: standard.
 
 Builds the `Outcome` class.
+
 */
 
 s.Outcome = function(func) {
@@ -224,7 +225,9 @@ s.Outcome = function(func) {
     Attributes:
         _userScript (func): The function to call when the outcome is
             carried out. Should take no parameters.
+
     */
+    
     this._userScript = func;
     return this;
 }
@@ -246,6 +249,7 @@ s.Outcome.prototype.carryOut = function() {
 /*Uses: standard
 
 Creates the `List` class.
+
 */
 
 s.List = function(fixedEnd) {
@@ -263,7 +267,9 @@ s.List = function(fixedEnd) {
         _array (arr): The embedded array.
         _fixedEnd (int): Indicates how many elements at the end of the
             array to keep fixed in place.
+
     */
+
     this._array = [];
     if (fixedEnd === undefined) {
         this._fixedEnd = 0;
@@ -399,6 +405,7 @@ s.List.prototype.length = function() {
 /*Uses: List.
 
 Builds the `Action` class.
+
 */
 
 s.Action = function(text, checkFunc, chooseFunc) {
@@ -435,7 +442,9 @@ s.Action = function(text, checkFunc, chooseFunc) {
             from the action.
         _align (str): The CSS text-align value for the link associated
             with this action. Defaults to 'left'.
+
     */
+
     s.List.call(this);
     this._displayText = text;
 
@@ -504,6 +513,21 @@ s.Action.prototype.setAlign = function(align) {
     return this;
 }
 
+s.Action.prototype.setChoose = function(chooseFunc) {
+    /*Sets the `_userScriptChoose` attribute.
+
+    Args:
+        chooseFunc (func, optional): The function to assign to the
+            calling instance's `_userScriptChoose` attribute. Defaults
+            to a function that returns the first element in the `_array`
+            attribute.
+    */
+    this._userScriptChoose = chooseFunc || function() {
+        return this._array[0];
+    }
+    return this;
+}
+
 s.Action.prototype.check = function() {
     /*Uses the `_userScriptCheck` attribute to check whether the
     action's link should be displayed.
@@ -525,8 +549,8 @@ s.Action.prototype.choose = function() {
     the action.
 
     Returns:
-        Outcome: `null`, if the action is empty, otherwise the return
-            value of `_userScriptCheck`.
+        Outcome: `null`, if the action is empty, otherwise return the
+            value of `_userScriptChoose`.
     */
     if (this.length() === 0) {
         return null;
@@ -534,10 +558,84 @@ s.Action.prototype.choose = function() {
         return this._userScriptChoose();
     }
 }
+
+s.Action.prototype.addOutcome = function(
+        func, targetPsg, chooseFunc, embed, nobreak
+    ) {
+    /*Adds an outcome to the calling instance.
+
+    Args:
+        func (func, optional): If provided, this function will be
+            carried out just prior to loading the node associated with
+            `targetPsg`.
+        targetPsg (str, optional): The title of a passage. If provided,
+            the outcome will end by loading the node associated with
+            this passage. If no such node exists, one will be created.
+        chooseFunc (func or string, optional): If a function is
+            provided, will replace the calling instance's current
+            `_userScriptChoose` attribute. If the string, 'random', is
+            provided, it will be converted to a function that chooses
+            an outcome uniformly from all possible outcomes.
+        embed (bool, optional): If `true`, the node associated with 
+            `endPsgTitle` will be embedded in the currently loaded page.
+            Defaults to the value of `st.page._continuous`.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break when embedding.
+
+    Returns:
+        Action: The calling instance.
+
+    Raises:
+        Error: If neither the `targetPsg` nor the `func` arguments are
+            provided.
+    */
+    if (targetPsg == null && func == null) {
+        throw new Error(
+            's.addOutcome():\n' +
+            'outcome must load a node or execute a function'
+        );
+    }
+
+    if (chooseFunc === 'random') {
+        chooseFunc = function() {
+            return this._array.random();
+        }
+    }
+
+    var targetNode;
+    if (targetPsg != null) {
+        targetNode = s.getNode(targetPsg);
+        if (targetNode === undefined) {
+            targetNode = new s.Node(targetPsg);
+        }
+    }
+
+    var carryOutFunc;
+    if (targetPsg == null) {
+        carryOutFunc = func;
+    } else if (func == null) {
+        carryOutFunc = function() {
+            st.page.load(targetNode, embed, nobreak);
+        }
+    } else {
+        carryOutFunc = function() {
+            func();
+            st.page.load(targetNode, embed, nobreak);
+        }
+    }
+
+    this.push(new s.Outcome(carryOutFunc));
+    if (chooseFunc != null) {
+        this.setChoose(chooseFunc);
+    }
+
+    return this;
+}
 /* twine-user-script #5: "0050-ActionList.js" */
 /*Uses: List, Action.
 
 Builds the `ActionList` class.
+
 */
 
 s.ActionList = function(fixedEnd) {
@@ -552,7 +650,9 @@ s.ActionList = function(fixedEnd) {
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
             array to keep fixed in place.
+
     */
+    
     s.List.call(this, fixedEnd);
     return this;
 };
@@ -578,8 +678,8 @@ s.ActionList.prototype._verify = function(obj) {
 }
 
 s.ActionList.prototype.addAction = function(
-    text, carryOutFunc, checkFunc, index
-) {
+        text, carryOutFunc, checkFunc, index
+    ) {
     /*This method is for adding a simple action with one outcome to the
     list.
 
@@ -638,6 +738,7 @@ Attributes:
         titles.
     s.specialPsgs (arr of str): List of titles of SC special passages to
         be excluded from use as nodes.
+
 */
 
 s.nodes = new Map();
@@ -708,6 +809,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
         _outOfChar (bool): `true` if the node's content lies outside the
             narrative flow of the story (e.g., help screen or character
             sheet).
+
     */
 
     s.ActionList.call(this);
@@ -825,6 +927,7 @@ Builds and instantiates the `Version` class.
 
 Attributes:
     s.version (Version): A `Version` instance for other classes to use.
+
 */
 
 s.Version = function(major, minor, patch) {
@@ -844,7 +947,9 @@ s.Version = function(major, minor, patch) {
         _minor (int): A nonnegative integer less than 1000.
         _patch (int): A nonnegative integer less than 1000. Cannot be 0
             if both `_major` and `_minor` are 0.
+
     */
+
     major = major || 0;
     minor = minor || 0;
     patch = patch || ((major === 0 && minor === 0) ? 1 : 0);
@@ -1011,6 +1116,7 @@ Attributes:
     s.debCon (DebugController): A `DebugController` instance for use by
         other classes.
     ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
+
 */
 
 s.DebugController = function() {
@@ -1024,7 +1130,9 @@ s.DebugController = function() {
         _cheaCode (arr of str): An array of passage title strings.
             Loading the nodes associated to these passage titles in the
             given order toggles the state of debug mode.
+
     */
+    
     this._cheatCode = [];
     return this;    
 };
@@ -1113,6 +1221,7 @@ default saves dialog.
 Attributes:
     s.savesMgr (SavesManager): A `SavesManager` instance for use by
         other classes.
+
 */
 
 s.SavesManager = function(bkMarks, block) {
@@ -1128,7 +1237,9 @@ s.SavesManager = function(bkMarks, block) {
         _block (bool): If `true`, will block the loading of saves whose
             version does not match the current version.
         _bkMarks (int): The maximum number of allowed bookmarks.
+
     */
+    
     this._block = (block == null) ? false : block;
     this._bkMarks = (bkMarks == null) ? 0 : bkMarks;
     this._setMaxSaves();
@@ -1270,6 +1381,7 @@ $(document).on(':dialogopened', function (ev) {
 Builds the `InfoNode` class and adds a function to
 `s.autosave.necessary`, prevent autosave from occurring when loading an
 InfoNode.
+
 */
 
 s.InfoNode = function(psgTitle, checkFunc) {
@@ -1307,7 +1419,9 @@ s.InfoNode = function(psgTitle, checkFunc) {
         _outOfChar (bool): `true` if the node's content lies outside the
             narrative flow of the story (e.g., help screen or character
             sheet). Defaults to `true`.
+
     */
+    
     s.Node.call(this, psgTitle);
 
     this._outOfChar = true;
@@ -1334,6 +1448,7 @@ Build the `Parser` class and instantiates it.
 
 Attributes:
     st.parser (Parser): A `Parser` instance for use by other classes.
+
 */
 
 s.Parser = function() {
@@ -1353,6 +1468,7 @@ s.Parser = function() {
         _textSubMap (map of str to arr of (str or func)): Maps passage
             titles to arrays of text subs. A text sub can be a simple
             string or a functions returning a string.
+            
     */
 
     this._textSubMap = new Map();
@@ -1697,7 +1813,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
             value of 0 denotes the current moment. A value of n > 0
             means to go back n moments in SC's history.
     */
-    var node = s.nodes.get(Story.get(psgTitle));
+    var node = s.getNode(psgTitle);
     if (node === undefined) {
         return text;
     }
@@ -1734,6 +1850,7 @@ Attributes:
         passage, and the second element of which is a function to apply
         to that passage's text before SC's text processing. The function
         should take a string as an argument and return a string.
+
 */
 
 s.Page = function() {
@@ -1761,7 +1878,9 @@ s.Page = function() {
             separator between embedded passages)
         _continuous (bool): Defaults to `false`. Set to `true` to make
             the passages embed by default.
+
     */
+    
     this._embeddedPsgs = [];
     this._noBreakFlags = [];
     this._continuous = false;
@@ -1946,6 +2065,37 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     return this;
 }
 
+s.Page.prototype.takeAction = function(psgTitle, index) {
+    /*Called when the player selects an action from a node. Uses
+    `Page.ready()` to check if the current passage corresponds to a
+    node. Before carrying out the resulting outcome, adds to the node
+    history (i.e. adds to `st.path`).
+
+    Args:
+        psgTitle (str): The title of the passage whose node contains the
+            actions to choose from.
+        index (integer): The index of the action to take. (Recall that a
+            node is a list of actions.)
+    */
+    this.ready();
+
+    var psg = Story.get(psgTitle);
+    var node = s.nodes.get(psg);
+    var action = node.get(index);
+    var outcome = action.choose();
+    st.path.addEdge(
+        node.length(),
+        index,
+        action.length(),
+        action.indexOf(outcome)
+    )
+
+    st.path.view() // temporary debugging code
+
+    return outcome.carryOut();
+
+}
+
 s.Page.prototype.insertActions = function(psg) {
     /*Takes the given SC Passage object, finds the node associated with
     it, and retrieves the actions from that node. For each action,
@@ -1978,9 +2128,10 @@ s.Page.prototype.insertActions = function(psg) {
         if (action.check()) {
             $('#' + psgId + '-actions').wiki(
                 '<p style="text-align:' + action.getAlign() + '">' +
-                    '<<link "' + action.getText() + '">>'+
-                        '<<run s.nodes.get(Story.get("' + psgTitle + '"))' +
-                        '.get(' + i + ').choose().carryOut()>>' +
+                    '<<link "' + action.getText() + '">>' +
+                        '<<run st.page.takeAction(' +
+                            '"' + psgTitle + '", ' + i +
+                        ')>>' +
                     '<</link>>' +
                 '</p>'
             );
@@ -2293,6 +2444,7 @@ of the menu.
 
 Attributes:
     s.menu (Menu): A `Menu` instance for use by other classes.
+
 */
 
 s.Menu = function() {
@@ -2307,7 +2459,9 @@ s.Menu = function() {
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
             array to keep fixed in place. Defaults to 3.
+
     */
+    
     s.ActionList.call(this, 3);
     this.addAction(
         'restart',
@@ -2589,6 +2743,7 @@ Builds and instantiates the `Path` class.
 
 Attributes:
     st.path (Path): A `Path` instance for use by other classes.
+
 */
 
 s.Path = function() {
@@ -2613,7 +2768,9 @@ s.Path = function() {
             outcomes it contains.
         _outcomes (arr of int): Lists the index of the outcome that
             resulted from each choice.
+
     */
+    
     this._nodeLengths = [];
     this._axnChoices = [];
     this._axnLengths = [];
@@ -2644,77 +2801,105 @@ s.Path.prototype.toJSON = function () {
     );
 };
 
+s.Path.prototype.addEdge = function(
+        numActions, actionIndex, numOutcomes, outcomeIndex
+    ) {
+    /*Adds a new "edge" to the path. That is, adds a new element to each
+    of the embedded arrays. Called when the player takes an action.
+
+    Args:
+        numActions (int): The length of the node from which the player
+            selected an action.
+        actionIndex (int): The index of the action the player took.
+        numOutcomes (int): The length of the action the player took.
+        outcomeIndex (int): The index of the outcome that resulted from
+            the player's selected action.
+
+    Returns:
+        Path: The calling instance.
+    */
+    this._nodeLengths.push(numActions);
+    this._axnChoices.push(actionIndex);
+    this._axnLengths.push(numOutcomes);
+    this._outcomes.push(outcomeIndex);
+    return this;
+}
+
+s.Path.prototype.view = function() {
+    /*Temporary method for viewing the path in the console.
+    */
+    var pathStr = '';
+    for (var i = 0; i < this._nodeLengths.length; i++) {
+        pathStr += (
+            'took action ' +
+            (this._axnChoices[i]+1) + ' of ' + this._nodeLengths[i] +
+            '; got outcome ' +
+            (this._outcomes[i]+1) + ' of ' + this._axnLengths[i] + '\n'
+        );
+    }
+    console.log(pathStr);
+}
+
 st.path = new s.Path();
 /* twine-user-script #15: "8000-functions.js" */
 /*Uses: Page_.
 
 Defines a collection of useful functions for designing a story with the
 node system.
+
 */
 
-s.addLink = function(startPsgTitle, text, endPsgTitle,
-                      func, checkFunc, embed, nobreak) {
+s.getAction = function(actionPsg, actionText) {
+    /*Get an `Action` object.
+
+    Args:
+        actionPsg (str): The title of the passage containing the action.
+        actionText (str): The text of the action to get.
+
+    Returns:
+        Action: The action object determined by the arguments.
+    */
+    return s.getNode(actionPsg).getAction(actionText);
+}
+
+s.addLink = function(
+        startPsg, text, func, targetPsg, checkFunc, embed, nobreak
+    ) {
     /*Creates a link (i.e. an action with a single outcome) in the node
     associated with the given passage title.
 
     Args:
-        startPsgTitle (str): The title of the passage on which to create
+        startPsg (str): The title of the passage on which to create
             the link. If this passage is not associated to a node, a
             new node will be created and associated with it.
         text (str): The text of the link.
-        endPsgTitle (str, optional): If provided, the link will load the
-            node associated with this passage title. If no such node
-            exists, one will be created.
         func (func, optional): If provided, this function will be
             carried out just prior to loading the node associated with
-            `endPsgTitle`.
+            `targetPsg`.
+        targetPsg (str, optional): If provided, the link will load the
+            node associated with this passage title. If no such node
+            exists, one will be created.
         checkFunc (func or bool, optional): Used to determine whether
             the link should be displayed. Defaults to `true`.
         embed (bool, optional): If `true`, the node associated with 
-            `endPsgTitle` will be embedded in the currently loaded page.
+            `targetPsg` will be embedded in the currently loaded page.
             Defaults to the value of `st.page._continuous`.
         nobreak (bool, optional): Defaults to false. Set to true to omit
             the scene break when embedding.
 
     Raises:
-        Error: If neither the `endPsgTitle` nor the `func` arguments are
-            provided..
+        Error: If neither the `targetPsg` nor the `func` arguments are
+            provided.
     */
-    if (endPsgTitle == null && func == null) {
-        throw new Error(
-            'addLink():\n' +
-            'link must load a node or execute a function'
-        );
-    }
-
-    var startNode = s.nodes.get(Story.get(startPsgTitle));
+    var startNode = s.getNode(startPsg);
     if (startNode === undefined) {
-        startNode = new s.Node(startPsgTitle);
+        startNode = new s.Node(startPsg);
     }
 
-    var targetNode;
-    if (endPsgTitle != null) {
-        targetNode = s.nodes.get(Story.get(endPsgTitle));
-        if (targetNode === undefined) {
-            targetNode = new s.Node(endPsgTitle);
-        }
-    }
+    var action = new s.Action(text, checkFunc);
 
-    var carryOutFunc;
-    if (endPsgTitle == null) {
-        carryOutFunc = func;
-    } else if (func == null) {
-        carryOutFunc = function() {
-            st.page.load(targetNode, embed, nobreak);
-        }
-    } else {
-        carryOutFunc = function() {
-            func();
-            st.page.load(targetNode, embed, nobreak);
-        }
-    }
-
-    startNode.addAction(text, carryOutFunc, checkFunc);
+    startNode.push(action);
+    action.addOutcome(func, targetPsg, null, embed, nobreak);
     return;
 }
 
@@ -2774,7 +2959,7 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     return;
 }
 /* twine-user-script #16: "9000-main.js" */
-s.version.set(0,5,1);
+s.version.set(0,5,2);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
@@ -2792,62 +2977,83 @@ s.debCon.setCheat([
 ]);
 
 // make initial links
-s.addLink('intro', 'continue', 'RNG warning');
+s.addLink('intro', 'continue', null, 'RNG warning');
 s.addLink(
-    'RNG warning', 'got it', 'who you are', null, null, false // don't embed
+    'RNG warning', 'got it', null, 'who you are', null, false // don't embed
 );
-s.addLink('who you are', 'take a look around', 'bedroom');
+s.addLink('who you are', 'take a look around', null, 'bedroom');
 
 // bedroom actions
 
     // take the knife
-    s.addLink('bedroom', 'take the knife', 'Taking knife', function() {
-        // carry out
-        v.containedIn.delete('knife');
-        v.inventory.add('knife');
-    }, function() {
-        // check
-        return (v.containedIn.get('knife') === 'bedroom');
-    }, true, true); // embed with scene break
+    s.addLink(
+        'bedroom',
+        'take the knife',
+        function() {
+            // carry out
+            v.containedIn.delete('knife');
+            v.inventory.add('knife');
+        },
+        'Taking knife',
+        function() {
+            // check
+            return (v.containedIn.get('knife') === 'bedroom');
+        },
+        true, true // embed with scene break
+    );
 
     // search the body
     s.setSubCount('Cops bust in', 2);
-    s.addLink('bedroom', 'search the body', 'Cops bust in', function() {
-        // carry out
-        v.body.searched = true;
-        v.pounding = false;
-        st.parser.setSubs('Cops bust in', [
-            '',
+    s.addLink(
+        'bedroom',
+        'search the body',
+        function() {
+            // carry out
+            v.body.searched = true;
+            v.pounding = false;
+            st.parser.setSubs(
+                'Cops bust in',
+                [
+                    '',
 
-            'As you bend down to take a closer look at the body, ' +
-            'the bedroom door bursts open. '
-        ]);
-    }, function() {
-        // check
-        return !v.body.searched;
-    });
+                    'As you bend down to take a closer look at the body, ' +
+                    'the bedroom door bursts open. '
+                ]
+            );
+        },
+        'Cops bust in',
+        function() {
+            // check
+            return !v.body.searched;
+        }
+    );
+    s.getAction('bedroom', 'search the body').addOutcome(
+        null,
+        'Cat involved',
+        'random'
+    );
 
-    s.addLink('bedroom', 'mark body as searched', null, function() {
-        v.body.searched = true;
-        State.create(State.passage);
-        st.page.refreshActions();
-    }, function() {
-        return !v.body.searched;
-    });
+    // s.addLink('bedroom', 'mark body as searched', null, function() {
+    //     v.body.searched = true;
+    //     State.create(State.passage);
+    //     st.page.refreshActions();
+    // }, function() {
+    //     return !v.body.searched;
+    // });
 
-    s.addLink('bedroom', 'mark body as not searched', null, function() {
-        v.body.searched = false;
-        State.create(State.passage);
-        st.page.refreshActions();
-    }, function() {
-        return v.body.searched;
-    });
+    // s.addLink('bedroom', 'mark body as not searched', null, function() {
+    //     v.body.searched = false;
+    //     State.create(State.passage);
+    //     st.page.refreshActions();
+    // }, function() {
+    //     return v.body.searched;
+    // });
 
 // Taking knife actions
 s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
-s.addLink('Cops bust in', 'continue', 'Next');
+s.addLink('Cops bust in', 'continue', null, 'Next');
 /* twine-user-script #17: "Story JavaScript" */
 
 
@@ -2961,6 +3167,10 @@ Story Caption
 <p>{1}Three men rush in. "Get down on the ground!" one shouts. <<if $inventory.has("knife")>>"He's got a knife!" yells another.<</if>> They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are uniformed cops.</p>
 
 {?A|The detective doesn't move. He doesn't blink. He just stands there scowling, waiting for you to make a move.}
+
+
+:: Cat involved
+<p>You can see scratches on the neck of the victim, like from a small animal. //A cat?// you wonder. There are more scratches on his hands and wrists. Looking closer, you see fur on his collar and sleeves. Glancing around the room, though, you see no trace of a cat.</p>
 
 
 :: Taking knife

@@ -4,6 +4,14 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.2
+
+* Added `setChoose()` and `addOutcome()` methods to `Action`.
+* Added `takeAction()` method to `Page`; edited `Page.insertActions()` to use the new method.
+* Added `addEdge()` and `view()` methods to `Path`.
+* Added `s.getAction()` function.
+* Edited `s.addLink()` to use `Action.addOutcome()`.
+
 ## Version 0.5.1
 
 * Created the `Path` class with attributes `_nodeLengths`, `_axnChoices`, `_axnLengths`, and `_outcomes`. Created an instance, `_st.path`.

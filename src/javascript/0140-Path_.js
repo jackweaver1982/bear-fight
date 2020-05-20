@@ -4,6 +4,7 @@ Builds and instantiates the `Path` class.
 
 Attributes:
     st.path (Path): A `Path` instance for use by other classes.
+
 */
 
 s.Path = function() {
@@ -28,7 +29,9 @@ s.Path = function() {
             outcomes it contains.
         _outcomes (arr of int): Lists the index of the outcome that
             resulted from each choice.
+
     */
+    
     this._nodeLengths = [];
     this._axnChoices = [];
     this._axnLengths = [];
@@ -58,5 +61,44 @@ s.Path.prototype.toJSON = function () {
         '(new s.Path())._init($ReviveData$)', newPC
     );
 };
+
+s.Path.prototype.addEdge = function(
+        numActions, actionIndex, numOutcomes, outcomeIndex
+    ) {
+    /*Adds a new "edge" to the path. That is, adds a new element to each
+    of the embedded arrays. Called when the player takes an action.
+
+    Args:
+        numActions (int): The length of the node from which the player
+            selected an action.
+        actionIndex (int): The index of the action the player took.
+        numOutcomes (int): The length of the action the player took.
+        outcomeIndex (int): The index of the outcome that resulted from
+            the player's selected action.
+
+    Returns:
+        Path: The calling instance.
+    */
+    this._nodeLengths.push(numActions);
+    this._axnChoices.push(actionIndex);
+    this._axnLengths.push(numOutcomes);
+    this._outcomes.push(outcomeIndex);
+    return this;
+}
+
+s.Path.prototype.view = function() {
+    /*Temporary method for viewing the path in the console.
+    */
+    var pathStr = '';
+    for (var i = 0; i < this._nodeLengths.length; i++) {
+        pathStr += (
+            'took action ' +
+            (this._axnChoices[i]+1) + ' of ' + this._nodeLengths[i] +
+            '; got outcome ' +
+            (this._outcomes[i]+1) + ' of ' + this._axnLengths[i] + '\n'
+        );
+    }
+    console.log(pathStr);
+}
 
 st.path = new s.Path();

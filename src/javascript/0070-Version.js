@@ -4,6 +4,7 @@ Builds and instantiates the `Version` class.
 
 Attributes:
     s.version (Version): A `Version` instance for other classes to use.
+
 */
 
 s.Version = function(major, minor, patch) {
@@ -23,7 +24,9 @@ s.Version = function(major, minor, patch) {
         _minor (int): A nonnegative integer less than 1000.
         _patch (int): A nonnegative integer less than 1000. Cannot be 0
             if both `_major` and `_minor` are 0.
+
     */
+
     major = major || 0;
     minor = minor || 0;
     patch = patch || ((major === 0 && minor === 0) ? 1 : 0);

@@ -10,6 +10,7 @@ Attributes:
         passage, and the second element of which is a function to apply
         to that passage's text before SC's text processing. The function
         should take a string as an argument and return a string.
+
 */
 
 s.Page = function() {
@@ -37,7 +38,9 @@ s.Page = function() {
             separator between embedded passages)
         _continuous (bool): Defaults to `false`. Set to `true` to make
             the passages embed by default.
+
     */
+    
     this._embeddedPsgs = [];
     this._noBreakFlags = [];
     this._continuous = false;
@@ -222,6 +225,37 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     return this;
 }
 
+s.Page.prototype.takeAction = function(psgTitle, index) {
+    /*Called when the player selects an action from a node. Uses
+    `Page.ready()` to check if the current passage corresponds to a
+    node. Before carrying out the resulting outcome, adds to the node
+    history (i.e. adds to `st.path`).
+
+    Args:
+        psgTitle (str): The title of the passage whose node contains the
+            actions to choose from.
+        index (integer): The index of the action to take. (Recall that a
+            node is a list of actions.)
+    */
+    this.ready();
+
+    var psg = Story.get(psgTitle);
+    var node = s.nodes.get(psg);
+    var action = node.get(index);
+    var outcome = action.choose();
+    st.path.addEdge(
+        node.length(),
+        index,
+        action.length(),
+        action.indexOf(outcome)
+    )
+
+    st.path.view() // temporary debugging code
+
+    return outcome.carryOut();
+
+}
+
 s.Page.prototype.insertActions = function(psg) {
     /*Takes the given SC Passage object, finds the node associated with
     it, and retrieves the actions from that node. For each action,
@@ -254,9 +288,10 @@ s.Page.prototype.insertActions = function(psg) {
         if (action.check()) {
             $('#' + psgId + '-actions').wiki(
                 '<p style="text-align:' + action.getAlign() + '">' +
-                    '<<link "' + action.getText() + '">>'+
-                        '<<run s.nodes.get(Story.get("' + psgTitle + '"))' +
-                        '.get(' + i + ').choose().carryOut()>>' +
+                    '<<link "' + action.getText() + '">>' +
+                        '<<run st.page.takeAction(' +
+                            '"' + psgTitle + '", ' + i +
+                        ')>>' +
                     '<</link>>' +
                 '</p>'
             );

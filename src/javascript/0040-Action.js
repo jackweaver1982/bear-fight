@@ -1,6 +1,7 @@
 /*Uses: List.
 
 Builds the `Action` class.
+
 */
 
 s.Action = function(text, checkFunc, chooseFunc) {
@@ -37,7 +38,9 @@ s.Action = function(text, checkFunc, chooseFunc) {
             from the action.
         _align (str): The CSS text-align value for the link associated
             with this action. Defaults to 'left'.
+
     */
+
     s.List.call(this);
     this._displayText = text;
 
@@ -106,6 +109,21 @@ s.Action.prototype.setAlign = function(align) {
     return this;
 }
 
+s.Action.prototype.setChoose = function(chooseFunc) {
+    /*Sets the `_userScriptChoose` attribute.
+
+    Args:
+        chooseFunc (func, optional): The function to assign to the
+            calling instance's `_userScriptChoose` attribute. Defaults
+            to a function that returns the first element in the `_array`
+            attribute.
+    */
+    this._userScriptChoose = chooseFunc || function() {
+        return this._array[0];
+    }
+    return this;
+}
+
 s.Action.prototype.check = function() {
     /*Uses the `_userScriptCheck` attribute to check whether the
     action's link should be displayed.
@@ -127,12 +145,85 @@ s.Action.prototype.choose = function() {
     the action.
 
     Returns:
-        Outcome: `null`, if the action is empty, otherwise the return
-            value of `_userScriptCheck`.
+        Outcome: `null`, if the action is empty, otherwise return the
+            value of `_userScriptChoose`.
     */
     if (this.length() === 0) {
         return null;
     } else {
         return this._userScriptChoose();
     }
+}
+
+s.Action.prototype.addOutcome = function(
+        func, targetPsg, chooseFunc, embed, nobreak
+    ) {
+    /*Adds an outcome to the calling instance.
+
+    Args:
+        func (func, optional): If provided, this function will be
+            carried out just prior to loading the node associated with
+            `targetPsg`.
+        targetPsg (str, optional): The title of a passage. If provided,
+            the outcome will end by loading the node associated with
+            this passage. If no such node exists, one will be created.
+        chooseFunc (func or string, optional): If a function is
+            provided, will replace the calling instance's current
+            `_userScriptChoose` attribute. If the string, 'random', is
+            provided, it will be converted to a function that chooses
+            an outcome uniformly from all possible outcomes.
+        embed (bool, optional): If `true`, the node associated with 
+            `endPsgTitle` will be embedded in the currently loaded page.
+            Defaults to the value of `st.page._continuous`.
+        nobreak (bool, optional): Defaults to false. Set to true to omit
+            the scene break when embedding.
+
+    Returns:
+        Action: The calling instance.
+
+    Raises:
+        Error: If neither the `targetPsg` nor the `func` arguments are
+            provided.
+    */
+    if (targetPsg == null && func == null) {
+        throw new Error(
+            's.addOutcome():\n' +
+            'outcome must load a node or execute a function'
+        );
+    }
+
+    if (chooseFunc === 'random') {
+        chooseFunc = function() {
+            return this._array.random();
+        }
+    }
+
+    var targetNode;
+    if (targetPsg != null) {
+        targetNode = s.getNode(targetPsg);
+        if (targetNode === undefined) {
+            targetNode = new s.Node(targetPsg);
+        }
+    }
+
+    var carryOutFunc;
+    if (targetPsg == null) {
+        carryOutFunc = func;
+    } else if (func == null) {
+        carryOutFunc = function() {
+            st.page.load(targetNode, embed, nobreak);
+        }
+    } else {
+        carryOutFunc = function() {
+            func();
+            st.page.load(targetNode, embed, nobreak);
+        }
+    }
+
+    this.push(new s.Outcome(carryOutFunc));
+    if (chooseFunc != null) {
+        this.setChoose(chooseFunc);
+    }
+
+    return this;
 }
