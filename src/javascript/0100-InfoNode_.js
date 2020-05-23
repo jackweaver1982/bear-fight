@@ -1,8 +1,8 @@
 /*Uses: Node_.js
 
 Builds the `InfoNode` class and adds a function to
-`s.autosave.necessary`, prevent autosave from occurring when loading an
-InfoNode.
+`s.autosave.necessary`, preventing autosave from occurring when loading
+an InfoNode.
 
 */
 

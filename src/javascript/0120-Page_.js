@@ -450,7 +450,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         s.debCon.toggle();
     }
 
-    if (embed === undefined) {
+    if (embed == null) {
         embed = this._continuous;
     }
     if (!this.ready(true) || node instanceof s.InfoNode) {
@@ -461,13 +461,12 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     var nodePsg = node.getPassage();
     if (embed) {
         this.embedPsg(node, 0, nobreak);
-        return this;
     } else {
         this._embeddedPsgs = [];
         this._noBreakFlags = [];
         Engine.play(nodePsg.title);
-        return this;
     }
+    return this;
 }
 
 st.page = new s.Page();

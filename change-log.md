@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.3
+
+* Built `DirectedOutcome` class.
+* Edited `Page.load()` to use lazy equality for `null` so that `DirectedOutcome`'s `embed` and `nobreak` attributes (which are possibly null, deferring to the `Page`'s defaults) can be passes as parameters.
+* Edited `s.addLink()` to use the `DirectedOutcome` class.
+
 ## Version 0.5.2
 
 * Added `setChoose()` and `addOutcome()` methods to `Action`.

@@ -21,20 +21,20 @@ s.getAction = function(actionPsg, actionText) {
 s.addLink = function(
         startPsg, text, func, targetPsg, checkFunc, embed, nobreak
     ) {
-    /*Creates a link (i.e. an action with a single outcome) in the node
-    associated with the given passage title.
+    /*Creates a link (i.e. an action with a single Directed Outcome) in
+    the node associated with the given passage title.
 
     Args:
         startPsg (str): The title of the passage on which to create
             the link. If this passage is not associated to a node, a
             new node will be created and associated with it.
         text (str): The text of the link.
-        func (func, optional): If provided, this function will be
-            carried out just prior to loading the node associated with
+        func (func or null): If not null, this function will be carried
+            out just prior to loading the node associated with
             `targetPsg`.
-        targetPsg (str, optional): If provided, the link will load the
-            node associated with this passage title. If no such node
-            exists, one will be created.
+        targetPsg (str): The passage title of the node the link will
+            load. If the passage title is not associated with a node, a
+            node will be created.
         checkFunc (func or bool, optional): Used to determine whether
             the link should be displayed. Defaults to `true`.
         embed (bool, optional): If `true`, the node associated with 
@@ -42,10 +42,6 @@ s.addLink = function(
             Defaults to the value of `st.page._continuous`.
         nobreak (bool, optional): Defaults to false. Set to true to omit
             the scene break when embedding.
-
-    Raises:
-        Error: If neither the `targetPsg` nor the `func` arguments are
-            provided.
     */
     var startNode = s.getNode(startPsg);
     if (startNode === undefined) {
@@ -55,8 +51,17 @@ s.addLink = function(
     var action = new s.Action(text, checkFunc);
 
     startNode.push(action);
-    action.addOutcome(func, targetPsg, null, embed, nobreak);
-    return;
+
+    var targetNode = s.getNode(targetPsg);
+    if (targetNode === undefined) {
+        targetNode = new s.Node(targetPsg);
+    }
+
+    var outcome = new s.DirectedOutcome(targetNode, func, embed, nobreak);
+
+    action.push(outcome);
+
+    return outcome;
 }
 
 s.loadNode = function(psgTitle, embed, nobreak) {

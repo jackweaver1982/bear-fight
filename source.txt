@@ -1379,8 +1379,8 @@ $(document).on(':dialogopened', function (ev) {
 /*Uses: Node_.js
 
 Builds the `InfoNode` class and adds a function to
-`s.autosave.necessary`, prevent autosave from occurring when loading an
-InfoNode.
+`s.autosave.necessary`, preventing autosave from occurring when loading
+an InfoNode.
 
 */
 
@@ -2290,7 +2290,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
         s.debCon.toggle();
     }
 
-    if (embed === undefined) {
+    if (embed == null) {
         embed = this._continuous;
     }
     if (!this.ready(true) || node instanceof s.InfoNode) {
@@ -2301,13 +2301,12 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     var nodePsg = node.getPassage();
     if (embed) {
         this.embedPsg(node, 0, nobreak);
-        return this;
     } else {
         this._embeddedPsgs = [];
         this._noBreakFlags = [];
         Engine.play(nodePsg.title);
-        return this;
     }
+    return this;
 }
 
 st.page = new s.Page();
@@ -2432,7 +2431,70 @@ Config.passages.descriptions = function() {
     var psg = st.page.innerPsg();
     return s.nodes.get(psg).getExcerpt();
 }
-/* twine-user-script #13: "0130-Menu_.js" */
+/* twine-user-script #13: "0125-DirectedOutcome.js" */
+/*Uses: Page_.
+
+Builds the `DirectedOutcome` class.
+
+*/
+
+s.DirectedOutcome = function(node, func, embed, nobreak) {
+    /*An outcome with a node that is loaded at the end.
+
+    Args:
+        node (Node): Assigned to the `_targetNode` attribute.
+        func (func, optional): Assigned to the `_userScript`
+            attribute. Defaults to a function that does nothing.
+        embed (bool or null, optional): Assigned to the `_embed`
+            attribute. Defaults to null.
+        nobreak (bool or null, optional): Assigned to the `_nobreak`
+            attribute. Defaults to null.
+
+    Attributes:
+        _userScript (func): The function to call when the outcome is
+            carried out. Should take no parameters.
+        _targetNode (Node): The node to load after carrying out the
+            outcome.
+        _embed (bool or null): Passed as a parameter to `Page.load()`
+            when loading the target node.
+        _nobreak (bool or null): Passed as a parameter to `Page.load()`
+            when loading the target node.
+
+    */
+
+    s.Outcome.call(this, func);
+    this._targetNode = node;
+    if (embed === undefined) {
+        this._embed = null;
+    } else {
+        this._embed = embed;
+    }
+    if (nobreak === undefined) {
+        this._nobreak = null;
+    } else {
+        this._nobreak = embed;
+    }
+    return this;
+};
+
+s.DirectedOutcome.prototype = Object.create(s.Outcome.prototype);
+
+Object.defineProperty(s.DirectedOutcome.prototype, 'constructor', {
+    value: s.DirectedOutcome,
+    enumerable: false,
+    writable: true
+});
+
+s.DirectedOutcome.prototype.carryOut = function() {
+    /*(override) Carries out `_userScript` if it is not `null`, then
+    loads `_targetNode` with the `_embed` and `_nobreak` options.
+    */
+    if (this._userScript != null) {
+        this._userScript();
+    }
+    st.page.load(this._targetNode, this._embed, this._nobreak);
+}
+/* twine-user-script #14: "0130-Menu_.js" */
 /*Uses: SavesManager_, ActionList, Page_.
 
 Builds and instantiates the `Menu` class. Removes the default 'Saves'
@@ -2736,7 +2798,7 @@ s.preProcText.push(['Start', function(text) {
         '</div>'
     );
 }]);
-/* twine-user-script #14: "0140-Path_.js" */
+/* twine-user-script #15: "0140-Path_.js" */
 /*Uses: standard.
 
 Builds and instantiates the `Path` class.
@@ -2841,7 +2903,7 @@ s.Path.prototype.view = function() {
 }
 
 st.path = new s.Path();
-/* twine-user-script #15: "8000-functions.js" */
+/* twine-user-script #16: "8000-functions.js" */
 /*Uses: Page_.
 
 Defines a collection of useful functions for designing a story with the
@@ -2865,20 +2927,20 @@ s.getAction = function(actionPsg, actionText) {
 s.addLink = function(
         startPsg, text, func, targetPsg, checkFunc, embed, nobreak
     ) {
-    /*Creates a link (i.e. an action with a single outcome) in the node
-    associated with the given passage title.
+    /*Creates a link (i.e. an action with a single Directed Outcome) in
+    the node associated with the given passage title.
 
     Args:
         startPsg (str): The title of the passage on which to create
             the link. If this passage is not associated to a node, a
             new node will be created and associated with it.
         text (str): The text of the link.
-        func (func, optional): If provided, this function will be
-            carried out just prior to loading the node associated with
+        func (func or null): If not null, this function will be carried
+            out just prior to loading the node associated with
             `targetPsg`.
-        targetPsg (str, optional): If provided, the link will load the
-            node associated with this passage title. If no such node
-            exists, one will be created.
+        targetPsg (str): The passage title of the node the link will
+            load. If the passage title is not associated with a node, a
+            node will be created.
         checkFunc (func or bool, optional): Used to determine whether
             the link should be displayed. Defaults to `true`.
         embed (bool, optional): If `true`, the node associated with 
@@ -2886,10 +2948,6 @@ s.addLink = function(
             Defaults to the value of `st.page._continuous`.
         nobreak (bool, optional): Defaults to false. Set to true to omit
             the scene break when embedding.
-
-    Raises:
-        Error: If neither the `targetPsg` nor the `func` arguments are
-            provided.
     */
     var startNode = s.getNode(startPsg);
     if (startNode === undefined) {
@@ -2899,8 +2957,17 @@ s.addLink = function(
     var action = new s.Action(text, checkFunc);
 
     startNode.push(action);
-    action.addOutcome(func, targetPsg, null, embed, nobreak);
-    return;
+
+    var targetNode = s.getNode(targetPsg);
+    if (targetNode === undefined) {
+        targetNode = new s.Node(targetPsg);
+    }
+
+    var outcome = new s.DirectedOutcome(targetNode, func, embed, nobreak);
+
+    action.push(outcome);
+
+    return outcome;
 }
 
 s.loadNode = function(psgTitle, embed, nobreak) {
@@ -2958,15 +3025,17 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     }
     return;
 }
-/* twine-user-script #16: "9000-main.js" */
-s.version.set(0,5,2);
+/* twine-user-script #17: "9000-main.js" */
+s.version.set(0,5,3);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
 
+s.root = new s.Node('intro')
+
 // build menu
 s.menu.onBegin(function() {
-    s.loadNode('intro');
+    st.page.load(s.root);
 });
 s.menu.addInfoNode('info', 'help');
 s.menu.addInfoNode('bio', 'bio');
@@ -3054,7 +3123,7 @@ s.copyActions('bedroom', 'Taking knife');
 
 // Cops bust in actions
 s.addLink('Cops bust in', 'continue', null, 'Next');
-/* twine-user-script #17: "Story JavaScript" */
+/* twine-user-script #18: "Story JavaScript" */
 
 
 :: StorySubtitle

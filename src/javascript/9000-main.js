@@ -1,11 +1,13 @@
-s.version.set(0,5,2);
+s.version.set(0,5,3);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
 
+s.root = new s.Node('intro')
+
 // build menu
 s.menu.onBegin(function() {
-    s.loadNode('intro');
+    st.page.load(s.root);
 });
 s.menu.addInfoNode('info', 'help');
 s.menu.addInfoNode('bio', 'bio');
