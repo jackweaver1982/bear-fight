@@ -1,6 +1,10 @@
 /*Uses: ActionList.
 
-Build the `Node` class and defines some associated global variables.
+Builds the `Node` class and defines some associated global variables.
+Creates an instance of `Node` (`s.root`) to serve as the root of the
+node system. The root node is associated with the passage whose title is
+is `Root`. Such a passage must exist and it is the first passage visited
+after the `Start` passage.
 
 Attributes:
     s.nodes (map of <<SC Passage>> to Node): Maps SugarCube `Passage`
@@ -9,6 +13,8 @@ Attributes:
         titles.
     s.specialPsgs (arr of str): List of titles of SC special passages to
         be excluded from use as nodes.
+    s.root (Node): A node associated with the required "Root" passage.
+        It is the first node loaded in the game.
 
 */
 
@@ -76,7 +82,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
             the associated passage.
         _userScript (func or null): The function to execute upon loading
             the node. It runs immediately before the loading of the
-            passage associated with the calling node.
+            passage.
         _outOfChar (bool): `true` if the node's content lies outside the
             narrative flow of the story (e.g., help screen or character
             sheet).
@@ -191,3 +197,5 @@ s.Node.prototype.onLoad = function() {
         return this._userScript();
     }
 }
+
+s.root = new s.Node('Root');

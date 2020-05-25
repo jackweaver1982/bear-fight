@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.4
+
+* Added `s.root` and `:: Root`, removed `Menu.onBegin()`, and moved creation of the `Menu`'s "begin" action to the constructor.
+* Added `DirectedOutcome.setEmbed()`.
+* Removed `embed` and `nobreak` parameters from `s.addLink()`.
+
 ## Version 0.5.3
 
 * Built `DirectedOutcome` class.

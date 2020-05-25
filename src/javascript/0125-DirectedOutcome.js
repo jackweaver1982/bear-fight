@@ -60,3 +60,23 @@ s.DirectedOutcome.prototype.carryOut = function() {
     }
     st.page.load(this._targetNode, this._embed, this._nobreak);
 }
+
+s.DirectedOutcome.prototype.setEmbed = function(embed, nobreak) {
+    /*Sets the `_embed` and `_nobreak` attributes.
+
+    Args:
+        embed (bool): Assigned to the `_embed` attribute.
+        nobreak (bool, optional): Assigned to the `_nobreak` attribute.
+            Defaults to null.
+
+    Returns:
+        DirectedOutcome: The calling instance.
+    */
+    this._embed = embed;
+    if (nobreak === undefined) {
+        this._nobreak = null;
+    } else {
+        this._nobreak = nobreak;
+    }
+    return this;
+}

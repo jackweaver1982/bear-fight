@@ -813,7 +813,11 @@ s.ActionList.prototype.getAction = function(actionText) {
 /* twine-user-script #6: "0060-Node_.js" */
 /*Uses: ActionList.
 
-Build the `Node` class and defines some associated global variables.
+Builds the `Node` class and defines some associated global variables.
+Creates an instance of `Node` (`s.root`) to serve as the root of the
+node system. The root node is associated with the passage whose title is
+is `Root`. Such a passage must exist and it is the first passage visited
+after the `Start` passage.
 
 Attributes:
     s.nodes (map of <<SC Passage>> to Node): Maps SugarCube `Passage`
@@ -822,6 +826,8 @@ Attributes:
         titles.
     s.specialPsgs (arr of str): List of titles of SC special passages to
         be excluded from use as nodes.
+    s.root (Node): A node associated with the required "Root" passage.
+        It is the first node loaded in the game.
 
 */
 
@@ -889,7 +895,7 @@ s.Node = function(psgTitle, subCount, func, outOfChar) {
             the associated passage.
         _userScript (func or null): The function to execute upon loading
             the node. It runs immediately before the loading of the
-            passage associated with the calling node.
+            passage.
         _outOfChar (bool): `true` if the node's content lies outside the
             narrative flow of the story (e.g., help screen or character
             sheet).
@@ -1004,7 +1010,9 @@ s.Node.prototype.onLoad = function() {
         return this._userScript();
     }
 }
-/* twine-user-script #7: "0070-Version.js" */
+
+s.root = new s.Node('Root');
+/* twine-user-script #7: "0070-Version_.js" */
 /*Uses: standard.
 
 Builds and instantiates the `Version` class.
@@ -2578,6 +2586,26 @@ s.DirectedOutcome.prototype.carryOut = function() {
     }
     st.page.load(this._targetNode, this._embed, this._nobreak);
 }
+
+s.DirectedOutcome.prototype.setEmbed = function(embed, nobreak) {
+    /*Sets the `_embed` and `_nobreak` attributes.
+
+    Args:
+        embed (bool): Assigned to the `_embed` attribute.
+        nobreak (bool, optional): Assigned to the `_nobreak` attribute.
+            Defaults to null.
+
+    Returns:
+        DirectedOutcome: The calling instance.
+    */
+    this._embed = embed;
+    if (nobreak === undefined) {
+        this._nobreak = null;
+    } else {
+        this._nobreak = nobreak;
+    }
+    return this;
+}
 /* twine-user-script #14: "0130-Menu_.js" */
 /*Uses: SavesManager_, ActionList, Page_.
 
@@ -2596,10 +2624,9 @@ Attributes:
 s.Menu = function() {
     /*A `Menu` object is an `ActionList` with built-in 'begin',
     'resume', 'save', 'load', and 'restart' actions. The 'save', 'load',
-    and 'restart' methods are kept at the end of the list. The 'begin'
-    method is customizable. These actions are automatically inserted
-    into various areas of the story (such as the header, the UI bar, and
-    the bottom of the 'Start' passage.)
+    and 'restart' methods are kept at the end of the list. These actions
+    are automatically inserted into various areas of the story (such as
+    the header, the UI bar, and the bottom of the 'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
@@ -2645,7 +2672,18 @@ s.Menu = function() {
         },
         Config.saves.isAllowed
     );
-    this.onBegin();
+    this.addAction(
+        'begin',
+        function() {
+            st.page.load(s.root);
+        },
+        function() {
+            return (
+                passage() === 'Start' &&
+                !Save.autosave.has()
+            );
+        }
+    );
     this.addAction(
         'resume',
         function() {
@@ -2726,28 +2764,6 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
     this.addAction(text, function() {
         s.loadNode(psgTitle);
     });
-    return this;
-}
-
-s.Menu.prototype.onBegin = function(func) {
-    /*Sets the carry-out function of the 'begin' action.
-
-    Args:
-        func (function): The function to carry out upon selecting the
-            'begin' action.
-
-    Returns:
-        Menu: The calling instance.
-    */
-    if (this.get(0).getText() === 'begin') {
-        this.delete(0);
-    }
-    this.addAction('begin', func, function() {
-        return (
-            passage() === 'Start' &&
-            !Save.autosave.has()
-        );
-    }, 0);
     return this;
 }
 
@@ -3008,9 +3024,7 @@ s.getAction = function(actionPsg, actionText) {
     return s.getNode(actionPsg).getAction(actionText);
 }
 
-s.addLink = function(
-        startPsg, text, func, targetPsg, checkFunc, embed, nobreak
-    ) {
+s.addLink = function(startPsg, text, func, targetPsg, checkFunc) {
     /*Creates a link (i.e. an action with a single Directed Outcome) in
     the node associated with the given passage title.
 
@@ -3027,11 +3041,6 @@ s.addLink = function(
             node will be created.
         checkFunc (func or bool, optional): Used to determine whether
             the link should be displayed. Defaults to `true`.
-        embed (bool, optional): If `true`, the node associated with 
-            `targetPsg` will be embedded in the currently loaded page.
-            Defaults to the value of `st.page._continuous`.
-        nobreak (bool, optional): Defaults to false. Set to true to omit
-            the scene break when embedding.
     */
     var startNode = s.getNode(startPsg);
     if (startNode === undefined) {
@@ -3047,7 +3056,7 @@ s.addLink = function(
         targetNode = new s.Node(targetPsg);
     }
 
-    var outcome = new s.DirectedOutcome(targetNode, func, embed, nobreak);
+    var outcome = new s.DirectedOutcome(targetNode, func);
 
     action.push(outcome);
 
@@ -3110,17 +3119,20 @@ s.copyActions = function(fromPsgTitle, toPsgTitle) {
     return;
 }
 /* twine-user-script #17: "9000-main.js" */
-s.version.set(0,5,3);
+/* Builds the node structure for the game. Nodes, Actions, and Outcomes
+should never be created dynamically. They should all be constructed
+here, prior to the start of play. Use an Action's check function to hide
+or show possible actions, depending on conditions. Use an Actions's
+choose function to select between different possible outcomes, depending
+on conditions.
+*/
+
+s.version.set(0,5,4);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
 
-s.root = new s.Node('intro')
-
 // build menu
-s.menu.onBegin(function() {
-    st.page.load(s.root);
-});
 s.menu.addInfoNode('info', 'help');
 s.menu.addInfoNode('bio', 'bio');
 
@@ -3130,10 +3142,10 @@ s.debCon.setCheat([
 ]);
 
 // make initial links
-s.addLink('intro', 'continue', null, 'RNG warning');
+s.addLink('Root', 'continue', null, 'RNG warning');
 s.addLink(
-    'RNG warning', 'got it', null, 'who you are', null, false // don't embed
-);
+    'RNG warning', 'got it', null, 'who you are', null
+).setEmbed(false); // don't embed
 s.addLink('who you are', 'take a look around', null, 'bedroom');
 
 // bedroom actions
@@ -3151,9 +3163,8 @@ s.addLink('who you are', 'take a look around', null, 'bedroom');
         function() {
             // check
             return (v.containedIn.get('knife') === 'bedroom');
-        },
-        true, true // embed with scene break
-    );
+        }
+    ).setEmbed(true, true); // embed without scene break
 
     // search the body
     s.setSubCount('Cops bust in', 2);
@@ -3234,7 +3245,10 @@ s.addLink('Cops bust in', 'continue', null, 'Next');
     &lt;br&gt;
     &lt;br&gt;
     &lt;br&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="12" name="intro" tags="no-menu" position="225,225" size="100,100">&lt;p&gt;It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can&#39;t remember.&lt;/p&gt;
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="12" name="Root" tags="no-menu" position="225,225" size="100,100">/* The &#39;Root&#39; passage must be present. It will be the first passage
+visited after the `Start` passage.
+*/
+&lt;p&gt;It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can&#39;t remember.&lt;/p&gt;
 
 &lt;p&gt;That was last night. This morning, you wake up alone on a strange bed in a house you&#39;ve never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It&#39;s then you realize your clothes are covered in blood.&lt;/p&gt;
 

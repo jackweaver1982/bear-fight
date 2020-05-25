@@ -18,9 +18,7 @@ s.getAction = function(actionPsg, actionText) {
     return s.getNode(actionPsg).getAction(actionText);
 }
 
-s.addLink = function(
-        startPsg, text, func, targetPsg, checkFunc, embed, nobreak
-    ) {
+s.addLink = function(startPsg, text, func, targetPsg, checkFunc) {
     /*Creates a link (i.e. an action with a single Directed Outcome) in
     the node associated with the given passage title.
 
@@ -37,11 +35,6 @@ s.addLink = function(
             node will be created.
         checkFunc (func or bool, optional): Used to determine whether
             the link should be displayed. Defaults to `true`.
-        embed (bool, optional): If `true`, the node associated with 
-            `targetPsg` will be embedded in the currently loaded page.
-            Defaults to the value of `st.page._continuous`.
-        nobreak (bool, optional): Defaults to false. Set to true to omit
-            the scene break when embedding.
     */
     var startNode = s.getNode(startPsg);
     if (startNode === undefined) {
@@ -57,7 +50,7 @@ s.addLink = function(
         targetNode = new s.Node(targetPsg);
     }
 
-    var outcome = new s.DirectedOutcome(targetNode, func, embed, nobreak);
+    var outcome = new s.DirectedOutcome(targetNode, func);
 
     action.push(outcome);
 

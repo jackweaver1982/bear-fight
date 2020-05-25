@@ -15,10 +15,9 @@ Attributes:
 s.Menu = function() {
     /*A `Menu` object is an `ActionList` with built-in 'begin',
     'resume', 'save', 'load', and 'restart' actions. The 'save', 'load',
-    and 'restart' methods are kept at the end of the list. The 'begin'
-    method is customizable. These actions are automatically inserted
-    into various areas of the story (such as the header, the UI bar, and
-    the bottom of the 'Start' passage.)
+    and 'restart' methods are kept at the end of the list. These actions
+    are automatically inserted into various areas of the story (such as
+    the header, the UI bar, and the bottom of the 'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
@@ -64,7 +63,18 @@ s.Menu = function() {
         },
         Config.saves.isAllowed
     );
-    this.onBegin();
+    this.addAction(
+        'begin',
+        function() {
+            st.page.load(s.root);
+        },
+        function() {
+            return (
+                passage() === 'Start' &&
+                !Save.autosave.has()
+            );
+        }
+    );
     this.addAction(
         'resume',
         function() {
@@ -145,28 +155,6 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
     this.addAction(text, function() {
         s.loadNode(psgTitle);
     });
-    return this;
-}
-
-s.Menu.prototype.onBegin = function(func) {
-    /*Sets the carry-out function of the 'begin' action.
-
-    Args:
-        func (function): The function to carry out upon selecting the
-            'begin' action.
-
-    Returns:
-        Menu: The calling instance.
-    */
-    if (this.get(0).getText() === 'begin') {
-        this.delete(0);
-    }
-    this.addAction('begin', func, function() {
-        return (
-            passage() === 'Start' &&
-            !Save.autosave.has()
-        );
-    }, 0);
     return this;
 }
 
