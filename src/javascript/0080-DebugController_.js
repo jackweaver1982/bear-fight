@@ -13,11 +13,12 @@ Attributes:
 */
 
 s.DebugController = function() {
-    /*The Debug Controller controls debug mode, a developer mode that
-    can be used to activate certain capabilities and functionalities not
-    present in ordinary gameplay. The state of debug mode is stored in
-    the boolean property `debugOn` in SugarCube's `settings` namespace,
-    which has `ss` as an alias.
+    /*Controls debug mode.
+
+    Debug mode is a developer mode that can be used to activate certain
+    capabilities and functionalities not present in ordinary gameplay.
+    The state of debug mode is stored in the boolean property `debugOn`
+    in SugarCube's `settings` namespace, which has `ss` as an alias.
 
     Attributes:
         _cheaCode (arr of str): An array of passage title strings.

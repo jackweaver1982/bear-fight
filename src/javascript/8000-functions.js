@@ -57,23 +57,6 @@ s.addLink = function(startPsg, text, func, targetPsg, checkFunc) {
     return outcome;
 }
 
-s.loadNode = function(psgTitle, embed, nobreak) {
-    /*A shortcut for `Page.load()` which allows a passage title to be
-    passed as an argument.
-
-    Args:
-        psgTitle (str): The passage title associated with the node that
-            will be loaded.
-        embed (bool, optional): If `true`, the passage will be embedded
-            in the currently loaded page. Defaults to the value of
-            `st.page._continuous`.
-        nobreak (bool, optional): Defaults to false. Set to true to omit
-            the scene break when embedding.
-    */
-    st.page.load(s.getNode(psgTitle), embed, nobreak);
-    return;
-}
-
 s.setSubCount = function(psgTitle, num) {
     /*Sets the sub count of the node associated with the given passage
     title. If no such node exists, one is created. Returns the

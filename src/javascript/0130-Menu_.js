@@ -13,11 +13,13 @@ Attributes:
 */
 
 s.Menu = function() {
-    /*A `Menu` object is an `ActionList` with built-in 'begin',
-    'resume', 'save', 'load', and 'restart' actions. The 'save', 'load',
-    and 'restart' methods are kept at the end of the list. These actions
-    are automatically inserted into various areas of the story (such as
-    the header, the UI bar, and the bottom of the 'Start' passage.)
+    /*The in-game menu offering persistent actions to the user.
+
+    A `Menu` object is an `ActionList` with built-in 'begin', 'resume',
+    'save', 'load', and 'restart' actions. The 'save', 'load', and
+    'restart' methods are kept at the end of the list. These actions are
+    automatically inserted into various areas of the story (such as the
+    header, the UI bar, and the bottom of the 'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
@@ -153,7 +155,7 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
         );
     }
     this.addAction(text, function() {
-        s.loadNode(psgTitle);
+        st.page.load(s.getNode(psgTitle));
     });
     return this;
 }

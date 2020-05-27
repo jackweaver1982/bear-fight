@@ -14,7 +14,9 @@ Attributes:
 */
 
 s.Page = function() {
-    /*A `Page` object represents the content which is displayed on the
+    /*Manages the content of the current viewable area in the browser.
+
+    A `Page` object represents the content which is displayed on the
     screen. Traditionally in SugarCube, this is just a passage. But with
     the node system, multiple passages can be displayed at a time, in
     order. The first passage is the main one and the one which SugarCube
@@ -249,8 +251,6 @@ s.Page.prototype.takeAction = function(psgTitle, index) {
         action.length(),
         action.indexOf(outcome)
     )
-
-    st.path.view() // temporary debugging code
 
     return outcome.carryOut();
 

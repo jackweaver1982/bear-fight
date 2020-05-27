@@ -8,8 +8,7 @@ Attributes:
 */
 
 s.Path = function() {
-    /*Keeps track of and manages the path the player has taken through
-    the node system (i.e. the history).
+    /*Tracks and manages the history of choices and outcomes.
 
     There is one instance (`st.path`), built in State.variables, so
     its state can be stored in SugarCube's history. The class must
@@ -87,7 +86,7 @@ s.Path.prototype.addEdge = function(
 }
 
 s.Path.prototype.view = function() {
-    /*Temporary method for viewing the path in the console.
+    /*Displays the path in the console.
     */
     var pathStr = '';
     for (var i = 0; i < this._nodeLengths.length; i++) {

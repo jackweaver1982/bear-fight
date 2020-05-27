@@ -1128,11 +1128,12 @@ Attributes:
 */
 
 s.DebugController = function() {
-    /*The Debug Controller controls debug mode, a developer mode that
-    can be used to activate certain capabilities and functionalities not
-    present in ordinary gameplay. The state of debug mode is stored in
-    the boolean property `debugOn` in SugarCube's `settings` namespace,
-    which has `ss` as an alias.
+    /*Controls debug mode.
+
+    Debug mode is a developer mode that can be used to activate certain
+    capabilities and functionalities not present in ordinary gameplay.
+    The state of debug mode is stored in the boolean property `debugOn`
+    in SugarCube's `settings` namespace, which has `ss` as an alias.
 
     Attributes:
         _cheaCode (arr of str): An array of passage title strings.
@@ -1393,7 +1394,9 @@ an InfoNode.
 */
 
 s.InfoNode = function(psgTitle, checkFunc) {
-    /*`InfoNode` is a subclass of `Node`. It is a special kind of node
+    /*A node used for non-narrative content.
+
+    `InfoNode` is a subclass of `Node`. It is a special kind of node
     which lies outside the narrative context of the game. Visiting an
     info node does not trigger an autosave. An info node has a default
     action with text, 'return to story', that takes the player back to
@@ -1460,8 +1463,10 @@ Attributes:
 */
 
 s.Parser = function() {
-    /*A Parser object manages the conversion of the given passage text
-    to the actual passage text used by SugarCube to display information.
+    /*Prepares passage text for use by SugarCube.
+
+    A Parser object manages the conversion of the given passage text to
+    the actual passage text used by SugarCube to display information.
 
     There is one instance (`st.parser`), built in State.variables, so
     its state can be stored in SugarCube's history. (This is needed,
@@ -1862,7 +1867,9 @@ Attributes:
 */
 
 s.Page = function() {
-    /*A `Page` object represents the content which is displayed on the
+    /*Manages the content of the current viewable area in the browser.
+
+    A `Page` object represents the content which is displayed on the
     screen. Traditionally in SugarCube, this is just a passage. But with
     the node system, multiple passages can be displayed at a time, in
     order. The first passage is the main one and the one which SugarCube
@@ -2097,8 +2104,6 @@ s.Page.prototype.takeAction = function(psgTitle, index) {
         action.length(),
         action.indexOf(outcome)
     )
-
-    st.path.view() // temporary debugging code
 
     return outcome.carryOut();
 
@@ -2538,11 +2543,13 @@ Attributes:
 */
 
 s.Menu = function() {
-    /*A `Menu` object is an `ActionList` with built-in 'begin',
-    'resume', 'save', 'load', and 'restart' actions. The 'save', 'load',
-    and 'restart' methods are kept at the end of the list. These actions
-    are automatically inserted into various areas of the story (such as
-    the header, the UI bar, and the bottom of the 'Start' passage.)
+    /*The in-game menu offering persistent actions to the user.
+
+    A `Menu` object is an `ActionList` with built-in 'begin', 'resume',
+    'save', 'load', and 'restart' actions. The 'save', 'load', and
+    'restart' methods are kept at the end of the list. These actions are
+    automatically inserted into various areas of the story (such as the
+    header, the UI bar, and the bottom of the 'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
@@ -2678,7 +2685,7 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
         );
     }
     this.addAction(text, function() {
-        s.loadNode(psgTitle);
+        st.page.load(s.getNode(psgTitle));
     });
     return this;
 }
@@ -2825,8 +2832,7 @@ Attributes:
 */
 
 s.Path = function() {
-    /*Keeps track of and manages the path the player has taken through
-    the node system (i.e. the history).
+    /*Tracks and manages the history of choices and outcomes.
 
     There is one instance (`st.path`), built in State.variables, so
     its state can be stored in SugarCube's history. The class must
@@ -2904,7 +2910,7 @@ s.Path.prototype.addEdge = function(
 }
 
 s.Path.prototype.view = function() {
-    /*Temporary method for viewing the path in the console.
+    /*Displays the path in the console.
     */
     var pathStr = '';
     for (var i = 0; i < this._nodeLengths.length; i++) {
@@ -2979,23 +2985,6 @@ s.addLink = function(startPsg, text, func, targetPsg, checkFunc) {
     return outcome;
 }
 
-s.loadNode = function(psgTitle, embed, nobreak) {
-    /*A shortcut for `Page.load()` which allows a passage title to be
-    passed as an argument.
-
-    Args:
-        psgTitle (str): The passage title associated with the node that
-            will be loaded.
-        embed (bool, optional): If `true`, the passage will be embedded
-            in the currently loaded page. Defaults to the value of
-            `st.page._continuous`.
-        nobreak (bool, optional): Defaults to false. Set to true to omit
-            the scene break when embedding.
-    */
-    st.page.load(s.getNode(psgTitle), embed, nobreak);
-    return;
-}
-
 s.setSubCount = function(psgTitle, num) {
     /*Sets the sub count of the node associated with the given passage
     title. If no such node exists, one is created. Returns the
@@ -3043,7 +3032,7 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,4);
+s.version.set(0,5,5);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default

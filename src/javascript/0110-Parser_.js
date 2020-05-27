@@ -8,8 +8,10 @@ Attributes:
 */
 
 s.Parser = function() {
-    /*A Parser object manages the conversion of the given passage text
-    to the actual passage text used by SugarCube to display information.
+    /*Prepares passage text for use by SugarCube.
+
+    A Parser object manages the conversion of the given passage text to
+    the actual passage text used by SugarCube to display information.
 
     There is one instance (`st.parser`), built in State.variables, so
     its state can be stored in SugarCube's history. (This is needed,

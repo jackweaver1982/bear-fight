@@ -7,7 +7,9 @@ an InfoNode.
 */
 
 s.InfoNode = function(psgTitle, checkFunc) {
-    /*`InfoNode` is a subclass of `Node`. It is a special kind of node
+    /*A node used for non-narrative content.
+
+    `InfoNode` is a subclass of `Node`. It is a special kind of node
     which lies outside the narrative context of the game. Visiting an
     info node does not trigger an autosave. An info node has a default
     action with text, 'return to story', that takes the player back to

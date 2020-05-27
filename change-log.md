@@ -4,6 +4,12 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.5
+
+* Edited comments to put one-line description for each class.
+* Deleted little-used `s.loadNode()`.
+* Edited `Page.takeAction()` to no longer display the path in the console on every action.
+
 ## Version 0.5.4
 
 * Added `s.root` and `:: Root`, removed `Menu.onBegin()`, and moved creation of the `Menu`'s "begin" action to the constructor.
