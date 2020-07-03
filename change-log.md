@@ -4,6 +4,10 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.7
+
+* Renumbered JavaScript files to match correct dependencies.
+
 ## Version 0.5.6
 
 * Added `Page.execute()`, which adds an outcome to `st.path`, then carries out that outcome. Simplified `Page.takeAction()` to use `Page.execute()`.

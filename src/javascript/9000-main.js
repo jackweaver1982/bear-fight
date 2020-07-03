@@ -6,7 +6,7 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,6);
+s.version.set(0,5,7);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default

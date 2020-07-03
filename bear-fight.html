@@ -1012,531 +1012,7 @@ s.Node.prototype.onLoad = function() {
 }
 
 s.root = new s.Node('Root');
-/* twine-user-script #7: "0070-Version_.js" */
-/*Uses: standard.
-
-Builds and instantiates the `Version` class.
-
-Attributes:
-    s.version (Version): A `Version` instance for other classes to use.
-
-*/
-
-s.Version = function(major, minor, patch) {
-    /*Keeps track of a three-part version number.
-
-    The version number is converted to a single integer and stored in
-    `Config.saves.version`.
-
-    Args:
-        major (int, optional): Assigned to `_major`. Defaults to 0.
-        minor (int, optional): Assigned to `_minor`. Defaults to 0.
-        patch (int, optional): Assigned to `_patch`. Defaults to 1, if
-            both `_major` and `_minor` are 0; otherwise, defaults to 0.
-
-    Attributes:
-        _major (int): A nonnegative integer less than 1000.
-        _minor (int): A nonnegative integer less than 1000.
-        _patch (int): A nonnegative integer less than 1000. Cannot be 0
-            if both `_major` and `_minor` are 0.
-
-    */
-
-    major = major || 0;
-    minor = minor || 0;
-    patch = patch || ((major === 0 && minor === 0) ? 1 : 0);
-    this.set(major, minor, patch);
-    return this;
-}
-
-s.Version.prototype.asArray = function() {
-    /*Fetches the version number as an array.
-
-    Returns:
-        arr of int: The version number as an array of three integers.
-    */
-    return [this._major, this._minor, this._patch];
-}
-
-s.Version.prototype._arrToStr = function(arr) {
-    /*Converts a version number formatted as an array to a string,
-    formatted with dot separators. If the `_patch` attribute is 0, it is
-    not included in the string.
-
-    Args:
-        arr (arr of int): The version number array to format.
-
-    Returns:
-        str: The formatted version number.
-    */
-    var string = arr[0].toString() + '.' + arr[1].toString();
-    if (arr[2] > 0) {
-        string += '.' + arr[2].toString();
-    }
-    return string;
-}
-
-s.Version.prototype._strToArr = function(string) {
-    /*Converts a version number formatted as a string to an array.
-
-    Args:
-        string (str): The string to convert.
-
-    Returns:
-        arr of int: The converted string.
-    */
-    var arr = string.split('.').map(function(part) {
-        return parseInt(part, 10);
-    });
-    if (arr.length === 2) {
-        arr.push(0);
-    }
-    return arr;
-}
-
-s.Version.prototype._arrToInt = function(arr) {
-    /*Converts a version number formatted as an array to a single
-    integer.
-
-    Args:
-        arr (arr of int): The version number array to convert.
-
-    Returns:
-        int: The converted integer.
-    */
-    return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
-}
-
-s.Version.prototype._intToArr = function(num) {
-    /*Converts a version number formatted as an integer to an array.
-
-    Args:
-        num (int): The version number integer to convert.
-
-    Returns:
-        arr of int: The converted array.
-    */
-    var arr = [0,0,0];
-    arr[2] = num % 1000;
-    num = (num - arr[2])/1000;
-    arr[1] = num % 1000;
-    arr[0] = (num - arr[1])/1000;
-    return arr;
-}
-
-s.Version.prototype.intToStr = function(num) {
-    /*Converts a version number formatted as an integer to a string with
-    dot separators.
-
-    Args:
-        num (int): The version number integer to convert.
-
-    Returns:
-        str: The converted string.
-    */
-    return this._arrToStr(this._intToArr(num));
-}
-
-s.Version.prototype.asString = function() {
-    /*Returns the version number as a string, with dot separators. If
-    the `_patch` attribute is 0, it is not included in the string.
-
-    Returns:
-        str: The version number as a string.
-    */
-    return this._arrToStr(this.asArray());
-}
-
-s.Version.prototype.asInteger = function() {
-    /*Fetches the version number as a potentially nine-digit integer.
-    For example, 32.3.86 corresponds to 32003086.
-
-    Returns:
-        int: The version number as an integer.
-    */
-    return this._arrToInt(this.asArray());
-}
-
-s.Version.prototype.set = function(major, minor, patch) {
-    /* Sets the version number.
-
-    Args:
-        major (int): Assigned to calling instance's `_major` attribute.
-        minor (int): Assigned to calling instance's `_minor` attribute.
-        patch (int): Assigned to calling instance's `_patch` attribute.
-
-    Returns:
-        Version: The calling instance.
-
-    Raises:
-        Error: If any parameter is not a nonnegative integer less than
-            1000, or if all parameters are 0.
-    */
-    for (var i = 0; i < 3; i++) {
-        if (arguments[i] !== parseInt(arguments[i], 10) ||
-            arguments[i] < 0 ||
-            arguments[i] > 999) {
-            throw new Error(
-                'Version._init():\n' +
-                'numbers must be nonnegative integers less than 1000'
-            );
-        }
-    }
-    if (major + minor + patch === 0) {
-        throw new Error(
-            'Version._init():\n' +
-            'parts cannot all be 0'
-        );
-    }
-    this._major = major;
-    this._minor = minor;
-    this._patch = patch;
-    Config.saves.version = this.asInteger();
-    return this;
-}
-
-s.version = new s.Version();
-/* twine-user-script #8: "0080-DebugController_.js" */
-/*Uses: standard.
-
-Builds the `DebugController` class and instantiates it. Then adds the
-`debugOn` boolean variable to `settings`, adds a toggle switch for it to
-the setting menu in the UI Bar, and binds the relevant methods to the UI
-toggle switch.
-
-Attributes:
-    s.debCon (DebugController): A `DebugController` instance for use by
-        other classes.
-    ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
-
-*/
-
-s.DebugController = function() {
-    /*Controls debug mode.
-
-    Debug mode is a developer mode that can be used to activate certain
-    capabilities and functionalities not present in ordinary gameplay.
-    The state of debug mode is stored in the boolean property `debugOn`
-    in SugarCube's `settings` namespace, which has `ss` as an alias.
-
-    Attributes:
-        _cheaCode (arr of str): An array of passage title strings.
-            Loading the nodes associated to these passage titles in the
-            given order toggles the state of debug mode.
-
-    */
-    
-    this._cheatCode = [];
-    return this;    
-};
-
-s.DebugController.prototype.getCheat = function() {
-    /*Fetches the `_cheaCode` attribute.
-
-    Returns:
-        arr of str: The `_cheatCode` attribute of the calling
-            instance.
-    */
-    return this._cheatCode;
-}
-
-s.DebugController.prototype.setCheat = function(psgTitles) {
-    /*Sets the `_cheatCode` attribute.
-
-    Args:
-        psgTitles (arr of str): Assigned to the `_cheatCode` attribute
-            of the calling instance.
-
-    Returns:
-        DebugController: The calling instance.
-    */
-    this._cheatCode = psgTitles;
-    return this;
-}
-
-s.DebugController.prototype.checkUIBar = function() {
-    /*By default, SugarCube's UI Bar is only visible during debug mode.
-    This method ensures that the UI Bar is in the correct state.
-
-    Returns:
-        DebugController: The calling instance.
-    */
-    if (ss.debugOn) {
-      UIBar.unstow().show();
-    } else {
-      UIBar.hide().stow();
-    }
-    return this;
-}
-
-s.DebugController.prototype.onInit = function() {
-    /*Runs on story initialization.
-    */
-    this.checkUIBar();
-    return;
-}
-
-s.DebugController.prototype.onChange = function() {
-    /*Runs when the debug state changes. Refreshes the current passage
-    in order to display visible changes that might occur with the state
-    change.
-    */
-    this.checkUIBar();
-    Engine.show();
-    return;
-}
-
-s.DebugController.prototype.toggle = function() {
-    /*Toggles the debug state.
-
-    Returns:
-        DebugController: The calling instance.
-    */
-    ss.debugOn = !ss.debugOn;
-    Setting.save();
-    this.onChange();
-    return this;
-}
-
-s.debCon = new s.DebugController();
-
-Setting.addToggle('debugOn', {
-    label:      'debug mode',
-    onInit:     s.debCon.onInit.bind(s.debCon),
-    onChange:   s.debCon.onChange.bind(s.debCon)
-});
-/* twine-user-script #9: "0090-SavesManager_.js" */
-/*Uses: DebugController_, Version
-
-Builds and instantiates the `SavesManager` class. Then alters SC's
-default saves dialog.
-
-Attributes:
-    s.savesMgr (SavesManager): A `SavesManager` instance for use by
-        other classes.
-
-*/
-
-s.SavesManager = function(bkMarks, block) {
-    /*Manages the autosave, bookmark(s), and checkpoints.
-
-    Args:
-        bkMarks (int): Assigned to the `_bkMarks` attribute. Defaults to
-            1. Also synchronized to SC's maximum allowed save slots.
-        block (bool, optional): Assigned to the `_block` attribute.
-            Defaults to `false`.
-
-    Attributes:
-        _block (bool): If `true`, will block the loading of saves whose
-            version does not match the current version.
-        _bkMarks (int): The maximum number of allowed bookmarks.
-
-    */
-    
-    this._block = (block == null) ? false : block;
-    this._bkMarks = (bkMarks == null) ? 0 : bkMarks;
-    this._setMaxSaves();
-    return this;    
-};
-
-s.SavesManager.prototype._setMaxSaves = function() {
-    /*Sets the maximum number of allows saves in SugarCube.
-    */
-    Config.saves.slots = this._bkMarks;
-}
-
-s.SavesManager.prototype.setBlock = function(block) {
-    /*Sets the `_block` attribute.
-
-    Args:
-        block (bool): Assigned to the `_block` attribute of the calling
-            instance.
-
-    Returns:
-        SavesManager: The calling instance.
-    */
-    this._block = block;
-    return this;
-}
-
-s.SavesManager.prototype.setBkMarks = function(bkMarks) {
-    /*Sets the `_bkMarks` attribute and syncs it with SC's maximum
-    allowed save slots.
-
-    Args:
-        bkMarks (int): Assigned to the `_bkMarks` attribute of the
-            calling instance.
-
-    Returns:
-        SavesManager: The calling instance.
-    */
-    this._bkMarks = bkMarks;
-    this._setMaxSaves();
-    return this;
-}
-
-s.SavesManager.prototype.get = function(num) {
-    /*Fetches save objects by their label in the saves dialog box. Saves
-    are numbered in the saves dialog box starting with 1.
-
-    Args:
-        num (int): The label whose save to retrieve. If 0, retrieves the
-            autosave.
-
-    Returns:
-        <<SC save obj>>: The retrieved save object.
-    */
-    if (num === 0) {
-        return Save.autosave.get();
-    } else {
-        return Save.slots.get(num - 1);
-    }
-}
-
-s.SavesManager.prototype.load = function(num) {
-    /*Loads save objects by their label in the saves dialog box. Saves
-    are numbered in the saves dialog box starting with 1.
-
-    Blocks the load if the calling instance's `_block` is true and the
-    version number of the save object doesn't match the current version
-    number.
-
-    Args:
-        num (int): The label whose save to load. If 0, loads the
-            autosave.
-    */
-    if (this._block) {
-        var verInt = this.get(num).version;
-        if (verInt !== s.version.asInteger()) {
-            var verStr = s.version.intToStr(verInt);
-            alert(
-                'save file is from version ' + verStr + ';\n' +
-                'current version is ' + s.version.asString() + ';\n' + 
-                'unable to load.'
-            );
-            return;
-        }
-    }
-    if (num === 0) {
-        Save.autosave.load();
-    } else {
-        Save.slots.load(num - 1);
-    }
-    return;
-}
-
-s.SavesManager.prototype.saveBkMark = function() {
-    /*If there is an empty bookmark slot, saves a bookmark after
-    confirming with the player; otherwise, alerts that no bookmarks
-    slots are available.
-
-    Returns:
-        SavesManager: The calling instance.
-    */
-    var filled = Save.slots.count();
-    var empty = this._bkMarks - filled;
-    if (empty > 0) {
-        if (confirm(
-            'Save bookmark? You have ' + empty + ' of ' + this._bkMarks +
-                ' remaining.\n\n' +
-            '(If you just want to quit and resume later, you should not need ' +
-                'to save. See the info screen for details.)'
-        )) {
-            Save.slots.save(filled);
-        }
-    } else {
-        alert('All bookmarks already filled. Restart to delete them.');
-    }
-    return this;
-}
-
-s.savesMgr = new s.SavesManager();
-
-$(document).on(':dialogopened', function (ev) {
-    /*Alters SC's saves dialog by changing the title to 'Bookmarks',
-    showing only filled save slots, removing the autosave from the
-    display, removing the bottom button bar, and removing the delete
-    buttons if debug mode is not on.
-    */
-    if (Dialog.isOpen('saves')) {
-        $('#ui-dialog-title').html('Bookmarks');
-        $('#saves-list').find('tr:gt(' + Save.slots.count() + ')').remove();
-        $('tr:first-child').remove();
-        $(ev.target).children('ul.buttons').remove();
-        if (!ss.debugOn) {
-            $('button[id^="saves-delete"]').remove();
-        }
-    }
-});
-/* twine-user-script #10: "0100-InfoNode_.js" */
-/*Uses: Node_.js
-
-Builds the `InfoNode` class and adds a function to
-`s.autosave.necessary`, preventing autosave from occurring when loading
-an InfoNode.
-
-*/
-
-s.InfoNode = function(psgTitle, checkFunc) {
-    /*A node used for non-narrative content.
-
-    `InfoNode` is a subclass of `Node`. It is a special kind of node
-    which lies outside the narrative context of the game. Visiting an
-    info node does not trigger an autosave. An info node has a default
-    action with text, 'return to story', that takes the player back to
-    the last non-info node by reloading the last autosave.
-
-    @param {String} psgTitle - The title of the associated passage.
-    @param {Function|Boolean} checkFunc (optional) - The function to
-    call when checking if the `return to story` action should be
-    displayed. Should return a boolean. If a boolean is provided, simply
-    returns that boolean. Defaults to true.
-
-    Args:
-        psgTitle (str): The title of the passage assigned to the
-            `_passage` attribute.
-        checkFunc (func or bool, optional): The function to call when
-            checking if the `return to story` action should be
-            displayed. Should return a boolean. If a boolean is
-            provided, simply returns that boolean. Defaults to true.
-
-    Attributes:
-        _array (arr): The embedded array of `Action` objects.
-        _fixedEnd (int): Indicates how many elements at the end of the
-            array to keep fixed in place. Defaults to 0.
-        _passage (<<SC Passage>>): The passage associated with the node.
-        _subCount (int): The number of expected text substitutions in
-            the associated passage. Defaults to 0.
-        _userScript (func or null): The function to execute upon loading
-            the node. It runs immediately before the loading of the
-            passage associated with the calling node. Defaults to
-            `null`.
-        _outOfChar (bool): `true` if the node's content lies outside the
-            narrative flow of the story (e.g., help screen or character
-            sheet). Defaults to `true`.
-
-    */
-    
-    s.Node.call(this, psgTitle);
-
-    this._outOfChar = true;
-    this.addAction('return to story', Save.autosave.load, checkFunc);
-
-    return this;
-};
-
-s.InfoNode.prototype = Object.create(s.Node.prototype);
-
-Object.defineProperty(s.InfoNode.prototype, 'constructor', {
-    value: s.InfoNode,
-    enumerable: false,
-    writable: true
-});
-
-s.autosave.necessary.push(function() {
-    return (!(s.getNode(passage()) instanceof s.InfoNode));
-});
-/* twine-user-script #11: "0110-Parser_.js" */
+/* twine-user-script #7: "0070-Parser_.js" */
 /*Uses: Node_.
 
 Build the `Parser` class and instantiates it.
@@ -1934,7 +1410,343 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 }
 
 st.parser = new s.Parser();
-/* twine-user-script #12: "0120-Page_.js" */
+/* twine-user-script #8: "0080-InfoNode_.js" */
+/*Uses: Node_.js
+
+Builds the `InfoNode` class and adds a function to
+`s.autosave.necessary`, preventing autosave from occurring when loading
+an InfoNode.
+
+*/
+
+s.InfoNode = function(psgTitle, checkFunc) {
+    /*A node used for non-narrative content.
+
+    `InfoNode` is a subclass of `Node`. It is a special kind of node
+    which lies outside the narrative context of the game. Visiting an
+    info node does not trigger an autosave. An info node has a default
+    action with text, 'return to story', that takes the player back to
+    the last non-info node by reloading the last autosave.
+
+    @param {String} psgTitle - The title of the associated passage.
+    @param {Function|Boolean} checkFunc (optional) - The function to
+    call when checking if the `return to story` action should be
+    displayed. Should return a boolean. If a boolean is provided, simply
+    returns that boolean. Defaults to true.
+
+    Args:
+        psgTitle (str): The title of the passage assigned to the
+            `_passage` attribute.
+        checkFunc (func or bool, optional): The function to call when
+            checking if the `return to story` action should be
+            displayed. Should return a boolean. If a boolean is
+            provided, simply returns that boolean. Defaults to true.
+
+    Attributes:
+        _array (arr): The embedded array of `Action` objects.
+        _fixedEnd (int): Indicates how many elements at the end of the
+            array to keep fixed in place. Defaults to 0.
+        _passage (<<SC Passage>>): The passage associated with the node.
+        _subCount (int): The number of expected text substitutions in
+            the associated passage. Defaults to 0.
+        _userScript (func or null): The function to execute upon loading
+            the node. It runs immediately before the loading of the
+            passage associated with the calling node. Defaults to
+            `null`.
+        _outOfChar (bool): `true` if the node's content lies outside the
+            narrative flow of the story (e.g., help screen or character
+            sheet). Defaults to `true`.
+
+    */
+    
+    s.Node.call(this, psgTitle);
+
+    this._outOfChar = true;
+    this.addAction('return to story', Save.autosave.load, checkFunc);
+
+    return this;
+};
+
+s.InfoNode.prototype = Object.create(s.Node.prototype);
+
+Object.defineProperty(s.InfoNode.prototype, 'constructor', {
+    value: s.InfoNode,
+    enumerable: false,
+    writable: true
+});
+
+s.autosave.necessary.push(function() {
+    return (!(s.getNode(passage()) instanceof s.InfoNode));
+});
+/* twine-user-script #9: "0090-DebugController_.js" */
+/*Uses: standard.
+
+Builds the `DebugController` class and instantiates it. Then adds the
+`debugOn` boolean variable to `settings`, adds a toggle switch for it to
+the setting menu in the UI Bar, and binds the relevant methods to the UI
+toggle switch.
+
+Attributes:
+    s.debCon (DebugController): A `DebugController` instance for use by
+        other classes.
+    ss.debugOn (bool): `true` if debug mode is on, `false` otherwise.
+
+*/
+
+s.DebugController = function() {
+    /*Controls debug mode.
+
+    Debug mode is a developer mode that can be used to activate certain
+    capabilities and functionalities not present in ordinary gameplay.
+    The state of debug mode is stored in the boolean property `debugOn`
+    in SugarCube's `settings` namespace, which has `ss` as an alias.
+
+    Attributes:
+        _cheaCode (arr of str): An array of passage title strings.
+            Loading the nodes associated to these passage titles in the
+            given order toggles the state of debug mode.
+
+    */
+    
+    this._cheatCode = [];
+    return this;    
+};
+
+s.DebugController.prototype.getCheat = function() {
+    /*Fetches the `_cheaCode` attribute.
+
+    Returns:
+        arr of str: The `_cheatCode` attribute of the calling
+            instance.
+    */
+    return this._cheatCode;
+}
+
+s.DebugController.prototype.setCheat = function(psgTitles) {
+    /*Sets the `_cheatCode` attribute.
+
+    Args:
+        psgTitles (arr of str): Assigned to the `_cheatCode` attribute
+            of the calling instance.
+
+    Returns:
+        DebugController: The calling instance.
+    */
+    this._cheatCode = psgTitles;
+    return this;
+}
+
+s.DebugController.prototype.checkUIBar = function() {
+    /*By default, SugarCube's UI Bar is only visible during debug mode.
+    This method ensures that the UI Bar is in the correct state.
+
+    Returns:
+        DebugController: The calling instance.
+    */
+    if (ss.debugOn) {
+      UIBar.unstow().show();
+    } else {
+      UIBar.hide().stow();
+    }
+    return this;
+}
+
+s.DebugController.prototype.onInit = function() {
+    /*Runs on story initialization.
+    */
+    this.checkUIBar();
+    return;
+}
+
+s.DebugController.prototype.onChange = function() {
+    /*Runs when the debug state changes. Refreshes the current passage
+    in order to display visible changes that might occur with the state
+    change.
+    */
+    this.checkUIBar();
+    Engine.show();
+    return;
+}
+
+s.DebugController.prototype.toggle = function() {
+    /*Toggles the debug state.
+
+    Returns:
+        DebugController: The calling instance.
+    */
+    ss.debugOn = !ss.debugOn;
+    Setting.save();
+    this.onChange();
+    return this;
+}
+
+s.debCon = new s.DebugController();
+
+Setting.addToggle('debugOn', {
+    label:      'debug mode',
+    onInit:     s.debCon.onInit.bind(s.debCon),
+    onChange:   s.debCon.onChange.bind(s.debCon)
+});
+/* twine-user-script #10: "0100-Path_.js" */
+/*Uses: standard.
+
+Builds and instantiates the `Path` class.
+
+Attributes:
+    st.path (Path): A `Path` instance for use by other classes.
+
+*/
+
+s.Path = function() {
+    /*Tracks and manages the history of choices and outcomes.
+
+    There is one instance (`st.path`), built in State.variables, so
+    its state can be stored in SugarCube's history. The class must
+    therefore be made compatible with SugarCube by having `clone    ()` and
+    `toJSON()` methods, and no recursive objects or object sharing. To
+    achieve this, we also require it to have a constructor with no
+    arguments and to have all its attributes be SC supported types.
+    
+    Attributes:
+        _nodeLengths (arr of int): The lengths of the nodes visited so
+            far. Recall that the length of a node is the number of
+            actions it contains.
+        _axnChoices (arr of int): Lists the index of the action chosen
+            at each node.
+        _axnLengths (arr of int): The lengths of the actions chosen so
+            far. Recall that the length of an action is the number of
+            outcomes it contains.
+        _outcomes (arr of int): Lists the index of the outcome that
+            resulted from each choice.
+
+    */
+    
+    this._nodeLengths = [];
+    this._axnChoices = [];
+    this._axnLengths = [];
+    this._outcomes = [];
+}
+
+s.Path.prototype._init = function(obj) {
+    /* Needed for SugarCube compatibility. */
+    Object.keys(obj).forEach(function (pn) {
+        this[pn] = clone(obj[pn]);
+    }, this);
+    return this;
+};
+
+s.Path.prototype.clone = function () {
+    /* Needed for SugarCube compatibility. */
+    return (new s.Path())._init(this);
+};
+
+s.Path.prototype.toJSON = function () {
+    /* Needed for SugarCube compatibility. */
+    var newPC = {};
+    Object.keys(this).forEach(function (pn) {
+        newPC[pn] = clone(this[pn]);
+    }, this);
+    return JSON.reviveWrapper(
+        '(new s.Path())._init($ReviveData$)', newPC
+    );
+};
+
+s.Path.prototype.length = function() {
+    /*Gets the length of the path.
+
+    Returns:
+        int: The common length of the array attributes.
+    */
+    return this._nodeLengths.length;
+}
+
+s.Path.prototype.addEdge = function(
+        numActions, actionIndex, numOutcomes, outcomeIndex
+    ) {
+    /*Adds a new "edge" to the path. That is, adds a new element to each
+    of the embedded arrays. Called when the player takes an action.
+
+    Args:
+        numActions (int): The length of the node from which the player
+            selected an action.
+        actionIndex (int): The index of the action the player took.
+        numOutcomes (int): The length of the action the player took.
+        outcomeIndex (int): The index of the outcome that resulted from
+            the player's selected action.
+
+    Returns:
+        Path: The calling instance.
+    */
+    this._nodeLengths.push(numActions);
+    this._axnChoices.push(actionIndex);
+    this._axnLengths.push(numOutcomes);
+    this._outcomes.push(outcomeIndex);
+    return this;
+}
+
+s.Path.prototype.view = function() {
+    /*Displays the path in the console.
+    */
+    var pathStr = '';
+    for (var i = 0; i < this._nodeLengths.length; i++) {
+        pathStr += (
+            'took action ' +
+            (this._axnChoices[i]+1) + ' of ' + this._nodeLengths[i] +
+            '; got outcome ' +
+            (this._outcomes[i]+1) + ' of ' + this._axnLengths[i] + '\n'
+        );
+    }
+    console.log(pathStr);
+}
+
+s.Path.prototype.getActionIndex = function(pointer) {
+    /*Returns an element from the `_axnChoices` array.
+
+    Args:
+        pointer (int): The index of the element to return.
+
+    Returns:
+        int: The element of `_axnChoices` at the index, `pointer`.
+    */
+    return this._axnChoices[pointer];
+}
+
+s.Path.prototype.getOutcomeIndex = function(pointer) {
+    /*Returns an element from the `_outcomes` array.
+
+    Args:
+        pointer (int): The index of the element to return.
+
+    Returns:
+        int: The element of `_outcomes` at the index, `pointer`.
+    */
+    return this._outcomes[pointer];
+}
+
+s.Path.prototype.autoPlay =function() {
+    /*Restarts the story engine, then initiates an automatic playthrough
+    by recreating each choice and outcome of the calling instance. More
+    specifically, saves 'autostart', 'path', and 'pointer' objects in
+    the metadata. These are used by the `Menu` and `Page` classes to
+    carry out the autoplay.
+
+    Raises:
+        Error: If the calling instance has length 0.
+    */
+    if (this.length() === 0) {
+        throw new Error(
+            'Path.autoPlay():\n' +
+            'path is empty'
+        );
+    }
+    memorize('autostart', true);
+    memorize('path', this);
+    memorize('pointer', 0);
+    Engine.restart();
+}
+
+st.path = new s.Path();
+/* twine-user-script #11: "0110-Page_.js" */
 /*Uses: InfoNode_, Parser_, DebugController_, Path_.
 
 Builds the `Page` class, instantiates it, and creates functions for
@@ -2541,90 +2353,354 @@ Config.passages.descriptions = function() {
     var psg = st.page.innerPsg();
     return s.nodes.get(psg).getExcerpt();
 }
-/* twine-user-script #13: "0125-DirectedOutcome.js" */
-/*Uses: Page_.
+/* twine-user-script #12: "0120-Version_.js" */
+/*Uses: standard.
 
-Builds the `DirectedOutcome` class.
+Builds and instantiates the `Version` class.
+
+Attributes:
+    s.version (Version): A `Version` instance for other classes to use.
 
 */
 
-s.DirectedOutcome = function(node, func, embed, nobreak) {
-    /*An outcome with a node that is loaded at the end.
+s.Version = function(major, minor, patch) {
+    /*Keeps track of a three-part version number.
+
+    The version number is converted to a single integer and stored in
+    `Config.saves.version`.
 
     Args:
-        node (Node): Assigned to the `_targetNode` attribute.
-        func (func, optional): Assigned to the `_userScript`
-            attribute. Defaults to a function that does nothing.
-        embed (bool or null, optional): Assigned to the `_embed`
-            attribute. Defaults to null.
-        nobreak (bool or null, optional): Assigned to the `_nobreak`
-            attribute. Defaults to null.
+        major (int, optional): Assigned to `_major`. Defaults to 0.
+        minor (int, optional): Assigned to `_minor`. Defaults to 0.
+        patch (int, optional): Assigned to `_patch`. Defaults to 1, if
+            both `_major` and `_minor` are 0; otherwise, defaults to 0.
 
     Attributes:
-        _userScript (func): The function to call when the outcome is
-            carried out. Should take no parameters.
-        _targetNode (Node): The node to load after carrying out the
-            outcome.
-        _embed (bool or null): Passed as a parameter to `Page.load()`
-            when loading the target node.
-        _nobreak (bool or null): Passed as a parameter to `Page.load()`
-            when loading the target node.
+        _major (int): A nonnegative integer less than 1000.
+        _minor (int): A nonnegative integer less than 1000.
+        _patch (int): A nonnegative integer less than 1000. Cannot be 0
+            if both `_major` and `_minor` are 0.
 
     */
 
-    s.Outcome.call(this, func);
-    this._targetNode = node;
-    if (embed === undefined) {
-        this._embed = null;
-    } else {
-        this._embed = embed;
-    }
-    if (nobreak === undefined) {
-        this._nobreak = null;
-    } else {
-        this._nobreak = embed;
-    }
+    major = major || 0;
+    minor = minor || 0;
+    patch = patch || ((major === 0 && minor === 0) ? 1 : 0);
+    this.set(major, minor, patch);
     return this;
-};
-
-s.DirectedOutcome.prototype = Object.create(s.Outcome.prototype);
-
-Object.defineProperty(s.DirectedOutcome.prototype, 'constructor', {
-    value: s.DirectedOutcome,
-    enumerable: false,
-    writable: true
-});
-
-s.DirectedOutcome.prototype.carryOut = function() {
-    /*(override) Carries out `_userScript` if it is not `null`, then
-    loads `_targetNode` with the `_embed` and `_nobreak` options.
-    */
-    if (this._userScript != null) {
-        this._userScript();
-    }
-    st.page.load(this._targetNode, this._embed, this._nobreak);
 }
 
-s.DirectedOutcome.prototype.setEmbed = function(embed, nobreak) {
-    /*Sets the `_embed` and `_nobreak` attributes.
-
-    Args:
-        embed (bool): Assigned to the `_embed` attribute.
-        nobreak (bool, optional): Assigned to the `_nobreak` attribute.
-            Defaults to null.
+s.Version.prototype.asArray = function() {
+    /*Fetches the version number as an array.
 
     Returns:
-        DirectedOutcome: The calling instance.
+        arr of int: The version number as an array of three integers.
     */
-    this._embed = embed;
-    if (nobreak === undefined) {
-        this._nobreak = null;
+    return [this._major, this._minor, this._patch];
+}
+
+s.Version.prototype._arrToStr = function(arr) {
+    /*Converts a version number formatted as an array to a string,
+    formatted with dot separators. If the `_patch` attribute is 0, it is
+    not included in the string.
+
+    Args:
+        arr (arr of int): The version number array to format.
+
+    Returns:
+        str: The formatted version number.
+    */
+    var string = arr[0].toString() + '.' + arr[1].toString();
+    if (arr[2] > 0) {
+        string += '.' + arr[2].toString();
+    }
+    return string;
+}
+
+s.Version.prototype._strToArr = function(string) {
+    /*Converts a version number formatted as a string to an array.
+
+    Args:
+        string (str): The string to convert.
+
+    Returns:
+        arr of int: The converted string.
+    */
+    var arr = string.split('.').map(function(part) {
+        return parseInt(part, 10);
+    });
+    if (arr.length === 2) {
+        arr.push(0);
+    }
+    return arr;
+}
+
+s.Version.prototype._arrToInt = function(arr) {
+    /*Converts a version number formatted as an array to a single
+    integer.
+
+    Args:
+        arr (arr of int): The version number array to convert.
+
+    Returns:
+        int: The converted integer.
+    */
+    return 1000000 * arr[0] + 1000 * arr[1] + arr[2];
+}
+
+s.Version.prototype._intToArr = function(num) {
+    /*Converts a version number formatted as an integer to an array.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        arr of int: The converted array.
+    */
+    var arr = [0,0,0];
+    arr[2] = num % 1000;
+    num = (num - arr[2])/1000;
+    arr[1] = num % 1000;
+    arr[0] = (num - arr[1])/1000;
+    return arr;
+}
+
+s.Version.prototype.intToStr = function(num) {
+    /*Converts a version number formatted as an integer to a string with
+    dot separators.
+
+    Args:
+        num (int): The version number integer to convert.
+
+    Returns:
+        str: The converted string.
+    */
+    return this._arrToStr(this._intToArr(num));
+}
+
+s.Version.prototype.asString = function() {
+    /*Returns the version number as a string, with dot separators. If
+    the `_patch` attribute is 0, it is not included in the string.
+
+    Returns:
+        str: The version number as a string.
+    */
+    return this._arrToStr(this.asArray());
+}
+
+s.Version.prototype.asInteger = function() {
+    /*Fetches the version number as a potentially nine-digit integer.
+    For example, 32.3.86 corresponds to 32003086.
+
+    Returns:
+        int: The version number as an integer.
+    */
+    return this._arrToInt(this.asArray());
+}
+
+s.Version.prototype.set = function(major, minor, patch) {
+    /* Sets the version number.
+
+    Args:
+        major (int): Assigned to calling instance's `_major` attribute.
+        minor (int): Assigned to calling instance's `_minor` attribute.
+        patch (int): Assigned to calling instance's `_patch` attribute.
+
+    Returns:
+        Version: The calling instance.
+
+    Raises:
+        Error: If any parameter is not a nonnegative integer less than
+            1000, or if all parameters are 0.
+    */
+    for (var i = 0; i < 3; i++) {
+        if (arguments[i] !== parseInt(arguments[i], 10) ||
+            arguments[i] < 0 ||
+            arguments[i] > 999) {
+            throw new Error(
+                'Version._init():\n' +
+                'numbers must be nonnegative integers less than 1000'
+            );
+        }
+    }
+    if (major + minor + patch === 0) {
+        throw new Error(
+            'Version._init():\n' +
+            'parts cannot all be 0'
+        );
+    }
+    this._major = major;
+    this._minor = minor;
+    this._patch = patch;
+    Config.saves.version = this.asInteger();
+    return this;
+}
+
+s.version = new s.Version();
+/* twine-user-script #13: "0130-SavesManager_.js" */
+/*Uses: DebugController_, Version
+
+Builds and instantiates the `SavesManager` class. Then alters SC's
+default saves dialog.
+
+Attributes:
+    s.savesMgr (SavesManager): A `SavesManager` instance for use by
+        other classes.
+
+*/
+
+s.SavesManager = function(bkMarks, block) {
+    /*Manages the autosave, bookmark(s), and checkpoints.
+
+    Args:
+        bkMarks (int): Assigned to the `_bkMarks` attribute. Defaults to
+            1. Also synchronized to SC's maximum allowed save slots.
+        block (bool, optional): Assigned to the `_block` attribute.
+            Defaults to `false`.
+
+    Attributes:
+        _block (bool): If `true`, will block the loading of saves whose
+            version does not match the current version.
+        _bkMarks (int): The maximum number of allowed bookmarks.
+
+    */
+    
+    this._block = (block == null) ? false : block;
+    this._bkMarks = (bkMarks == null) ? 0 : bkMarks;
+    this._setMaxSaves();
+    return this;    
+};
+
+s.SavesManager.prototype._setMaxSaves = function() {
+    /*Sets the maximum number of allows saves in SugarCube.
+    */
+    Config.saves.slots = this._bkMarks;
+}
+
+s.SavesManager.prototype.setBlock = function(block) {
+    /*Sets the `_block` attribute.
+
+    Args:
+        block (bool): Assigned to the `_block` attribute of the calling
+            instance.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    this._block = block;
+    return this;
+}
+
+s.SavesManager.prototype.setBkMarks = function(bkMarks) {
+    /*Sets the `_bkMarks` attribute and syncs it with SC's maximum
+    allowed save slots.
+
+    Args:
+        bkMarks (int): Assigned to the `_bkMarks` attribute of the
+            calling instance.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    this._bkMarks = bkMarks;
+    this._setMaxSaves();
+    return this;
+}
+
+s.SavesManager.prototype.get = function(num) {
+    /*Fetches save objects by their label in the saves dialog box. Saves
+    are numbered in the saves dialog box starting with 1.
+
+    Args:
+        num (int): The label whose save to retrieve. If 0, retrieves the
+            autosave.
+
+    Returns:
+        <<SC save obj>>: The retrieved save object.
+    */
+    if (num === 0) {
+        return Save.autosave.get();
     } else {
-        this._nobreak = nobreak;
+        return Save.slots.get(num - 1);
+    }
+}
+
+s.SavesManager.prototype.load = function(num) {
+    /*Loads save objects by their label in the saves dialog box. Saves
+    are numbered in the saves dialog box starting with 1.
+
+    Blocks the load if the calling instance's `_block` is true and the
+    version number of the save object doesn't match the current version
+    number.
+
+    Args:
+        num (int): The label whose save to load. If 0, loads the
+            autosave.
+    */
+    if (this._block) {
+        var verInt = this.get(num).version;
+        if (verInt !== s.version.asInteger()) {
+            var verStr = s.version.intToStr(verInt);
+            alert(
+                'save file is from version ' + verStr + ';\n' +
+                'current version is ' + s.version.asString() + ';\n' + 
+                'unable to load.'
+            );
+            return;
+        }
+    }
+    if (num === 0) {
+        Save.autosave.load();
+    } else {
+        Save.slots.load(num - 1);
+    }
+    return;
+}
+
+s.SavesManager.prototype.saveBkMark = function() {
+    /*If there is an empty bookmark slot, saves a bookmark after
+    confirming with the player; otherwise, alerts that no bookmarks
+    slots are available.
+
+    Returns:
+        SavesManager: The calling instance.
+    */
+    var filled = Save.slots.count();
+    var empty = this._bkMarks - filled;
+    if (empty > 0) {
+        if (confirm(
+            'Save bookmark? You have ' + empty + ' of ' + this._bkMarks +
+                ' remaining.\n\n' +
+            '(If you just want to quit and resume later, you should not need ' +
+                'to save. See the info screen for details.)'
+        )) {
+            Save.slots.save(filled);
+        }
+    } else {
+        alert('All bookmarks already filled. Restart to delete them.');
     }
     return this;
 }
-/* twine-user-script #14: "0130-Menu_.js" */
+
+s.savesMgr = new s.SavesManager();
+
+$(document).on(':dialogopened', function (ev) {
+    /*Alters SC's saves dialog by changing the title to 'Bookmarks',
+    showing only filled save slots, removing the autosave from the
+    display, removing the bottom button bar, and removing the delete
+    buttons if debug mode is not on.
+    */
+    if (Dialog.isOpen('saves')) {
+        $('#ui-dialog-title').html('Bookmarks');
+        $('#saves-list').find('tr:gt(' + Save.slots.count() + ')').remove();
+        $('tr:first-child').remove();
+        $(ev.target).children('ul.buttons').remove();
+        if (!ss.debugOn) {
+            $('button[id^="saves-delete"]').remove();
+        }
+    }
+});
+/* twine-user-script #14: "0140-Menu_.js" */
 /*Uses: SavesManager_, ActionList, Page_.
 
 Builds and instantiates the `Menu` class. Removes the default 'Saves'
@@ -2908,165 +2984,89 @@ s.preProcText.push(['Start', function(text) {
         '</div>'
     );
 }]);
-/* twine-user-script #15: "0140-Path_.js" */
-/*Uses: standard.
+/* twine-user-script #15: "0150-DirectedOutcome.js" */
+/*Uses: Page_.
 
-Builds and instantiates the `Path` class.
-
-Attributes:
-    st.path (Path): A `Path` instance for use by other classes.
+Builds the `DirectedOutcome` class.
 
 */
 
-s.Path = function() {
-    /*Tracks and manages the history of choices and outcomes.
+s.DirectedOutcome = function(node, func, embed, nobreak) {
+    /*An outcome with a node that is loaded at the end.
 
-    There is one instance (`st.path`), built in State.variables, so
-    its state can be stored in SugarCube's history. The class must
-    therefore be made compatible with SugarCube by having `clone    ()` and
-    `toJSON()` methods, and no recursive objects or object sharing. To
-    achieve this, we also require it to have a constructor with no
-    arguments and to have all its attributes be SC supported types.
-    
+    Args:
+        node (Node): Assigned to the `_targetNode` attribute.
+        func (func, optional): Assigned to the `_userScript`
+            attribute. Defaults to a function that does nothing.
+        embed (bool or null, optional): Assigned to the `_embed`
+            attribute. Defaults to null.
+        nobreak (bool or null, optional): Assigned to the `_nobreak`
+            attribute. Defaults to null.
+
     Attributes:
-        _nodeLengths (arr of int): The lengths of the nodes visited so
-            far. Recall that the length of a node is the number of
-            actions it contains.
-        _axnChoices (arr of int): Lists the index of the action chosen
-            at each node.
-        _axnLengths (arr of int): The lengths of the actions chosen so
-            far. Recall that the length of an action is the number of
-            outcomes it contains.
-        _outcomes (arr of int): Lists the index of the outcome that
-            resulted from each choice.
+        _userScript (func): The function to call when the outcome is
+            carried out. Should take no parameters.
+        _targetNode (Node): The node to load after carrying out the
+            outcome.
+        _embed (bool or null): Passed as a parameter to `Page.load()`
+            when loading the target node.
+        _nobreak (bool or null): Passed as a parameter to `Page.load()`
+            when loading the target node.
 
     */
-    
-    this._nodeLengths = [];
-    this._axnChoices = [];
-    this._axnLengths = [];
-    this._outcomes = [];
-}
 
-s.Path.prototype._init = function(obj) {
-    /* Needed for SugarCube compatibility. */
-    Object.keys(obj).forEach(function (pn) {
-        this[pn] = clone(obj[pn]);
-    }, this);
+    s.Outcome.call(this, func);
+    this._targetNode = node;
+    if (embed === undefined) {
+        this._embed = null;
+    } else {
+        this._embed = embed;
+    }
+    if (nobreak === undefined) {
+        this._nobreak = null;
+    } else {
+        this._nobreak = embed;
+    }
     return this;
 };
 
-s.Path.prototype.clone = function () {
-    /* Needed for SugarCube compatibility. */
-    return (new s.Path())._init(this);
-};
+s.DirectedOutcome.prototype = Object.create(s.Outcome.prototype);
 
-s.Path.prototype.toJSON = function () {
-    /* Needed for SugarCube compatibility. */
-    var newPC = {};
-    Object.keys(this).forEach(function (pn) {
-        newPC[pn] = clone(this[pn]);
-    }, this);
-    return JSON.reviveWrapper(
-        '(new s.Path())._init($ReviveData$)', newPC
-    );
-};
+Object.defineProperty(s.DirectedOutcome.prototype, 'constructor', {
+    value: s.DirectedOutcome,
+    enumerable: false,
+    writable: true
+});
 
-s.Path.prototype.length = function() {
-    /*Gets the length of the path.
-
-    Returns:
-        int: The common length of the array attributes.
+s.DirectedOutcome.prototype.carryOut = function() {
+    /*(override) Carries out `_userScript` if it is not `null`, then
+    loads `_targetNode` with the `_embed` and `_nobreak` options.
     */
-    return this._nodeLengths.length;
+    if (this._userScript != null) {
+        this._userScript();
+    }
+    st.page.load(this._targetNode, this._embed, this._nobreak);
 }
 
-s.Path.prototype.addEdge = function(
-        numActions, actionIndex, numOutcomes, outcomeIndex
-    ) {
-    /*Adds a new "edge" to the path. That is, adds a new element to each
-    of the embedded arrays. Called when the player takes an action.
+s.DirectedOutcome.prototype.setEmbed = function(embed, nobreak) {
+    /*Sets the `_embed` and `_nobreak` attributes.
 
     Args:
-        numActions (int): The length of the node from which the player
-            selected an action.
-        actionIndex (int): The index of the action the player took.
-        numOutcomes (int): The length of the action the player took.
-        outcomeIndex (int): The index of the outcome that resulted from
-            the player's selected action.
+        embed (bool): Assigned to the `_embed` attribute.
+        nobreak (bool, optional): Assigned to the `_nobreak` attribute.
+            Defaults to null.
 
     Returns:
-        Path: The calling instance.
+        DirectedOutcome: The calling instance.
     */
-    this._nodeLengths.push(numActions);
-    this._axnChoices.push(actionIndex);
-    this._axnLengths.push(numOutcomes);
-    this._outcomes.push(outcomeIndex);
+    this._embed = embed;
+    if (nobreak === undefined) {
+        this._nobreak = null;
+    } else {
+        this._nobreak = nobreak;
+    }
     return this;
 }
-
-s.Path.prototype.view = function() {
-    /*Displays the path in the console.
-    */
-    var pathStr = '';
-    for (var i = 0; i < this._nodeLengths.length; i++) {
-        pathStr += (
-            'took action ' +
-            (this._axnChoices[i]+1) + ' of ' + this._nodeLengths[i] +
-            '; got outcome ' +
-            (this._outcomes[i]+1) + ' of ' + this._axnLengths[i] + '\n'
-        );
-    }
-    console.log(pathStr);
-}
-
-s.Path.prototype.getActionIndex = function(pointer) {
-    /*Returns an element from the `_axnChoices` array.
-
-    Args:
-        pointer (int): The index of the element to return.
-
-    Returns:
-        int: The element of `_axnChoices` at the index, `pointer`.
-    */
-    return this._axnChoices[pointer];
-}
-
-s.Path.prototype.getOutcomeIndex = function(pointer) {
-    /*Returns an element from the `_outcomes` array.
-
-    Args:
-        pointer (int): The index of the element to return.
-
-    Returns:
-        int: The element of `_outcomes` at the index, `pointer`.
-    */
-    return this._outcomes[pointer];
-}
-
-s.Path.prototype.autoPlay =function() {
-    /*Restarts the story engine, then initiates an automatic playthrough
-    by recreating each choice and outcome of the calling instance. More
-    specifically, saves 'autostart', 'path', and 'pointer' objects in
-    the metadata. These are used by the `Menu` and `Page` classes to
-    carry out the autoplay.
-
-    Raises:
-        Error: If the calling instance has length 0.
-    */
-    if (this.length() === 0) {
-        throw new Error(
-            'Path.autoPlay():\n' +
-            'path is empty'
-        );
-    }
-    memorize('autostart', true);
-    memorize('path', this);
-    memorize('pointer', 0);
-    Engine.restart();
-}
-
-st.path = new s.Path();
 /* twine-user-script #16: "8000-functions.js" */
 /*Uses: Page_.
 
@@ -3174,7 +3174,7 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,6);
+s.version.set(0,5,7);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default

@@ -1,5 +1,6 @@
-# renames files in the current folder of the form '####-...' so that
-# they increase in increments of 10.
+# renames files in the folder 'src/javascript' (relative to the current
+# directoty) of the form '0###-...'so that they increase in increments
+# of 10.
 
 import os
 import re
