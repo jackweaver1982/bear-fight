@@ -33,10 +33,10 @@ s.Menu = function() {
         'restart',
         function() {
             if (ss.debugOn || confirm('Really restart?')) {
-                Save.clear();
                 if (passage() === 'Start') {
-                    memorize('autoStart', true);
+                    memorize('autostart', true);
                 }
+                Save.clear();
                 Engine.restart();
             }
         },
@@ -164,15 +164,6 @@ s.menu = new s.Menu();
 $('#menu-item-restart').remove()
 $('#menu-item-saves').remove()
 
-s.autoStart = function() {
-    /*Check and carry out the 'begin' action.
-    */
-    var begin = s.menu.getAction('begin');
-    if (begin.check()) {
-        begin.choose().carryOut();
-    }
-}
-
 s.menuMarkup = function() {
     /*Processes the menu actions to create SC markup.
 
@@ -255,8 +246,7 @@ s.preProcText.push(['PassageHeader', function(text) {
 }]);
 
 s.preProcText.push(['Start', function(text) {
-    /*Use the autoStart metadata from the restart action to skip the
-    title page.
+    /*Use the 'autostart' metadata to skip the title page, if necessary.
 
     Args:
         text (str): The passage text to process.
@@ -266,9 +256,9 @@ s.preProcText.push(['Start', function(text) {
     */
     return (
         '<<timed 0s>>' +
-            '<<if ss.debugOn || recall("autoStart", false)>>' +
-                '<<run forget("autoStart")>>' +
-                '<<run s.autoStart()>>' +
+            '<<if ss.debugOn || recall("autostart", false)>>' +
+                '<<run forget("autostart")>>' +
+                '<<run st.page.load(s.root)>>' +
             '<</if>>' +
         '<</timed>>' +
         text

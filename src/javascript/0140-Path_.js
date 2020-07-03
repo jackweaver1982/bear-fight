@@ -12,7 +12,7 @@ s.Path = function() {
 
     There is one instance (`st.path`), built in State.variables, so
     its state can be stored in SugarCube's history. The class must
-    therefore be made compatible with SugarCube by having `clone ()` and
+    therefore be made compatible with SugarCube by having `clone    ()` and
     `toJSON()` methods, and no recursive objects or object sharing. To
     achieve this, we also require it to have a constructor with no
     arguments and to have all its attributes be SC supported types.
@@ -61,6 +61,15 @@ s.Path.prototype.toJSON = function () {
     );
 };
 
+s.Path.prototype.length = function() {
+    /*Gets the length of the path.
+
+    Returns:
+        int: The common length of the array attributes.
+    */
+    return this._nodeLengths.length;
+}
+
 s.Path.prototype.addEdge = function(
         numActions, actionIndex, numOutcomes, outcomeIndex
     ) {
@@ -98,6 +107,52 @@ s.Path.prototype.view = function() {
         );
     }
     console.log(pathStr);
+}
+
+s.Path.prototype.getActionIndex = function(pointer) {
+    /*Returns an element from the `_axnChoices` array.
+
+    Args:
+        pointer (int): The index of the element to return.
+
+    Returns:
+        int: The element of `_axnChoices` at the index, `pointer`.
+    */
+    return this._axnChoices[pointer];
+}
+
+s.Path.prototype.getOutcomeIndex = function(pointer) {
+    /*Returns an element from the `_outcomes` array.
+
+    Args:
+        pointer (int): The index of the element to return.
+
+    Returns:
+        int: The element of `_outcomes` at the index, `pointer`.
+    */
+    return this._outcomes[pointer];
+}
+
+s.Path.prototype.autoPlay =function() {
+    /*Restarts the story engine, then initiates an automatic playthrough
+    by recreating each choice and outcome of the calling instance. More
+    specifically, saves 'autostart', 'path', and 'pointer' objects in
+    the metadata. These are used by the `Menu` and `Page` classes to
+    carry out the autoplay.
+
+    Raises:
+        Error: If the calling instance has length 0.
+    */
+    if (this.length() === 0) {
+        throw new Error(
+            'Path.autoPlay():\n' +
+            'path is empty'
+        );
+    }
+    memorize('autostart', true);
+    memorize('path', this);
+    memorize('pointer', 0);
+    Engine.restart();
 }
 
 st.path = new s.Path();

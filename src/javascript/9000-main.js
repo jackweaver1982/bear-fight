@@ -6,7 +6,7 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,5);
+s.version.set(0,5,6);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
@@ -75,22 +75,6 @@ s.addLink('who you are', 'take a look around', null, 'bedroom');
         'Cat involved',
         'random'
     );
-
-    // s.addLink('bedroom', 'mark body as searched', null, function() {
-    //     v.body.searched = true;
-    //     State.create(State.passage);
-    //     st.page.refreshActions();
-    // }, function() {
-    //     return !v.body.searched;
-    // });
-
-    // s.addLink('bedroom', 'mark body as not searched', null, function() {
-    //     v.body.searched = false;
-    //     State.create(State.passage);
-    //     st.page.refreshActions();
-    // }, function() {
-    //     return v.body.searched;
-    // });
 
 // Taking knife actions
 s.copyActions('bedroom', 'Taking knife');

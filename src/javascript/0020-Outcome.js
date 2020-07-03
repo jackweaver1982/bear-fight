@@ -1,4 +1,4 @@
-/*Uses: standard.
+/*Uses: standard
 
 Builds the `Outcome` class.
 

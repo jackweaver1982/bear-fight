@@ -4,6 +4,20 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.6
+
+* Added `Page.execute()`, which adds an outcome to `st.path`, then carries out that outcome. Simplified `Page.takeAction()` to use `Page.execute()`.
+* Deleted `Page.refreshActions()`.
+* Added `Page.offerChoices()`, which inserts choices for the player when the 'path' metadata is `null`, and otherwise automatically carries out the 
+appropriate action from the 'path' metadata.
+* Edited `Page.embedPsg()` to use `Page.offerChoices()`. Also removed `time` argument from `Page.embedPsg()`.
+* Edited `s.onPsgDisplay()` to use `Page.offerChoices()`.
+* Edited `Page.load()` to not use the `time` argument when calling `Page.embedPsg()`.
+* Deleted `s.autoStart()`, and simply loaded root node wherever this had been used.
+* Added `length()`, `getActionIndex()`, `getOutcomeIndex()`, and `autoPlay()` methods to `Path`.
+* Updated comments throughout the project.
+
+
 ## Version 0.5.5
 
 * Edited comments to put one-line description for each class.
@@ -317,6 +331,6 @@ title: Change Log
 * Minor changes to JS files.
 * Fixed an error where the links were being appended to the end of the passage, rather than into the 'actions' container.
 
-## Version 0.1
+## Version 0.1.0
 
 The basic structure of the node/action/outcome system for managing passage transitions is set up and ready to use. It includes support for text substitutions into the narrative content of passages, as well as automatic insertion of action links.

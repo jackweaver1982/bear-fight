@@ -1,4 +1,4 @@
-/*Uses: InfoNode, Parser_, DebugController_.
+/*Uses: InfoNode_, Parser_, DebugController_, Path_.
 
 Builds the `Page` class, instantiates it, and creates functions for
 managing SC's display of incoming passages.
@@ -227,6 +227,23 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     return this;
 }
 
+s.Page.prototype.execute = function(node, action, outcome) {
+    /*Adds the given outcome to the recorded path and carries it out.
+    
+    Args:
+        node (Node): The node containing the chosen action.
+        action (Action): The chosen action.
+        outcome (Outcome): The resulting outcome.
+    */
+    st.path.addEdge(
+        node.length(),
+        node.indexOf(action),
+        action.length(),
+        action.indexOf(outcome)
+    );
+    return outcome.carryOut();
+}
+
 s.Page.prototype.takeAction = function(psgTitle, index) {
     /*Called when the player selects an action from a node. Uses
     `Page.ready()` to check if the current passage corresponds to a
@@ -245,15 +262,7 @@ s.Page.prototype.takeAction = function(psgTitle, index) {
     var node = s.nodes.get(psg);
     var action = node.get(index);
     var outcome = action.choose();
-    st.path.addEdge(
-        node.length(),
-        index,
-        action.length(),
-        action.indexOf(outcome)
-    )
-
-    return outcome.carryOut();
-
+    return this.execute(node, action, outcome);
 }
 
 s.Page.prototype.insertActions = function(psg) {
@@ -300,25 +309,6 @@ s.Page.prototype.insertActions = function(psg) {
     return this;
 }
 
-s.Page.prototype.refreshActions = function() {
-    /*Deletes the actions on the page and reinserts them. Can be used
-    after dynamically changing variables on which action check functions
-    depend.
-
-    Uses `Page.ready()` to check if the incoming passage corresponds to
-    a node.
-
-    Returns:
-        Page: The calling `Page` instance.
-    */
-    this.ready();
-
-    var latestPsg = this.innerPsg();
-    $('#' + latestPsg.domId + '-actions').empty();
-    this.insertActions(latestPsg);
-    return this;
-}
-
 s.Page.prototype.scrollToLast = function() {
     /*Scrolls to put the innermost passage at the top.
 
@@ -361,25 +351,20 @@ s.Page.prototype.scrollToFirst = function() {
     return this;
 }
 
-s.Page.prototype.embedPsg = function(node, time, nobreak) {
+s.Page.prototype.embedPsg = function(node, nobreak) {
     /*Removes the current actions from the page, inserts the given node
-    and its actions into the bottom of the page, scrolls to put the new
-    content at the top, appends the page's list of embedded passages,
-    and adds a new moment to SC's history. The embedded passage is
-    preceded by a scene break ("****") unless the optional `nobreak`
-    argument is true.
-
-    The time parameter is a nonnegative integer that defaults to zero
-    and sets the moment in history to use when parsing. See
-    `Page.insertPsgText` for details.
+    into the bottom of the page, appends the page's list of embedded
+    passages, and adds a new moment to SC's history. The embedded
+    passage is preceded by a scene break ("****") unless the optional
+    `nobreak` argument is true. Finally, calls the `offerChoices()`
+    method, whose behavior depends on whether there is a 'path' stored
+    in metadata (which should only be the case if in autoplay mode).
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
 
     Args:
         node (Node): The node to embed.
-        time (int, optional): A nonnegative integer that defaults to
-            zero. Sets the moment in history to use when parsing.
         nobreak (bool, optional): Defaults to false. Set to true to omit
             the scene break.
 
@@ -402,14 +387,42 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
 
     var latestPsg = this.innerPsg();
     $('#' + latestPsg.domId + '-actions').empty();
-    this.insertPsgText(nodePsg, latestPsg, time, nobreak);
-    this.insertActions(nodePsg);
+    this.insertPsgText(nodePsg, latestPsg, 0, nobreak);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
-    this.scrollToLast();
     State.create(State.passage);
     Save.autosave.save();
+    this.offerChoices();
     return this;
+}
+
+s.Page.prototype.offerChoices = function() {
+    /*If there is no stored 'path' metadata, inserts action links and
+    scrolls to the bottom of the page. Otherwise, enacts the autoplay
+    process, using the stored 'path' metadata. Specifically, will read
+    the 'pointer' location from metadata and use it to extract from the
+    stored 'path' which outcome to carry out. Carries out the outcome
+    and updates the 'pointer'.
+    */
+    var path = recall('path', null);
+    if (path === null) {
+        this.insertActions(this.innerPsg());
+        this.scrollToLast();
+        return;
+    } else {
+        var node = s.nodes.get(this.innerPsg());
+        var pointer = recall('pointer');
+        var action = node.get(path.getActionIndex(pointer));
+        var outcome = action.get(path.getOutcomeIndex(pointer));
+        pointer += 1;
+        if (pointer < path.length()) {
+            memorize('pointer', pointer);
+        } else {
+            forget('path');
+            forget('pointer');
+        }
+        return this.execute(node, action, outcome);
+    }
 }
 
 s.Page.prototype.load = function(node, embed, nobreak) {
@@ -460,7 +473,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     node.onLoad();
     var nodePsg = node.getPassage();
     if (embed) {
-        this.embedPsg(node, 0, nobreak);
+        this.embedPsg(node, nobreak);
     } else {
         this._embeddedPsgs = [];
         this._noBreakFlags = [];
@@ -536,9 +549,10 @@ s.onPsgDisplay = function(ev) {
     /*Triggered by the `:passagedisplay` event. First resets variables
     to the current time, to undo any changes made by
     `Config.passages.onProcess`. Then re-inserts embedded passage text
-    one at a time. Finally, inserts actions and scrolls to the latest
-    embedded passage. Does nothing if the current passage is not
-    associated with a node.
+    one at a time. Finally, calls the `offerChoices()` method, whose
+    behavior depends on whether there is a 'path' stored in metadata
+    (which should only be the case if in autoplay mode). Does nothing if
+    the current passage is not associated with a node.
 
     Args:
         ev (<<SC passagedisplay event obj>>): The event object passed to
@@ -561,8 +575,7 @@ s.onPsgDisplay = function(ev) {
         currentPsg = nextPsg;
     }
 
-    st.page.insertActions(st.page.innerPsg());
-    st.page.scrollToLast();
+    st.page.offerChoices();
     return;
 }
 

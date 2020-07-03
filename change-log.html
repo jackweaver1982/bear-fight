@@ -1056,6 +1056,19 @@ body .markdown-body
 .codehilite .il{color:#009999}
 .codehilite .gc{color:#999;background-color:#EAF2F5}
 </style><title>Change Log</title></head><body><article class="markdown-body"><h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link"></a></h1>
+<h2 id="version-056">Version 0.5.6<a class="headerlink" href="#version-056" title="Permanent link"></a></h2>
+<ul>
+<li>Added <code>Page.execute()</code>, which adds an outcome to <code>st.path</code>, then carries out that outcome. Simplified <code>Page.takeAction()</code> to use <code>Page.execute()</code>.</li>
+<li>Deleted <code>Page.refreshActions()</code>.</li>
+<li>Added <code>Page.offerChoices()</code>, which inserts choices for the player when the &lsquo;path&rsquo; metadata is <code>null</code>, and otherwise automatically carries out the 
+appropriate action from the &lsquo;path&rsquo; metadata.</li>
+<li>Edited <code>Page.embedPsg()</code> to use <code>Page.offerChoices()</code>. Also removed <code>time</code> argument from <code>Page.embedPsg()</code>.</li>
+<li>Edited <code>s.onPsgDisplay()</code> to use <code>Page.offerChoices()</code>.</li>
+<li>Edited <code>Page.load()</code> to not use the <code>time</code> argument when calling <code>Page.embedPsg()</code>.</li>
+<li>Deleted <code>s.autoStart()</code>, and simply loaded root node wherever this had been used.</li>
+<li>Added <code>length()</code>, <code>getActionIndex()</code>, <code>getOutcomeIndex()</code>, and <code>autoPlay()</code> methods to <code>Path</code>.</li>
+<li>Updated comments throughout the project.</li>
+</ul>
 <h2 id="version-055">Version 0.5.5<a class="headerlink" href="#version-055" title="Permanent link"></a></h2>
 <ul>
 <li>Edited comments to put one-line description for each class.</li>
@@ -1369,5 +1382,5 @@ body .markdown-body
 <li>Minor changes to JS files.</li>
 <li>Fixed an error where the links were being appended to the end of the passage, rather than into the &lsquo;actions&rsquo; container.</li>
 </ul>
-<h2 id="version-01">Version 0.1<a class="headerlink" href="#version-01" title="Permanent link"></a></h2>
+<h2 id="version-010">Version 0.1.0<a class="headerlink" href="#version-010" title="Permanent link"></a></h2>
 <p>The basic structure of the node/action/outcome system for managing passage transitions is set up and ready to use. It includes support for text substitutions into the narrative content of passages, as well as automatic insertion of action links.</p></article></body></html>

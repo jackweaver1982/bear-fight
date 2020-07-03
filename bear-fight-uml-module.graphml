@@ -241,7 +241,6 @@
     </node>
     <node id="n15">
       <data key="d4" xml:space="preserve"/>
-      <data key="d5"/>
       <data key="d6">
         <y:UMLClassNode>
           <y:Geometry height="28.0" width="149.0" x="480.5" y="-28.0"/>
@@ -493,7 +492,6 @@
     </edge>
     <edge id="e20" source="n15" target="n11">
       <data key="d8" xml:space="preserve"/>
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="-14.0" tx="33.33333333333333" ty="14.0">

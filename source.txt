@@ -209,7 +209,7 @@ s.autosave.necessary.push(function() {
     return (passage() !== 'Start');
 });
 /* twine-user-script #2: "0020-Outcome.js" */
-/*Uses: standard.
+/*Uses: standard
 
 Builds the `Outcome` class.
 
@@ -1472,10 +1472,10 @@ s.Parser = function() {
     its state can be stored in SugarCube's history. (This is needed,
     because the parser tracks dynamically generated text substitutions.)
     The class must therefore be made compatible with SugarCube by having
-    `clone ()` and `toJSON()` methods, and no recursive objects or
-    object sharing. To achieve this, we also require it to have a
-    constructor with no arguments and to have all its properties be SC
-    supported types.
+    `clone()` and `toJSON()` methods, and no recursive objects or object
+    sharing. To achieve this, we also require it to have a constructor
+    with no arguments and to have all its properties be SC supported
+    types.
 
     Attributes:
         _textSubMap (map of str to arr of (str or func)): Maps passage
@@ -1851,7 +1851,7 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
 
 st.parser = new s.Parser();
 /* twine-user-script #12: "0120-Page_.js" */
-/*Uses: InfoNode, Parser_, DebugController_.
+/*Uses: InfoNode_, Parser_, DebugController_, Path_.
 
 Builds the `Page` class, instantiates it, and creates functions for
 managing SC's display of incoming passages.
@@ -2080,6 +2080,23 @@ s.Page.prototype.insertPsgText = function(psg, shellPsg, time, nobreak) {
     return this;
 }
 
+s.Page.prototype.execute = function(node, action, outcome) {
+    /*Adds the given outcome to the recorded path and carries it out.
+    
+    Args:
+        node (Node): The node containing the chosen action.
+        action (Action): The chosen action.
+        outcome (Outcome): The resulting outcome.
+    */
+    st.path.addEdge(
+        node.length(),
+        node.indexOf(action),
+        action.length(),
+        action.indexOf(outcome)
+    );
+    return outcome.carryOut();
+}
+
 s.Page.prototype.takeAction = function(psgTitle, index) {
     /*Called when the player selects an action from a node. Uses
     `Page.ready()` to check if the current passage corresponds to a
@@ -2098,15 +2115,7 @@ s.Page.prototype.takeAction = function(psgTitle, index) {
     var node = s.nodes.get(psg);
     var action = node.get(index);
     var outcome = action.choose();
-    st.path.addEdge(
-        node.length(),
-        index,
-        action.length(),
-        action.indexOf(outcome)
-    )
-
-    return outcome.carryOut();
-
+    return this.execute(node, action, outcome);
 }
 
 s.Page.prototype.insertActions = function(psg) {
@@ -2153,25 +2162,6 @@ s.Page.prototype.insertActions = function(psg) {
     return this;
 }
 
-s.Page.prototype.refreshActions = function() {
-    /*Deletes the actions on the page and reinserts them. Can be used
-    after dynamically changing variables on which action check functions
-    depend.
-
-    Uses `Page.ready()` to check if the incoming passage corresponds to
-    a node.
-
-    Returns:
-        Page: The calling `Page` instance.
-    */
-    this.ready();
-
-    var latestPsg = this.innerPsg();
-    $('#' + latestPsg.domId + '-actions').empty();
-    this.insertActions(latestPsg);
-    return this;
-}
-
 s.Page.prototype.scrollToLast = function() {
     /*Scrolls to put the innermost passage at the top.
 
@@ -2214,25 +2204,20 @@ s.Page.prototype.scrollToFirst = function() {
     return this;
 }
 
-s.Page.prototype.embedPsg = function(node, time, nobreak) {
+s.Page.prototype.embedPsg = function(node, nobreak) {
     /*Removes the current actions from the page, inserts the given node
-    and its actions into the bottom of the page, scrolls to put the new
-    content at the top, appends the page's list of embedded passages,
-    and adds a new moment to SC's history. The embedded passage is
-    preceded by a scene break ("****") unless the optional `nobreak`
-    argument is true.
-
-    The time parameter is a nonnegative integer that defaults to zero
-    and sets the moment in history to use when parsing. See
-    `Page.insertPsgText` for details.
+    into the bottom of the page, appends the page's list of embedded
+    passages, and adds a new moment to SC's history. The embedded
+    passage is preceded by a scene break ("****") unless the optional
+    `nobreak` argument is true. Finally, calls the `offerChoices()`
+    method, whose behavior depends on whether there is a 'path' stored
+    in metadata (which should only be the case if in autoplay mode).
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
 
     Args:
         node (Node): The node to embed.
-        time (int, optional): A nonnegative integer that defaults to
-            zero. Sets the moment in history to use when parsing.
         nobreak (bool, optional): Defaults to false. Set to true to omit
             the scene break.
 
@@ -2255,14 +2240,42 @@ s.Page.prototype.embedPsg = function(node, time, nobreak) {
 
     var latestPsg = this.innerPsg();
     $('#' + latestPsg.domId + '-actions').empty();
-    this.insertPsgText(nodePsg, latestPsg, time, nobreak);
-    this.insertActions(nodePsg);
+    this.insertPsgText(nodePsg, latestPsg, 0, nobreak);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
-    this.scrollToLast();
     State.create(State.passage);
     Save.autosave.save();
+    this.offerChoices();
     return this;
+}
+
+s.Page.prototype.offerChoices = function() {
+    /*If there is no stored 'path' metadata, inserts action links and
+    scrolls to the bottom of the page. Otherwise, enacts the autoplay
+    process, using the stored 'path' metadata. Specifically, will read
+    the 'pointer' location from metadata and use it to extract from the
+    stored 'path' which outcome to carry out. Carries out the outcome
+    and updates the 'pointer'.
+    */
+    var path = recall('path', null);
+    if (path === null) {
+        this.insertActions(this.innerPsg());
+        this.scrollToLast();
+        return;
+    } else {
+        var node = s.nodes.get(this.innerPsg());
+        var pointer = recall('pointer');
+        var action = node.get(path.getActionIndex(pointer));
+        var outcome = action.get(path.getOutcomeIndex(pointer));
+        pointer += 1;
+        if (pointer < path.length()) {
+            memorize('pointer', pointer);
+        } else {
+            forget('path');
+            forget('pointer');
+        }
+        return this.execute(node, action, outcome);
+    }
 }
 
 s.Page.prototype.load = function(node, embed, nobreak) {
@@ -2313,7 +2326,7 @@ s.Page.prototype.load = function(node, embed, nobreak) {
     node.onLoad();
     var nodePsg = node.getPassage();
     if (embed) {
-        this.embedPsg(node, 0, nobreak);
+        this.embedPsg(node, nobreak);
     } else {
         this._embeddedPsgs = [];
         this._noBreakFlags = [];
@@ -2389,9 +2402,10 @@ s.onPsgDisplay = function(ev) {
     /*Triggered by the `:passagedisplay` event. First resets variables
     to the current time, to undo any changes made by
     `Config.passages.onProcess`. Then re-inserts embedded passage text
-    one at a time. Finally, inserts actions and scrolls to the latest
-    embedded passage. Does nothing if the current passage is not
-    associated with a node.
+    one at a time. Finally, calls the `offerChoices()` method, whose
+    behavior depends on whether there is a 'path' stored in metadata
+    (which should only be the case if in autoplay mode). Does nothing if
+    the current passage is not associated with a node.
 
     Args:
         ev (<<SC passagedisplay event obj>>): The event object passed to
@@ -2414,8 +2428,7 @@ s.onPsgDisplay = function(ev) {
         currentPsg = nextPsg;
     }
 
-    st.page.insertActions(st.page.innerPsg());
-    st.page.scrollToLast();
+    st.page.offerChoices();
     return;
 }
 
@@ -2563,10 +2576,10 @@ s.Menu = function() {
         'restart',
         function() {
             if (ss.debugOn || confirm('Really restart?')) {
-                Save.clear();
                 if (passage() === 'Start') {
-                    memorize('autoStart', true);
+                    memorize('autostart', true);
                 }
+                Save.clear();
                 Engine.restart();
             }
         },
@@ -2694,15 +2707,6 @@ s.menu = new s.Menu();
 $('#menu-item-restart').remove()
 $('#menu-item-saves').remove()
 
-s.autoStart = function() {
-    /*Check and carry out the 'begin' action.
-    */
-    var begin = s.menu.getAction('begin');
-    if (begin.check()) {
-        begin.choose().carryOut();
-    }
-}
-
 s.menuMarkup = function() {
     /*Processes the menu actions to create SC markup.
 
@@ -2785,8 +2789,7 @@ s.preProcText.push(['PassageHeader', function(text) {
 }]);
 
 s.preProcText.push(['Start', function(text) {
-    /*Use the autoStart metadata from the restart action to skip the
-    title page.
+    /*Use the 'autostart' metadata to skip the title page, if necessary.
 
     Args:
         text (str): The passage text to process.
@@ -2796,9 +2799,9 @@ s.preProcText.push(['Start', function(text) {
     */
     return (
         '<<timed 0s>>' +
-            '<<if ss.debugOn || recall("autoStart", false)>>' +
-                '<<run forget("autoStart")>>' +
-                '<<run s.autoStart()>>' +
+            '<<if ss.debugOn || recall("autostart", false)>>' +
+                '<<run forget("autostart")>>' +
+                '<<run st.page.load(s.root)>>' +
             '<</if>>' +
         '<</timed>>' +
         text
@@ -2836,7 +2839,7 @@ s.Path = function() {
 
     There is one instance (`st.path`), built in State.variables, so
     its state can be stored in SugarCube's history. The class must
-    therefore be made compatible with SugarCube by having `clone ()` and
+    therefore be made compatible with SugarCube by having `clone    ()` and
     `toJSON()` methods, and no recursive objects or object sharing. To
     achieve this, we also require it to have a constructor with no
     arguments and to have all its attributes be SC supported types.
@@ -2885,6 +2888,15 @@ s.Path.prototype.toJSON = function () {
     );
 };
 
+s.Path.prototype.length = function() {
+    /*Gets the length of the path.
+
+    Returns:
+        int: The common length of the array attributes.
+    */
+    return this._nodeLengths.length;
+}
+
 s.Path.prototype.addEdge = function(
         numActions, actionIndex, numOutcomes, outcomeIndex
     ) {
@@ -2922,6 +2934,52 @@ s.Path.prototype.view = function() {
         );
     }
     console.log(pathStr);
+}
+
+s.Path.prototype.getActionIndex = function(pointer) {
+    /*Returns an element from the `_axnChoices` array.
+
+    Args:
+        pointer (int): The index of the element to return.
+
+    Returns:
+        int: The element of `_axnChoices` at the index, `pointer`.
+    */
+    return this._axnChoices[pointer];
+}
+
+s.Path.prototype.getOutcomeIndex = function(pointer) {
+    /*Returns an element from the `_outcomes` array.
+
+    Args:
+        pointer (int): The index of the element to return.
+
+    Returns:
+        int: The element of `_outcomes` at the index, `pointer`.
+    */
+    return this._outcomes[pointer];
+}
+
+s.Path.prototype.autoPlay =function() {
+    /*Restarts the story engine, then initiates an automatic playthrough
+    by recreating each choice and outcome of the calling instance. More
+    specifically, saves 'autostart', 'path', and 'pointer' objects in
+    the metadata. These are used by the `Menu` and `Page` classes to
+    carry out the autoplay.
+
+    Raises:
+        Error: If the calling instance has length 0.
+    */
+    if (this.length() === 0) {
+        throw new Error(
+            'Path.autoPlay():\n' +
+            'path is empty'
+        );
+    }
+    memorize('autostart', true);
+    memorize('path', this);
+    memorize('pointer', 0);
+    Engine.restart();
 }
 
 st.path = new s.Path();
@@ -3032,7 +3090,7 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,5);
+s.version.set(0,5,6);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
 st.page.setContinuous(true); // make embedding passages the default
@@ -3101,22 +3159,6 @@ s.addLink('who you are', 'take a look around', null, 'bedroom');
         'Cat involved',
         'random'
     );
-
-    // s.addLink('bedroom', 'mark body as searched', null, function() {
-    //     v.body.searched = true;
-    //     State.create(State.passage);
-    //     st.page.refreshActions();
-    // }, function() {
-    //     return !v.body.searched;
-    // });
-
-    // s.addLink('bedroom', 'mark body as not searched', null, function() {
-    //     v.body.searched = false;
-    //     State.create(State.passage);
-    //     st.page.refreshActions();
-    // }, function() {
-    //     return v.body.searched;
-    // });
 
 // Taking knife actions
 s.copyActions('bedroom', 'Taking knife');

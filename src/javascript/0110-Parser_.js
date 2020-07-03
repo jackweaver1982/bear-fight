@@ -17,10 +17,10 @@ s.Parser = function() {
     its state can be stored in SugarCube's history. (This is needed,
     because the parser tracks dynamically generated text substitutions.)
     The class must therefore be made compatible with SugarCube by having
-    `clone ()` and `toJSON()` methods, and no recursive objects or
-    object sharing. To achieve this, we also require it to have a
-    constructor with no arguments and to have all its properties be SC
-    supported types.
+    `clone()` and `toJSON()` methods, and no recursive objects or object
+    sharing. To achieve this, we also require it to have a constructor
+    with no arguments and to have all its properties be SC supported
+    types.
 
     Attributes:
         _textSubMap (map of str to arr of (str or func)): Maps passage
