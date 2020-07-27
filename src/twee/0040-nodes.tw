@@ -1,6 +1,6 @@
 :: Root [no-menu]
 /* The 'Root' passage must be present. It will be the first passage
-visited after the `Start` passage.
+visited after the `Start` passage. All node content must be structured as paragraphs with html paragraph tags. This is used by the narrative history system to extract a log of the story so far, and is also necessary because `nobr` is set by default.
 */
 <p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
 
@@ -45,4 +45,4 @@ visited after the `Start` passage.
 <p>You take the knife and carefully slide it under your belt. You may need this for later.</p>
 
 :: Next
-To be continued.
+<p>To be continued.</p>

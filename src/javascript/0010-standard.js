@@ -53,6 +53,69 @@ Object.defineProperty(window, "st", {
     }
 });
 
+s.isEmpty = function(arr) {
+    /*We recursively define "empty" in the generalized sense by the
+    following. A length zero array is "empty". An array is "empty" if
+    all its elements are "empty". This function tests whether a given
+    array is empty.
+
+    Args:
+        arr (arr of obj): The array to test.
+
+    Returns:
+        bool: Returns true if array is "empty" in the generalized sense.
+            Returns false otherwise.
+
+    */
+    if (arr.length === 0) {
+        return true;
+    }
+    if (arr.every(Array.isArray)) {
+        return arr.every(s.isEmpty);
+    } else {
+        return false;
+    }
+}
+
+s.splitArr = function(arr, obj) {
+    /*This function behaves like the `String` method, `split()`, but for
+    arrays. It looks for the specified object in the given array, then
+    splits the given array at that object, returning an array of arrays.
+    Returns a new array, leaving the original unaltered.
+
+    One key difference between this function and the `split()` method is
+    that in this function, initial or terminal appearances of the
+    splitting object have no effect. Similarly, consecutive appearances
+    of the splitting object also have no effect.
+
+    Args:
+        arr (arr of obj): The array to split.
+        obj (obj): The object to split at.
+
+    Returns:
+        arr of arr of obj: A new array, produced by splitting the given
+            array at the specified object.
+
+    Example:
+        console.log(s.splitArr([2,3,1,1,5,1,7,8,6,1], 1));
+        // expected output: [[2,3], [5], [7,8,6]]
+
+    */
+    var index = arr.indexOf(obj);
+    if (index === -1) {
+        return [arr];
+    } else if (index === 0) {
+        return s.splitArr(arr.slice(1), obj);
+    } else if (index === arr.length - 1) {
+        return [arr.slice(0,-1)];
+    } else {
+        var left = arr.slice(0,index);
+        var right = arr.slice(index + 1);
+        var splitRight = s.splitArr(right, obj);
+        return [left].concat(splitRight);
+    }
+}
+
 s.loadVars = function(time) {
     /*Replaces `v` with a copy of `State.variables` from the moment with
     index `time`. Does not touch `v.static`.

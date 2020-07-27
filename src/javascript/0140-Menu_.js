@@ -16,19 +16,20 @@ s.Menu = function() {
     /*The in-game menu offering persistent actions to the user.
 
     A `Menu` object is an `ActionList` with built-in 'begin', 'resume',
-    'save', 'load', and 'restart' actions. The 'save', 'load', and
-    'restart' methods are kept at the end of the list. These actions are
-    automatically inserted into various areas of the story (such as the
-    header, the UI bar, and the bottom of the 'Start' passage.)
+    'history', save', 'load', and 'restart' actions. The 'history',
+    'save', 'load', and 'restart' methods are kept at the end of the
+    list. These actions are automatically inserted into various areas of
+    the story (such as the header, the UI bar, and the bottom of the
+    'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
-            array to keep fixed in place. Defaults to 3.
+            array to keep fixed in place. Defaults to 4.
 
     */
     
-    s.ActionList.call(this, 3);
+    s.ActionList.call(this, 4);
     this.addAction(
         'restart',
         function() {
@@ -64,6 +65,15 @@ s.Menu = function() {
             s.savesMgr.saveBkMark();
         },
         Config.saves.isAllowed
+    );
+    this.addAction(
+        'history',
+        function() {
+            st.page.load(s.history);
+        },
+        function() {
+            return st.page.pages() > 0;
+        }
     );
     this.addAction(
         'begin',
@@ -118,6 +128,7 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
 
     Returns:
         Menu: The calling instance.
+
     */
     if (checkFunc == null) {
         checkFunc = function() {
@@ -144,6 +155,7 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
     Raises:
         Error: If the given passage title is associated to a node that
             is not an info node.
+
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -169,6 +181,7 @@ s.menuMarkup = function() {
 
     Returns:
         str: SC markup for menu links.
+
     */
     var text = '';
     var action;
@@ -198,6 +211,7 @@ s.preProcText.push(['StoryMenu', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     if (!UIBar.isHidden() && !tags().includes('no-menu')) {
         return s.menuMarkup();
@@ -217,6 +231,7 @@ s.preProcText.push(['PassageHeader', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     var buttonMarkup = (
         '<span title="Scroll to top">' +
@@ -253,6 +268,7 @@ s.preProcText.push(['Start', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     return (
         '<<timed 0s>>' +
@@ -263,7 +279,7 @@ s.preProcText.push(['Start', function(text) {
         '<</timed>>' +
         text
     );
-}])
+}]);
 
 s.preProcText.push(['Start', function(text) {
     /*Adds the menu to the bottom of the Start passage.
@@ -273,6 +289,7 @@ s.preProcText.push(['Start', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     return (
         text + '<br>' +

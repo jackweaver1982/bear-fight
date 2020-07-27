@@ -100,7 +100,7 @@ var saveAs=saveAs||navigator.msSaveBlob&&navigator.msSaveBlob.bind(navigator)||f
 		<div id="init-lacking">Your browser lacks required capabilities. Please upgrade it or switch to another to continue.</div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://5406BF44-CF93-41CF-9DED-9824A52E2F82// --><tw-storydata name="Story Title" startnode="11" creator="Tweego" creator-version="2.0.0+089d4ca77e5b" ifid="5406BF44-CF93-41CF-9DED-9824A52E2F82" zoom="1" format="SugarCube" format-version="2.31.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">/* twine-user-stylesheet #1: "main.css" */
+	<!-- UUID://5406BF44-CF93-41CF-9DED-9824A52E2F82// --><tw-storydata name="Story Title" startnode="12" creator="Tweego" creator-version="2.0.0+089d4ca77e5b" ifid="5406BF44-CF93-41CF-9DED-9824A52E2F82" zoom="1" format="SugarCube" format-version="2.31.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">/* twine-user-stylesheet #1: "main.css" */
 html {
     font: 100% Georgia, serif;
 }
@@ -197,6 +197,69 @@ Object.defineProperty(window, "st", {
         return State.variables.static;
     }
 });
+
+s.isEmpty = function(arr) {
+    /*We recursively define "empty" in the generalized sense by the
+    following. A length zero array is "empty". An array is "empty" if
+    all its elements are "empty". This function tests whether a given
+    array is empty.
+
+    Args:
+        arr (arr of obj): The array to test.
+
+    Returns:
+        bool: Returns true if array is "empty" in the generalized sense.
+            Returns false otherwise.
+
+    */
+    if (arr.length === 0) {
+        return true;
+    }
+    if (arr.every(Array.isArray)) {
+        return arr.every(s.isEmpty);
+    } else {
+        return false;
+    }
+}
+
+s.splitArr = function(arr, obj) {
+    /*This function behaves like the `String` method, `split()`, but for
+    arrays. It looks for the specified object in the given array, then
+    splits the given array at that object, returning an array of arrays.
+    Returns a new array, leaving the original unaltered.
+
+    One key difference between this function and the `split()` method is
+    that in this function, initial or terminal appearances of the
+    splitting object have no effect. Similarly, consecutive appearances
+    of the splitting object also have no effect.
+
+    Args:
+        arr (arr of obj): The array to split.
+        obj (obj): The object to split at.
+
+    Returns:
+        arr of arr of obj: A new array, produced by splitting the given
+            array at the specified object.
+
+    Example:
+        console.log(s.splitArr([2,3,1,1,5,1,7,8,6,1], 1));
+        // expected output: [[2,3], [5], [7,8,6]]
+
+    */
+    var index = arr.indexOf(obj);
+    if (index === -1) {
+        return [arr];
+    } else if (index === 0) {
+        return s.splitArr(arr.slice(1), obj);
+    } else if (index === arr.length - 1) {
+        return [arr.slice(0,-1)];
+    } else {
+        var left = arr.slice(0,index);
+        var right = arr.slice(index + 1);
+        var splitRight = s.splitArr(right, obj);
+        return [left].concat(splitRight);
+    }
+}
 
 s.loadVars = function(time) {
     /*Replaces `v` with a copy of `State.variables` from the moment with
@@ -848,6 +911,7 @@ s.getNode = function(psgTitle) {
 
     Returns:
         node: The node associated with the given passage title.
+
     */
     return s.nodes.get(Story.get(psgTitle));
 }
@@ -945,6 +1009,7 @@ s.Node.prototype.getPassage = function() {
     Returns:
         <<SC Passage>>: The `_passage` attribute of the calling
             instance.
+
     */
     return this._passage;
 }
@@ -955,6 +1020,7 @@ s.Node.prototype.getExcerpt = function() {
     Returns:
         str: The `_excerpt` property, if it is non-null; otherwise, the
             `_excerpt` property of the associated passage.
+
     */
     var excerpt = this._excerpt;
     if (excerpt === null) {
@@ -968,6 +1034,7 @@ s.Node.prototype.getSubCount = function() {
 
     Returns:
         int: The `_subCount` attribute of the calling instance.
+
     */
     return this._subCount;
 }
@@ -982,10 +1049,11 @@ s.Node.prototype.setSubCount = function(num) {
             instance.
 
     Returns:
-        Action: The calling instance.
+        Node: The calling instance.
 
     Raises:
         Error: If used when `_subCount` is not 0.
+
     */
     if (this._subCount !== 0) {
         throw new Error(
@@ -997,12 +1065,38 @@ s.Node.prototype.setSubCount = function(num) {
     return this;
 }
 
+s.Node.prototype.isOutOfChar = function() {
+    /*Fetches the `_outOfChar` attribute.
+
+    Returns:
+        bool: The `_outOfChar` attribute of the calling instance.
+
+    */
+    return this._outOfChar;
+}
+
+s.Node.prototype.setOutOfChar = function(bool) {
+    /*Sets the `_outOfChar` attribute.
+
+    Args:
+        bool (bool): Assigned to the `_outOfChar` attribute of the
+            calling instance.
+
+    Returns:
+        Node: The calling instance.
+
+    */
+    this._outOfChar = bool;
+    return this;
+}
+
 s.Node.prototype.onLoad = function() {
     /*Does nothing if `this._userScript` is `null` or `undefined`,
     otherwise executes `this._userScript`.
 
     Returns:
         Returns the same value as `this._userScript`.
+
     */
     if (this._userScript == null) {
         return;
@@ -1332,8 +1426,9 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 s.Parser.prototype.addContainers = function(psgTitle, text) {
     /*Wraps the given text in a `body` container; adds an `action`
     container for the action links; adds a `next` container in case the
-    next node is to be loaded without a passage transition. The HTML id
-    of the containers is determined by `psgTitle`.
+    next node is to be loaded without a passage transition. Then wraps
+    everything in a `main` container. The HTML id of the containers is
+    determined by `psgTitle`.
 
     Args:
         psgTitle (str): The title of the passage being processed.
@@ -1344,11 +1439,13 @@ s.Parser.prototype.addContainers = function(psgTitle, text) {
     */
     var psg = Story.get(psgTitle);
     return (
+        '<div id="' + psg.domId + '-main">\n\n' +
         '<div id="' + psg.domId + '-body">\n\n' +
             text + '\n\n' +
         '</div>\n\n' + 
         '<div id="' + psg.domId + '-actions"></div>\n\n' +
-        '<div id="' + psg.domId + '-next"></div>'
+        '<div id="' + psg.domId + '-next"></div>\n\n' +
+        '</div>'
     );
 
 }
@@ -1371,8 +1468,10 @@ s.Parser.prototype.removeBreaks = function(text) {
 s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     /*Processes the special node markup in the given passage (inserts
     text subs, processes the detail markup, adds the containers, and
-    removes breaks. Does nothing if the given passage is not associated
-    with a node. Returns the processed text.
+    removes breaks. Adds an 'outOfChar' class to all paragraphs if the
+    corresponding node's `_outOfChar` attribute is true. Does nothing if
+    the given passage is not associated with a node. Returns the
+    processed text.
 
     The optional `time` parameter is used to set the moment in SC's
     history from which to draw the values of variables. It allows for
@@ -1389,6 +1488,9 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     var node = s.getNode(psgTitle);
     if (node === undefined) {
         return text;
+    }
+    if (node.isOutOfChar()) {
+        text = text.replace(/<p/g, '<p class="outOfChar"');
     }
 
     time = time || 0;
@@ -1759,6 +1861,8 @@ Attributes:
         passage, and the second element of which is a function to apply
         to that passage's text before SC's text processing. The function
         should take a string as an argument and return a string.
+    s.history (InfoNode): The `InfoNode` instance associated with the
+        'History' passage.
 
 */
 
@@ -1789,12 +1893,21 @@ s.Page = function() {
             separator between embedded passages)
         _continuous (bool): Defaults to `false`. Set to `true` to make
             the passages embed by default.
+        _history (arr of arr of arr of str): A 3-dim array of
+            strings. The first index corresponds to the pages in the
+            history. The second index corresponds to a scene of the page
+            (separated by scene breaks). The third index corresponds to
+            paragraphs within that scene. The strings themselves are raw
+            text, obtained by `innerText`, and containing no HTML
+            markup. Text corresponding to nodes whose `_outOfChar`
+            attribute is `true` are not included.
 
     */
     
     this._embeddedPsgs = [];
     this._noBreakFlags = [];
     this._continuous = false;
+    this._history = [];
     return this;    
 };
 
@@ -1834,6 +1947,7 @@ s.Page.prototype.ready = function(safe) {
 
     Raises:
         Error: If current passage is not a node.
+
     */
     if (s.getNode(passage()) === undefined) {
         if (safe) {
@@ -1852,6 +1966,7 @@ s.Page.prototype.length = function() {
 
     Returns:
         int: The length of the `_embeddedPsgs` attribute.
+
     */
     return this._embeddedPsgs.length;
 }
@@ -1864,6 +1979,7 @@ s.Page.prototype.getPsg = function(index) {
 
     Returns:
         str: The passage title at that index.
+
     */
     return this._embeddedPsgs[index];
 }
@@ -1876,6 +1992,7 @@ s.Page.prototype.getFlag = function(index) {
 
     Returns:
         str: The no-break flag at that index.
+
     */
     return this._noBreakFlags[index];
 }
@@ -1885,6 +2002,7 @@ s.Page.prototype.isContinuous = function() {
 
     Returns:
         bool: The value of the `_continuous` attribute.
+
     */
     return this._continuous;
 }
@@ -1897,9 +2015,136 @@ s.Page.prototype.setContinuous = function(val) {
 
     Returns:
         Page: The calling `Page` instance.
+
     */
     this._continuous = val;
     return this;
+}
+
+s.Page.prototype.getScenes = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, and extracts all textual content except scene breaks. Returns
+    that textual content as a 2-dimensional array, with the first index
+    indicating the scene (separated on the page by scene breaks) and the
+    second index indicating the paragraph.
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        arr of arr of str: A 2-dimensional array, with the first index
+            indicating the scene (separated on the page by scene breaks)
+            and the second index indicating the paragraph.
+
+    */
+    var pars = [];
+    $('#' + psg.domId + '-main').find('p').not('.outOfChar').each(
+        function(index, element) {
+            pars.push(element.innerText);
+        }
+    );
+    pars = pars.filter(function(element) {
+        return element !== '';
+    });
+    return s.splitArr(pars, '****');
+}
+
+s.Page.prototype.pushHistory = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, extracts the scenes as an array of arrays of paragraph text,
+    then adds that array of scenes to the end of calling instance's
+    `_history` array.
+
+    Does nothing if the array of scenes is "empty" in the generalized
+    sense (i.e. of length zero, or containing only arrays that are
+    "empty").
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        Page: The calling instance.
+
+    */
+    var scenes = this.getScenes(psg);
+    if (!s.isEmpty(scenes)) {
+        this._history.push(this.getScenes(psg));
+    }
+    return this;
+}
+
+s.Page.prototype.updateHistory = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, extracts the scenes as an array of arrays of paragraph text,
+    then replaces the last element of the calling instance's `_history`
+    array with that array of scenes.
+
+    If the array of scenes is "empty" in the generalized sense (i.e. of
+    length zero, or containing only arrays that are "empty"), deletes
+    the last element of the calling instance's `_history` array.
+
+    Does nothing if the calling instance's `_history` array has length
+    zero.
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        Page: The calling instance.
+
+    */
+    if (this._history.length === 0) {
+        return;
+    }
+
+    var scenes = this.getScenes(psg);
+    if (!s.isEmpty(scenes)) {
+        this._history[this._history.length - 1] = scenes;
+    } else {
+        this._history.pop();
+    }
+    return this;
+}
+
+s.Page.prototype.pages = function() {
+    /*Returns the number of pages in history.
+
+    Returns:
+        int: The length of the calling instance's `_history` attribute.
+
+    */
+    return this._history.length;
+}
+
+s.Page.prototype.pageToHTML = function(index) {
+    /*Returns that page stored in history at the given index in HTML
+    format. Encloses each paragraph in HTML `p` tags and separates
+    scenes with centered scene breaks.
+
+    Args:
+        index (int): The index in history of the page to convert to
+            HTML.
+
+    Returns:
+        str: The page, in HTML, as a single string.
+
+    */
+    var scenes = this._history[index];
+    scenes = scenes.map(function(scene) {
+        return scene.map(function(par) {
+            return '<p>' + par + '</p>';
+        });
+    });
+    scenes = scenes.map(function(scene) {
+        return scene.join('\n\n');
+    });
+    return scenes.join('\n\n<p style="text-align:center">****</p>\n\n');
 }
 
 s.Page.prototype.innerPsg = function() {
@@ -2059,7 +2304,9 @@ s.Page.prototype.insertActions = function(psg) {
 }
 
 s.Page.prototype.scrollToLast = function() {
-    /*Scrolls to put the innermost passage at the top.
+    /*Scrolls to put the body of the innermost passage at the top. If
+    currently viewing the 'History' passage, scrolls instead to put the
+    actions of the innermost passage at the top.
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
@@ -2076,9 +2323,11 @@ s.Page.prototype.scrollToLast = function() {
     } else {
         headerHeight = header.offsetHeight;
     }
+
+    var section = (passage() === 'History') ? '-actions' : '-body';
     $('html, body').animate({
         scrollTop: (
-            $('#' + this.innerPsg().domId + '-body').position().top -
+            $('#' + this.innerPsg().domId + section).position().top -
             headerHeight - 16
         )
     }, 0);
@@ -2103,11 +2352,12 @@ s.Page.prototype.scrollToFirst = function() {
 s.Page.prototype.embedPsg = function(node, nobreak) {
     /*Removes the current actions from the page, inserts the given node
     into the bottom of the page, appends the page's list of embedded
-    passages, and adds a new moment to SC's history. The embedded
-    passage is preceded by a scene break ("****") unless the optional
-    `nobreak` argument is true. Finally, calls the `offerChoices()`
-    method, whose behavior depends on whether there is a 'path' stored
-    in metadata (which should only be the case if in autoplay mode).
+    passages, updates the page's `_history` attribute, and adds a new
+    moment to SC's history. The embedded passage is preceded by a scene
+    break ("****") unless the optional `nobreak` argument is true.
+    Finally, calls the `offerChoices()` method, whose behavior depends
+    on whether there is a 'path' stored in metadata (which should only
+    be the case if in autoplay mode).
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
@@ -2139,6 +2389,9 @@ s.Page.prototype.embedPsg = function(node, nobreak) {
     this.insertPsgText(nodePsg, latestPsg, 0, nobreak);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
+
+    this.updateHistory(Story.get(passage()));
+
     State.create(State.passage);
     Save.autosave.save();
     this.offerChoices();
@@ -2234,6 +2487,25 @@ s.Page.prototype.load = function(node, embed, nobreak) {
 st.page = new s.Page();
 s.preProcText = [];
 
+s.history = new s.InfoNode('History');
+s.preProcText.push(['History', function(text) {
+    /*Adds the pages in the `_history` attribute of `st.page` to the
+    'History' passage, separated by centered scene breaks.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
+
+    */
+    var arr = [];
+    for (var i = 0; i < st.page.pages(); i++) {
+        arr.push(st.page.pageToHTML(i));
+    }
+    return arr.join('\n\n<p style=\"text-align:center\">****</p>\n\n');
+}]);
+
 Config.passages.onProcess = function(p) {
     /*Performs all the necessary pre-processing on the passage text.
     Does nothing further if the current passage is not associated with a
@@ -2297,11 +2569,13 @@ $(document).one(':storyready', s.onStoryReady);
 s.onPsgDisplay = function(ev) {
     /*Triggered by the `:passagedisplay` event. First resets variables
     to the current time, to undo any changes made by
-    `Config.passages.onProcess`. Then re-inserts embedded passage text
-    one at a time. Finally, calls the `offerChoices()` method, whose
-    behavior depends on whether there is a 'path' stored in metadata
-    (which should only be the case if in autoplay mode). Does nothing if
-    the current passage is not associated with a node.
+    `Config.passages.onProcess`. If loading a new page with nothing
+    embedded, adds to the `_history` attribute of `st.page`. Otherwise,
+    re-inserts embedded passage text one at a time. Finally, calls the
+    `offerChoices()` method, whose behavior depends on whether there is
+    a 'path' stored in metadata (which should only be the case if in
+    autoplay mode). Does nothing if the current passage is not
+    associated with a node.
 
     Args:
         ev (<<SC passagedisplay event obj>>): The event object passed to
@@ -2314,14 +2588,19 @@ s.onPsgDisplay = function(ev) {
     s.loadVars(0);
 
     var currentPsg = ev.passage;
-    var nextPsg, time;
-    for (var i = 0; i < st.page.length(); i++) {
-        nextPsg = Story.get(st.page.getPsg(i));
-        time = st.page.length() - (i + 1)
-        st.page.insertPsgText(
-            nextPsg, currentPsg, time, st.page.getFlag(i)
-        );
-        currentPsg = nextPsg;
+
+    if (st.page.length() === 0) {
+        st.page.pushHistory(currentPsg);
+    } else {
+        var nextPsg, time;
+        for (var i = 0; i < st.page.length(); i++) {
+            nextPsg = Story.get(st.page.getPsg(i));
+            time = st.page.length() - (i + 1)
+            st.page.insertPsgText(
+                nextPsg, currentPsg, time, st.page.getFlag(i)
+            );
+            currentPsg = nextPsg;
+        }
     }
 
     st.page.offerChoices();
@@ -2719,19 +2998,20 @@ s.Menu = function() {
     /*The in-game menu offering persistent actions to the user.
 
     A `Menu` object is an `ActionList` with built-in 'begin', 'resume',
-    'save', 'load', and 'restart' actions. The 'save', 'load', and
-    'restart' methods are kept at the end of the list. These actions are
-    automatically inserted into various areas of the story (such as the
-    header, the UI bar, and the bottom of the 'Start' passage.)
+    'history', save', 'load', and 'restart' actions. The 'history',
+    'save', 'load', and 'restart' methods are kept at the end of the
+    list. These actions are automatically inserted into various areas of
+    the story (such as the header, the UI bar, and the bottom of the
+    'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
-            array to keep fixed in place. Defaults to 3.
+            array to keep fixed in place. Defaults to 4.
 
     */
     
-    s.ActionList.call(this, 3);
+    s.ActionList.call(this, 4);
     this.addAction(
         'restart',
         function() {
@@ -2767,6 +3047,15 @@ s.Menu = function() {
             s.savesMgr.saveBkMark();
         },
         Config.saves.isAllowed
+    );
+    this.addAction(
+        'history',
+        function() {
+            st.page.load(s.history);
+        },
+        function() {
+            return st.page.pages() > 0;
+        }
     );
     this.addAction(
         'begin',
@@ -2821,6 +3110,7 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
 
     Returns:
         Menu: The calling instance.
+
     */
     if (checkFunc == null) {
         checkFunc = function() {
@@ -2847,6 +3137,7 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
     Raises:
         Error: If the given passage title is associated to a node that
             is not an info node.
+
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -2872,6 +3163,7 @@ s.menuMarkup = function() {
 
     Returns:
         str: SC markup for menu links.
+
     */
     var text = '';
     var action;
@@ -2901,6 +3193,7 @@ s.preProcText.push(['StoryMenu', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     if (!UIBar.isHidden() && !tags().includes('no-menu')) {
         return s.menuMarkup();
@@ -2920,6 +3213,7 @@ s.preProcText.push(['PassageHeader', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     var buttonMarkup = (
         '<span title="Scroll to top">' +
@@ -2956,6 +3250,7 @@ s.preProcText.push(['Start', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     return (
         '<<timed 0s>>' +
@@ -2966,7 +3261,7 @@ s.preProcText.push(['Start', function(text) {
         '<</timed>>' +
         text
     );
-}])
+}]);
 
 s.preProcText.push(['Start', function(text) {
     /*Adds the menu to the bottom of the Start passage.
@@ -2976,6 +3271,7 @@ s.preProcText.push(['Start', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     return (
         text + '<br>' +
@@ -3174,10 +3470,10 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,7);
+s.version.set(0,5,8);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
-st.page.setContinuous(true); // make embedding passages the default
+// st.page.setContinuous(true); // make embedding passages the default
 
 // build menu
 s.menu.addInfoNode('info', 'help');
@@ -3190,6 +3486,7 @@ s.debCon.setCheat([
 
 // make initial links
 s.addLink('Root', 'continue', null, 'RNG warning');
+s.getNode('RNG warning').setOutOfChar(true);
 s.addLink(
     'RNG warning', 'got it', null, 'who you are', null
 ).setEmbed(false); // don't embed
@@ -3261,13 +3558,13 @@ s.addLink('Cops bust in', 'continue', null, 'Next');
 &lt;&lt;set $detective = {
     discovered: false
 }&gt;&gt;
-&lt;&lt;set $inventory = new Set()&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="PassageHeader" tags="" position="975,100" size="100,100">/* This passage needs to be here and should be empty */</tw-passagedata><tw-passagedata pid="9" name="help" tags="" position="1100,100" size="100,100">&lt;p&gt;The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.&lt;/p&gt;
+&lt;&lt;set $inventory = new Set()&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="PassageHeader" tags="" position="975,100" size="100,100">/* This passage needs to be here and should be empty */</tw-passagedata><tw-passagedata pid="9" name="History" tags="" position="1100,100" size="100,100">/* This passage needs to be here and should be empty */</tw-passagedata><tw-passagedata pid="10" name="help" tags="" position="1225,100" size="100,100">&lt;p&gt;The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.&lt;/p&gt;
 
 &lt;p&gt;In this story, you control the character by tapping (or clicking) on links. Tap a noun to examine that object in closer detail. Tap a command to follow that action. Tapping a noun will usually not advance the story. Tapping a command, though, is often irreversible.&lt;/p&gt;
 
 &lt;p&gt;&lt;b class=&quot;headings&quot;&gt;Random outcomes.&lt;/b&gt; Some actions may have a random outcome which could be good or bad. Your chances of getting a good outcome are related to your character&#39;s traits. Click on &quot;view Character Sheet&quot; in the footer to better understand these traits. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.&lt;/p&gt;
 
-&lt;p&gt;&lt;b class=&quot;headings&quot;&gt;Saving.&lt;/b&gt; The story automatically saves your progress, so if you exit and reload later, you will be able to resume right where you left off. You can also manually save your progress in a bookmark that can be reloaded later. But think carefully about this. You only get one bookmark! (Warning: using private browsing or disabling or clearing your cookies will interfere with the story&#39;s saving feature.)&lt;/p&gt;</tw-passagedata><tw-passagedata pid="10" name="bio" tags="" position="1225,100" size="100,100">&lt;p&gt;This screen holds information about your character.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="11" name="Start" tags="" position="100,225" size="100,100">/* Cannot be used as a node; should not have branching choices. */
+&lt;p&gt;&lt;b class=&quot;headings&quot;&gt;Saving.&lt;/b&gt; The story automatically saves your progress, so if you exit and reload later, you will be able to resume right where you left off. You can also manually save your progress in a bookmark that can be reloaded later. But think carefully about this. You only get one bookmark! (Warning: using private browsing or disabling or clearing your cookies will interfere with the story&#39;s saving feature.)&lt;/p&gt;</tw-passagedata><tw-passagedata pid="11" name="bio" tags="" position="100,225" size="100,100">&lt;p&gt;This screen holds information about your character.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="12" name="Start" tags="" position="225,225" size="100,100">/* Cannot be used as a node; should not have branching choices. */
 &lt;div style=&#39;text-align:center&#39;&gt;
     &lt;h1&gt;&lt;&lt;= Story.title&gt;&gt;&lt;/h1&gt;
     by&lt;br&gt;
@@ -3276,16 +3573,16 @@ s.addLink('Cops bust in', 'continue', null, 'Next');
     &lt;br&gt;
     &lt;br&gt;
     &lt;br&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="12" name="Root" tags="no-menu" position="225,225" size="100,100">/* The &#39;Root&#39; passage must be present. It will be the first passage
-visited after the `Start` passage.
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="13" name="Root" tags="no-menu" position="350,225" size="100,100">/* The &#39;Root&#39; passage must be present. It will be the first passage
+visited after the `Start` passage. All node content must be structured as paragraphs with html paragraph tags. This is used by the narrative history system to extract a log of the story so far, and is also necessary because `nobr` is set by default.
 */
 &lt;p&gt;It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can&#39;t remember.&lt;/p&gt;
 
 &lt;p&gt;That was last night. This morning, you wake up alone on a strange bed in a house you&#39;ve never seen before. From the trash and bottles lying around, this had to be the scene of some after-party. But where is everyone? And what is that smell? It&#39;s then you realize your clothes are covered in blood.&lt;/p&gt;
 
-&lt;p&gt;When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?&lt;/p&gt;</tw-passagedata><tw-passagedata pid="13" name="RNG warning" tags="no-menu" position="350,225" size="100,100">&lt;p&gt;In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character&#39;s traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="14" name="who you are" tags="" position="475,225" size="100,100">&lt;p&gt;Scott Allen Brady. Scotty, to your friends. That&#39;s your name. You have to remind yourself, just to make sure you haven&#39;t forgotten //everything//. The last thing you remember is leaving work. You&#39;d finished packing the motherboards into their shipping crates. Then you clocked out and left the plant. You were still wearing your Hewlett-Packard shirt when you got in your truck. You met some friends at the bar. Then...&lt;/p&gt;
+&lt;p&gt;When you get out of the bed, you see it. The body. A man lying on his back, dead, with a knife sticking out of his chest. Before you can do or think anything, someone starts pounding on the front door. Is it the police? Is it the murderer? Are //you// the murderer?&lt;/p&gt;</tw-passagedata><tw-passagedata pid="14" name="RNG warning" tags="no-menu" position="475,225" size="100,100">&lt;p&gt;In this story, your choices can have random consequences. The chances of the various outcomes are affected by your character&#39;s traits. You can read about those traits on the Character Sheet. The Character Sheet also shows what you are carrying, what you have learned, and any injuries you may have suffered.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="15" name="who you are" tags="" position="600,225" size="100,100">&lt;p&gt;Scott Allen Brady. Scotty, to your friends. That&#39;s your name. You have to remind yourself, just to make sure you haven&#39;t forgotten //everything//. The last thing you remember is leaving work. You&#39;d finished packing the motherboards into their shipping crates. Then you clocked out and left the plant. You were still wearing your Hewlett-Packard shirt when you got in your truck. You met some friends at the bar. Then...&lt;/p&gt;
 
-&lt;p&gt;Nothing. You can&#39;t remember. Now here you are, in some surreal nightmare, looking at a dead guy. The pounding on the door makes it hard to concentrate.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="15" name="bedroom" tags="" position="600,225" size="100,100">&lt;p&gt;You are in what has to be the master bedroom. You reek of alcohol, your mouth is dry and tastes like vomit, and your head is throbbing. There&#39;s blood on your clothes, in your hair, and on your face and hands. You&#39;ve had better days.&lt;/p&gt;
+&lt;p&gt;Nothing. You can&#39;t remember. Now here you are, in some surreal nightmare, looking at a dead guy. The pounding on the door makes it hard to concentrate.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="16" name="bedroom" tags="" position="725,225" size="100,100">&lt;p&gt;You are in what has to be the master bedroom. You reek of alcohol, your mouth is dry and tastes like vomit, and your head is throbbing. There&#39;s blood on your clothes, in your hair, and on your face and hands. You&#39;ve had better days.&lt;/p&gt;
 
 &lt;p&gt;You&#39;re wearing a white T-shirt with the Seattle Seahawks logo on the front. But you can hardly see the logo under all the blood. Your jeans are also caked with dried blood.&lt;/p&gt;
 
@@ -3297,11 +3594,11 @@ visited after the `Start` passage.
 
 {?C|&lt;p&gt;You&#39;ve never seen the dead man before, as far as you can remember. He must be in his mid-thirties.&lt;/p&gt;}
 
-{?D|&lt;p&gt;The murder weapon looks like the kind of knife they have hanging on the wall in a restaurant kitchen--the kind they use to cut meat or chop big vegetables. It has a wide blade and is about a foot long.&lt;/p&gt;}</tw-passagedata><tw-passagedata pid="16" name="Cops bust in" tags="" position="725,225" size="100,100">&lt;p&gt;{0}&lt;/p&gt;
+{?D|&lt;p&gt;The murder weapon looks like the kind of knife they have hanging on the wall in a restaurant kitchen--the kind they use to cut meat or chop big vegetables. It has a wide blade and is about a foot long.&lt;/p&gt;}</tw-passagedata><tw-passagedata pid="17" name="Cops bust in" tags="" position="850,225" size="100,100">&lt;p&gt;{0}&lt;/p&gt;
 
 &lt;p&gt;{1}Three men rush in. &quot;Get down on the ground!&quot; one shouts. &lt;&lt;if $inventory.has(&quot;knife&quot;)&gt;&gt;&quot;He&#39;s got a knife!&quot; yells another.&lt;&lt;/if&gt;&gt; They all have their guns trained on you. The bald man in the center looks like a police {detective|A}. The other two are uniformed cops.&lt;/p&gt;
 
-{?A|The detective doesn&#39;t move. He doesn&#39;t blink. He just stands there scowling, waiting for you to make a move.}</tw-passagedata><tw-passagedata pid="17" name="Cat involved" tags="" position="850,225" size="100,100">&lt;p&gt;You can see scratches on the neck of the victim, like from a small animal. //A cat?// you wonder. There are more scratches on his hands and wrists. Looking closer, you see fur on his collar and sleeves. Glancing around the room, though, you see no trace of a cat.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="18" name="Taking knife" tags="" position="975,225" size="100,100">&lt;p&gt;You take the knife and carefully slide it under your belt. You may need this for later.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="19" name="Next" tags="" position="1100,225" size="100,100">To be continued.</tw-passagedata></tw-storydata>
+{?A|The detective doesn&#39;t move. He doesn&#39;t blink. He just stands there scowling, waiting for you to make a move.}</tw-passagedata><tw-passagedata pid="18" name="Cat involved" tags="" position="975,225" size="100,100">&lt;p&gt;You can see scratches on the neck of the victim, like from a small animal. //A cat?// you wonder. There are more scratches on his hands and wrists. Looking closer, you see fur on his collar and sleeves. Glancing around the room, though, you see no trace of a cat.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="19" name="Taking knife" tags="" position="1100,225" size="100,100">&lt;p&gt;You take the knife and carefully slide it under your belt. You may need this for later.&lt;/p&gt;</tw-passagedata><tw-passagedata pid="20" name="Next" tags="" position="1225,225" size="100,100">&lt;p&gt;To be continued.&lt;/p&gt;</tw-passagedata></tw-storydata>
 	<script id="script-sugarcube" type="text/javascript">
 	/*! SugarCube JS */
 	if(document.documentElement.getAttribute("data-init")==="loading"){!function(window,document,jQuery,undefined){"use strict";function _classCallCheck(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")}function _toConsumableArray(e){if(Array.isArray(e)){for(var t=0,r=Array(e.length);t<e.length;t++)r[t]=e[t];return r}return Array.from(e)}var _createClass=function(){function e(e,t){for(var r=0;r<t.length;r++){var n=t[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(e,n.key,n)}}return function(t,r,n){return r&&e(t.prototype,r),n&&e(t,n),t}}(),_slicedToArray=function(){function e(e,t){var r=[],n=!0,a=!1,i=undefined;try{for(var o,s=e[Symbol.iterator]();!(n=(o=s.next()).done)&&(r.push(o.value),!t||r.length!==t);n=!0);}catch(e){a=!0,i=e}finally{try{!n&&s.return&&s.return()}finally{if(a)throw i}}return r}return function(t,r){if(Array.isArray(t))return t;if(Symbol.iterator in Object(t))return e(t,r);throw new TypeError("Invalid attempt to destructure non-iterable instance")}}(),_typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&"function"==typeof Symbol&&e.constructor===Symbol&&e!==Symbol.prototype?"symbol":typeof e},errorPrologRegExp=/^(?:(?:uncaught\s+(?:exception:\s+)?)?\w*(?:error|exception|_err):\s+)+/i,Alert=function(){function e(e,t,r,n){var a="fatal"===e,i="Apologies! "+(a?"A fatal":"An")+" error has occurred.";i+=a?" Aborting.":" You may be able to continue, but some parts may not work properly.",null==t&&null==r||(i+="\n\nError",null!=t&&(i+=" ["+t+"]"),i+=null!=r?": "+r.replace(errorPrologRegExp,"")+".":": unknown error."),"object"===(void 0===n?"undefined":_typeof(n))&&null!==n&&n.stack&&(i+="\n\nStack Trace:\n"+n.stack),window.alert(i)}function t(t,r,n){e(null,t,r,n)}function r(t,r,n){e("fatal",t,r,n)}return function(e){window.onerror=function(n,a,i,o,s){"complete"===document.readyState?t(null,n,s):(r(null,n,s),window.onerror=e,"function"==typeof window.onerror&&window.onerror.apply(this,arguments))}}(window.onerror),Object.freeze(Object.defineProperties({},{error:{value:t},fatal:{value:r}}))}(),Patterns=function(){var e=function(){var e=new Map([[" ","\\u0020"],["\f","\\f"],["\n","\\n"],["\r","\\r"],["\t","\\t"],["\v","\\v"],[" ","\\u00a0"],[" ","\\u1680"],["᠎","\\u180e"],[" ","\\u2000"],[" ","\\u2001"],[" ","\\u2002"],[" ","\\u2003"],[" ","\\u2004"],[" ","\\u2005"],[" ","\\u2006"],[" ","\\u2007"],[" ","\\u2008"],[" ","\\u2009"],[" ","\\u200a"],["\u2028","\\u2028"],["\u2029","\\u2029"],[" ","\\u202f"],[" ","\\u205f"],["　","\\u3000"],["\ufeff","\\ufeff"]]),t=/^\s$/,r="";return e.forEach(function(e,n){t.test(n)||(r+=e)}),r?"[\\s"+r+"]":"\\s"}(),t="[\\u0020\\f\\t\\v\\u00a0\\u1680\\u180e\\u2000-\\u200a\\u202f\\u205f\\u3000\\ufeff]",r="\\s"===e?"\\S":e.replace(/^\[/,"[^"),n="[0-9A-Z_a-z\\-\\u00c0-\\u00d6\\u00d8-\\u00f6\\u00f8-\\u00ff\\u0150\\u0170\\u0151\\u0171]",a=n.replace("\\-",""),i=function(){return"("+n+"+)\\(([^\\)\\|\\n]+)\\):|"+t+"*("+n+"+)"+t+"*:([^;\\|\\n]+);|"+t+"*((?:[#.]"+n+"+"+t+"*)+);"}();return Object.freeze({space:e,spaceNoTerminator:t,lineTerminator:"[\\n\\r\\u2028\\u2029]",notSpace:r,anyChar:"(?:.|[\\n\\r\\u2028\\u2029])",anyLetter:n,anyLetterStrict:a,identifierFirstChar:"[$A-Z_a-z]",identifierNextChar:"[$0-9A-Z_a-z]",identifier:"[$A-Z_a-z][$0-9A-Z_a-z]*",variableSigil:"[$_]",variable:"[$_][$A-Z_a-z][$0-9A-Z_a-z]*",macroName:"[A-Za-z][\\w-]*|[=-]",templateName:"[A-Za-z][\\w-]*",cssIdOrClassSigil:"[#.]",cssImage:"\\[[<>]?[Ii][Mm][Gg]\\[(?:\\s|\\S)*?\\]\\]+",inlineCss:i,url:"(?:file|https?|mailto|ftp|javascript|irc|news|data):[^\\s'\"]+"})}();!function(){function e(e,t){var r=Number.parseInt(e,10)||0;if(r<1)return"";var n=void 0===t?"":String(t);for(""===n&&(n=" ");n.length<r;){var a=n.length,i=r-a;n+=a>i?n.slice(0,i):n}return n.length>r&&(n=n.slice(0,r)),n}var t=function(){function e(e,n){var a=String(e);if(!a)return a;switch(n){case"start":return t.test(a)?a.replace(t,""):a;case"end":return r.test(a)?a.replace(r,""):a;default:throw new Error('_trimString called with incorrect where parameter value: "'+n+'"')}}var t=new RegExp("^"+Patterns.space+Patterns.space+"*"),r=new RegExp(""+Patterns.space+Patterns.space+"*$");return e}();Array.prototype.flat||Object.defineProperty(Array.prototype,"flat",{configurable:!0,writable:!0,value:function(){function e(){if(null==this)throw new TypeError("Array.prototype.flat called on null or undefined");var t=0===arguments.length?1:Number(arguments[0])||0;return t<1?Array.prototype.slice.call(this):Array.prototype.reduce.call(this,function(r,n){return n instanceof Array?r.push.apply(r,_toConsumableArray(e.call(n,t-1))):r.push(n),r},[])}return e}()}),Array.prototype.flatMap||Object.defineProperty(Array.prototype,"flatMap",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.flatMap called on null or undefined");return Array.prototype.map.apply(this,arguments).flat()}}),Array.prototype.includes||Object.defineProperty(Array.prototype,"includes",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.includes called on null or undefined");if(0===arguments.length)return!1;var e=this.length>>>0;if(0===e)return!1;var t=arguments[0],r=Number(arguments[1])||0;for(r<0&&(r=Math.max(0,e+r));r<e;++r){var n=this[r];if(n===t||n!==n&&t!==t)return!0}return!1}}),Object.entries||Object.defineProperty(Object,"entries",{configurable:!0,writable:!0,value:function(e){if("object"!==(void 0===e?"undefined":_typeof(e))||null===e)throw new TypeError("Object.entries object parameter must be an object");return Object.keys(e).map(function(t){return[t,e[t]]})}}),Object.fromEntries||Object.defineProperty(Object,"fromEntries",{configurable:!0,writable:!0,value:function(e){return Array.from(e).reduce(function(e,t){if(Object(t)!==t)throw new TypeError("Object.fromEntries iterable parameter must yield objects");return t[0]in e?Object.defineProperty(e,t[0],{configurable:!0,enumerable:!0,writable:!0,value:t[1]}):e[t[0]]=t[1],e},{})}}),Object.getOwnPropertyDescriptors||Object.defineProperty(Object,"getOwnPropertyDescriptors",{configurable:!0,writable:!0,value:function(e){if(null==e)throw new TypeError("Object.getOwnPropertyDescriptors object parameter is null or undefined");var t=Object(e);return Reflect.ownKeys(t).reduce(function(e,r){var n=Object.getOwnPropertyDescriptor(t,r);return void 0!==n&&(r in e?Object.defineProperty(e,r,{configurable:!0,enumerable:!0,writable:!0,value:n}):e[r]=n),e},{})}}),Object.values||Object.defineProperty(Object,"values",{configurable:!0,writable:!0,value:function(e){if("object"!==(void 0===e?"undefined":_typeof(e))||null===e)throw new TypeError("Object.values object parameter must be an object");return Object.keys(e).map(function(t){return e[t]})}}),String.prototype.padStart||Object.defineProperty(String.prototype,"padStart",{configurable:!0,writable:!0,value:function(t,r){if(null==this)throw new TypeError("String.prototype.padStart called on null or undefined");var n=String(this),a=n.length,i=Number.parseInt(t,10);return i<=a?n:e(i-a,r)+n}}),String.prototype.padEnd||Object.defineProperty(String.prototype,"padEnd",{configurable:!0,writable:!0,value:function(t,r){if(null==this)throw new TypeError("String.prototype.padEnd called on null or undefined");var n=String(this),a=n.length,i=Number.parseInt(t,10);return i<=a?n:n+e(i-a,r)}}),String.prototype.trimStart||Object.defineProperty(String.prototype,"trimStart",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.trimStart called on null or undefined");return t(this,"start")}}),String.prototype.trimLeft||Object.defineProperty(String.prototype,"trimLeft",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.trimLeft called on null or undefined");return t(this,"start")}}),String.prototype.trimEnd||Object.defineProperty(String.prototype,"trimEnd",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.trimEnd called on null or undefined");return t(this,"end")}}),String.prototype.trimRight||Object.defineProperty(String.prototype,"trimRight",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.trimRight called on null or undefined");return t(this,"end")}})}(),function(){function _random(){var e=void 0,t=void 0;switch(arguments.length){case 0:throw new Error("_random called with insufficient parameters");case 1:e=0,t=arguments[0];break;default:e=arguments[0],t=arguments[1]}if(e>t){var r=[t,e];e=r[0],t=r[1]}return Math.floor(_nativeMathRandom()*(t-e+1))+e}function _randomIndex(e,t){var r=void 0,n=void 0;switch(t.length){case 1:r=0,n=e-1;break;case 2:r=0,n=Math.trunc(t[1]);break;default:r=Math.trunc(t[1]),n=Math.trunc(t[2])}return Number.isNaN(r)?r=0:!Number.isFinite(r)||r>=e?r=e-1:r<0&&(r=e+r)<0&&(r=0),Number.isNaN(n)?n=0:!Number.isFinite(n)||n>=e?n=e-1:n<0&&(n=e+n)<0&&(n=e-1),_random(r,n)}function _getCodePointStartAndEnd(e,t){var r=e.charCodeAt(t);if(Number.isNaN(r))return{char:"",start:-1,end:-1};if(r<55296||r>57343)return{char:e.charAt(t),start:t,end:t};if(r>=55296&&r<=56319){var n=t+1;if(n>=e.length)throw new Error("high surrogate without trailing low surrogate");var a=e.charCodeAt(n);if(a<56320||a>57343)throw new Error("high surrogate without trailing low surrogate");return{char:e.charAt(t)+e.charAt(n),start:t,end:n}}if(0===t)throw new Error("low surrogate without leading high surrogate");var i=t-1,o=e.charCodeAt(i);if(o<55296||o>56319)throw new Error("low surrogate without leading high surrogate");return{char:e.charAt(i)+e.charAt(t),start:i,end:t}}var _nativeMathRandom=Math.random;Object.defineProperty(Array,"random",{configurable:!0,writable:!0,value:function(e){if("object"!==(void 0===e?"undefined":_typeof(e))||null===e||!Object.prototype.hasOwnProperty.call(e,"length"))throw new TypeError("Array.random array parameter must be an array or array-lke object");var t=e.length>>>0;if(0!==t){return e[0===arguments.length?_random(0,t-1):_randomIndex(t,Array.prototype.slice.call(arguments,1))]}}}),Object.defineProperty(Array.prototype,"concatUnique",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.concatUnique called on null or undefined");var e=Array.from(this);if(0===arguments.length)return e;var t=Array.prototype.reduce.call(arguments,function(e,t){return e.concat(t)},[]),r=t.length;if(0===r)return e;for(var n=Array.prototype.indexOf,a=Array.prototype.push,i=0;i<r;++i){var o=t[i];-1===n.call(e,o)&&a.call(e,o)}return e}}),Object.defineProperty(Array.prototype,"count",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.count called on null or undefined");for(var e=Array.prototype.indexOf,t=arguments[0],r=Number(arguments[1])||0,n=0;-1!==(r=e.call(this,t,r));)++n,++r;return n}}),Object.defineProperty(Array.prototype,"delete",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.delete called on null or undefined");if(0===arguments.length)return[];var e=this.length>>>0;if(0===e)return[];for(var t=Array.prototype.concat.apply([],arguments),r=t.length,n=[],a=0;a<e;++a)for(var i=this[a],o=0;o<r;++o){var s=t[o];if(i===s||i!==i&&s!==s){n.push(a);break}}for(var u=[],l=0,c=n.length;l<c;++l)u[l]=this[n[l]];for(var d=Array.prototype.splice,f=n.length-1;f>=0;--f)d.call(this,n[f],1);return u}}),Object.defineProperty(Array.prototype,"deleteAt",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.deleteAt called on null or undefined");if(0===arguments.length)return[];var e=this.length>>>0;if(0===e)return[];for(var t=Array.prototype.splice,r=[].concat(_toConsumableArray(new Set(Array.prototype.concat.apply([],arguments).map(function(t){return t<0?Math.max(0,e+t):t})).values())),n=[].concat(_toConsumableArray(r)).sort(function(e,t){return t-e}),a=[],i=0,o=r.length;i<o;++i)a[i]=this[r[i]];for(var s=0,u=n.length;s<u;++s)t.call(this,n[s],1);return a}}),Object.defineProperty(Array.prototype,"deleteWith",{configurable:!0,writable:!0,value:function(e,t){if(null==this)throw new TypeError("Array.prototype.deleteWith called on null or undefined");if("function"!=typeof e)throw new Error("Array.prototype.deleteWith predicate parameter must be a function");var r=this.length>>>0;if(0===r)return[];for(var n=Array.prototype.splice,a=[],i=[],o=0;o<r;++o)e.call(t,this[o],o,this)&&(i.push(this[o]),a.push(o));for(var s=a.length-1;s>=0;--s)n.call(this,a[s],1);return i}}),Object.defineProperty(Array.prototype,"first",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.first called on null or undefined");if(0!=this.length>>>0)return this[0]}}),Object.defineProperty(Array.prototype,"includesAll",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.includesAll called on null or undefined");if(1===arguments.length)return Array.isArray(arguments[0])?Array.prototype.includesAll.apply(this,arguments[0]):Array.prototype.includes.apply(this,arguments);for(var e=0,t=arguments.length;e<t;++e)if(!Array.prototype.some.call(this,function(e){return e===this.val||e!==e&&this.val!==this.val},{val:arguments[e]}))return!1;return!0}}),Object.defineProperty(Array.prototype,"includesAny",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.includesAny called on null or undefined");if(1===arguments.length)return Array.isArray(arguments[0])?Array.prototype.includesAny.apply(this,arguments[0]):Array.prototype.includes.apply(this,arguments);for(var e=0,t=arguments.length;e<t;++e)if(Array.prototype.some.call(this,function(e){return e===this.val||e!==e&&this.val!==this.val},{val:arguments[e]}))return!0;return!1}}),Object.defineProperty(Array.prototype,"last",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.last called on null or undefined");var e=this.length>>>0;if(0!==e)return this[e-1]}}),Object.defineProperty(Array.prototype,"pluck",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.pluck called on null or undefined");var e=this.length>>>0;if(0!==e){var t=0===arguments.length?_random(0,e-1):_randomIndex(e,[].concat(Array.prototype.slice.call(arguments)));return Array.prototype.splice.call(this,t,1)[0]}}}),Object.defineProperty(Array.prototype,"pluckMany",{configurable:!0,writable:!0,value:function(e){if(null==this)throw new TypeError("Array.prototype.pluckMany called on null or undefined");var t=this.length>>>0;if(0===t)return[];var r=Math.trunc(e);if(!Number.isInteger(r))throw new Error("Array.prototype.pluckMany want parameter must be an integer");if(r<1)return[];r>t&&(r=t);var n=Array.prototype.splice,a=[],i=t-1;do{a.push(n.call(this,_random(0,i--),1)[0])}while(a.length<r);return a}}),Object.defineProperty(Array.prototype,"pushUnique",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.pushUnique called on null or undefined");var e=arguments.length;if(0===e)return this.length>>>0;for(var t=Array.prototype.indexOf,r=Array.prototype.push,n=0;n<e;++n){var a=arguments[n];-1===t.call(this,a)&&r.call(this,a)}return this.length>>>0}}),Object.defineProperty(Array.prototype,"random",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.random called on null or undefined");var e=this.length>>>0;if(0!==e){return this[0===arguments.length?_random(0,e-1):_randomIndex(e,[].concat(Array.prototype.slice.call(arguments)))]}}}),Object.defineProperty(Array.prototype,"randomMany",{configurable:!0,writable:!0,value:function(e){if(null==this)throw new TypeError("Array.prototype.randomMany called on null or undefined");var t=this.length>>>0;if(0===t)return[];var r=Math.trunc(e);if(!Number.isInteger(r))throw new Error("Array.prototype.randomMany want parameter must be an integer");if(r<1)return[];r>t&&(r=t);var n=new Map,a=[],i=t-1;do{var o=void 0;do{o=_random(0,i)}while(n.has(o));n.set(o,!0),a.push(this[o])}while(a.length<r);return a}}),Object.defineProperty(Array.prototype,"shuffle",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.shuffle called on null or undefined");var e=this.length>>>0;if(0===e)return this;for(var t=e-1;t>0;--t){var r=Math.floor(_nativeMathRandom()*(t+1));if(t!==r){var n=this[t];this[t]=this[r],this[r]=n}}return this}}),Object.defineProperty(Array.prototype,"unshiftUnique",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.unshiftUnique called on null or undefined");var e=arguments.length;if(0===e)return this.length>>>0;for(var t=Array.prototype.indexOf,r=Array.prototype.unshift,n=0;n<e;++n){var a=arguments[n];-1===t.call(this,a)&&r.call(this,a)}return this.length>>>0}}),Object.defineProperty(Function.prototype,"partial",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Function.prototype.partial called on null or undefined");var e=Array.prototype.slice,t=this,r=e.call(arguments,0);return function(){for(var n=[],a=0,i=0;i<r.length;++i)n.push(r[i]===undefined?arguments[a++]:r[i]);return t.apply(this,n.concat(e.call(arguments,a)))}}}),Object.defineProperty(Math,"clamp",{configurable:!0,writable:!0,value:function(e,t,r){var n=Number(e);return Number.isNaN(n)?NaN:n.clamp(t,r)}}),Object.defineProperty(Math,"easeInOut",{configurable:!0,writable:!0,value:function(e){return 1-(Math.cos(Number(e)*Math.PI)+1)/2}}),Object.defineProperty(Number.prototype,"clamp",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Number.prototype.clamp called on null or undefined");if(2!==arguments.length)throw new Error("Number.prototype.clamp called with an incorrect number of parameters");var e=Number(arguments[0]),t=Number(arguments[1]);if(e>t){var r=[t,e];e=r[0],t=r[1]}return Math.min(Math.max(this,e),t)}}),RegExp.escape||function(){var e=/[\\^$*+?.()|[\]{}]/g,t=new RegExp(e.source);Object.defineProperty(RegExp,"escape",{configurable:!0,writable:!0,value:function(r){var n=String(r);return n&&t.test(n)?n.replace(e,"\\$&"):n}})}(),function(){var e=/{(\d+)(?:,([+-]?\d+))?}/g,t=new RegExp(e.source);Object.defineProperty(String,"format",{configurable:!0,writable:!0,value:function(r){function n(e,t,r){if(!t)return e;var n=Math.abs(t)-e.length;if(n<1)return e;var a=String(r).repeat(n);return t<0?e+a:a+e}if(arguments.length<2)return 0===arguments.length?"":r;var a=2===arguments.length&&Array.isArray(arguments[1])?[].concat(_toConsumableArray(arguments[1])):Array.prototype.slice.call(arguments,1);return 0===a.length?r:t.test(r)?(e.lastIndex=0,r.replace(e,function(e,t,r){var i=a[t];if(null==i)return"";for(;"function"==typeof i;)i=i();switch(void 0===i?"undefined":_typeof(i)){case"string":break;case"object":i=JSON.stringify(i);break;default:i=String(i)}return n(i,r?Number.parseInt(r,10):0," ")})):r}})}(),Object.defineProperty(String.prototype,"contains",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.contains called on null or undefined");return-1!==String.prototype.indexOf.apply(this,arguments)}}),Object.defineProperty(String.prototype,"count",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.count called on null or undefined");var e=String(arguments[0]||"");if(""===e)return 0;for(var t=String.prototype.indexOf,r=e.length,n=Number(arguments[1])||0,a=0;-1!==(n=t.call(this,e,n));)++a,n+=r;return a}}),Object.defineProperty(String.prototype,"first",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.first called on null or undefined");return _getCodePointStartAndEnd(String(this),0).char}}),Object.defineProperty(String.prototype,"last",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.last called on null or undefined");var e=String(this);return _getCodePointStartAndEnd(e,e.length-1).char}}),Object.defineProperty(String.prototype,"splice",{configurable:!0,writable:!0,value:function(e,t,r){if(null==this)throw new TypeError("String.prototype.splice called on null or undefined");var n=this.length>>>0;if(0===n)return"";var a=Number(e);Number.isSafeInteger(a)?a<0&&(a+=n)<0&&(a=0):a=0,a>n&&(a=n);var i=Number(t);(!Number.isSafeInteger(i)||i<0)&&(i=0);var o=this.slice(0,a);return void 0!==r&&(o+=r),a+i<n&&(o+=this.slice(a+i)),o}}),Object.defineProperty(String.prototype,"splitOrEmpty",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.splitOrEmpty called on null or undefined");return""===String(this)?[]:String.prototype.split.apply(this,arguments)}}),Object.defineProperty(String.prototype,"toLocaleUpperFirst",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.toLocaleUpperFirst called on null or undefined");var e=String(this),t=_getCodePointStartAndEnd(e,0),r=t.char,n=t.end;return-1===n?"":r.toLocaleUpperCase()+e.slice(n+1)}}),Object.defineProperty(String.prototype,"toUpperFirst",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.toUpperFirst called on null or undefined");var e=String(this),t=_getCodePointStartAndEnd(e,0),r=t.char,n=t.end;return-1===n?"":r.toUpperCase()+e.slice(n+1)}}),Object.defineProperty(Date.prototype,"toJSON",{configurable:!0,writable:!0,value:function(){return["(revive:date)",this.toISOString()]}}),Object.defineProperty(Function.prototype,"toJSON",{configurable:!0,writable:!0,value:function(){return["(revive:eval)","("+this.toString()+")"]}}),Object.defineProperty(Map.prototype,"toJSON",{configurable:!0,writable:!0,value:function(){return["(revive:map)",[].concat(_toConsumableArray(this))]}}),Object.defineProperty(RegExp.prototype,"toJSON",{configurable:!0,writable:!0,value:function(){return["(revive:eval)",this.toString()]}}),Object.defineProperty(Set.prototype,"toJSON",{configurable:!0,writable:!0,value:function(){return["(revive:set)",[].concat(_toConsumableArray(this))]}}),Object.defineProperty(JSON,"reviveWrapper",{configurable:!0,writable:!0,value:function(e,t){if("string"!=typeof e)throw new TypeError("JSON.reviveWrapper code parameter must be a string");return["(revive:eval)",[e,t]]}}),Object.defineProperty(JSON,"_real_parse",{value:JSON.parse}),Object.defineProperty(JSON,"parse",{configurable:!0,writable:!0,value:function value(text,reviver){return JSON._real_parse(text,function(key,val){var value=val;if(Array.isArray(value)&&2===value.length)switch(value[0]){case"(revive:set)":value=new Set(value[1]);break;case"(revive:map)":value=new Map(value[1]);break;case"(revive:date)":value=new Date(value[1]);break;case"(revive:eval)":try{if(Array.isArray(value[1])){var $ReviveData$=value[1][1];value=eval(value[1][0])}else value=eval(value[1])}catch(e){}}else if("string"==typeof value&&"@@revive@@"===value.slice(0,10))try{value=eval(value.slice(10))}catch(e){}if("function"==typeof reviver)try{value=reviver(key,value)}catch(e){}return value})}}),Object.defineProperty(Array.prototype,"contains",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.contains called on null or undefined");return Array.prototype.includes.apply(this,arguments)}}),Object.defineProperty(Array.prototype,"containsAll",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.containsAll called on null or undefined");return Array.prototype.includesAll.apply(this,arguments)}}),Object.defineProperty(Array.prototype,"containsAny",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.containsAny called on null or undefined");return Array.prototype.includesAny.apply(this,arguments)}}),Object.defineProperty(Array.prototype,"flatten",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("Array.prototype.flatten called on null or undefined");return Array.prototype.flat.call(this,1/0)}}),Object.defineProperty(String.prototype,"readBracketedList",{configurable:!0,writable:!0,value:function(){if(null==this)throw new TypeError("String.prototype.readBracketedList called on null or undefined");for(var e=new RegExp("(?:\\[\\[((?:\\s|\\S)*?)\\]\\])|([^\"'\\s]\\S*)","gm"),t=[],r=void 0;null!==(r=e.exec(this));)r[1]?t.push(r[1]):r[2]&&t.push(r[2]);return t}})}();var Browser=function(){var e=navigator.userAgent.toLowerCase(),t=e.includes("windows phone"),r=Object.freeze({Android:!t&&e.includes("android"),BlackBerry:/blackberry|bb10/.test(e),iOS:!t&&/ip(?:hone|ad|od)/.test(e),Opera:!t&&("object"===_typeof(window.operamini)||e.includes("opera mini")),Windows:t||/iemobile|wpdesktop/.test(e),any:function(){return r.Android||r.BlackBerry||r.iOS||r.Opera||r.Windows}}),n=!r.Windows&&!/khtml|trident|edge/.test(e)&&e.includes("gecko"),a=!e.includes("opera")&&/msie|trident/.test(e),i=a?function(){var t=/(?:msie\s+|rv:)(\d+\.\d)/.exec(e);return t?Number(t[1]):0}():null,o=e.includes("opera")||e.includes(" opr/"),s=o?function(){var t=new RegExp((/khtml|chrome/.test(e)?"opr":"version")+"\\/(\\d+\\.\\d+)"),r=t.exec(e);return r?Number(r[1]):0}():null,u=e.includes("vivaldi");return Object.freeze({userAgent:e,isMobile:r,isGecko:n,isIE:a,ieVersion:i,isOpera:o,operaVersion:s,isVivaldi:u})}(),Has=function(){var e=function(){try{return"function"==typeof document.createElement("audio").canPlayType}catch(e){}return!1}(),t=function(){try{return"Blob"in window&&"File"in window&&"FileList"in window&&"FileReader"in window&&!Browser.isMobile.any()&&(!Browser.isOpera||Browser.operaVersion>=15)}catch(e){}return!1}(),r=function(){try{return"geolocation"in navigator&&"function"==typeof navigator.geolocation.getCurrentPosition&&"function"==typeof navigator.geolocation.watchPosition}catch(e){}return!1}(),n=function(){try{return"MutationObserver"in window&&"function"==typeof window.MutationObserver}catch(e){}return!1}(),a=function(){try{return"performance"in window&&"function"==typeof window.performance.now}catch(e){}return!1}(),i=function(){try{return"ontouchstart"in window||!!window.DocumentTouch&&document instanceof window.DocumentTouch||!!navigator.maxTouchPoints||!!navigator.msMaxTouchPoints}catch(e){}return!1}(),o=function(){try{for(var e=new Map([["transition","transitionend"],["MSTransition","msTransitionEnd"],["WebkitTransition","webkitTransitionEnd"],["MozTransition","transitionend"]]),t=[].concat(_toConsumableArray(e.keys())),r=document.createElement("div"),n=0;n<t.length;++n)if(r.style[t[n]]!==undefined)return e.get(t[n])}catch(e){}return!1}();return Object.freeze({audio:e,fileAPI:t,geolocation:r,mutationObserver:n,performance:a,touch:i,transitionEndEvent:o})}(),Visibility=function(){function e(){return a}function t(){return a&&document[a.stateProperty]||"visible"}function r(){return Boolean(a)}function n(){return Boolean(a&&document[a.hiddenProperty])}var a=function(){try{return Object.freeze([{hiddenProperty:"hidden",stateProperty:"visibilityState",changeEvent:"visibilitychange"},{hiddenProperty:"webkitHidden",stateProperty:"webkitVisibilityState",changeEvent:"webkitvisibilitychange"},{hiddenProperty:"mozHidden",stateProperty:"mozVisibilityState",changeEvent:"mozvisibilitychange"},{hiddenProperty:"msHidden",stateProperty:"msVisibilityState",changeEvent:"msvisibilitychange"}].find(function(e){return e.hiddenProperty in document}))}catch(e){}return undefined}();return Object.freeze(Object.defineProperties({},{vendor:{get:e},state:{get:t},isEnabled:{value:r},isHidden:{value:n},hiddenProperty:{value:a&&a.hiddenProperty},stateProperty:{value:a&&a.stateProperty},changeEvent:{value:a&&a.changeEvent}}))}(),Fullscreen=function(){function e(e){var t=e||document.documentElement;return t===document.documentElement&&("msRequestFullscreen"===f.requestFn||Browser.isOpera&&Browser.operaVersion<15)&&(t=document.body),t}function t(){return f}function r(){return(f||null)&&document[f.element]}function n(){return Boolean(f&&document[f.isEnabled])}function a(){return Boolean(f&&document[f.element])}function i(t,r){var n=this;if(!f)return Promise.reject(new Error("fullscreen not supported"));var i=e(r);if("function"!=typeof i[f.requestFn])return Promise.reject(new Error("fullscreen not supported"));if(a())return Promise.resolve();if(p())return i[f.requestFn](t);var o=".Fullscreen_requestFullscreen";return new Promise(function(e,r){jQuery(i).off(o).one(""+f.errorEvent+o+" "+f.changeEvent+o,function(t){jQuery(n).off(o),t.type===f.errorEvent?r(new Error("unknown fullscreen request error")):e()}),i[f.requestFn](t)})}function o(){var e=this;if(!f||"function"!=typeof document[f.exitFn])return Promise.reject(new TypeError("fullscreen not supported"));if(!a())return Promise.reject(new TypeError("fullscreen mode not active"));if(p())return document[f.exitFn]();var t=".Fullscreen_exitFullscreen";return new Promise(function(r,n){jQuery(document).off(t).one(""+f.errorEvent+t+" "+f.changeEvent+t,function(a){jQuery(e).off(t),a.type===f.errorEvent?n(new Error("unknown fullscreen exit error")):r()}),document[f.exitFn]()})}function s(e,t){return a()?o():i(e,t)}function u(t,r){if(f){var n=e(r);$(n).on(f.changeEvent,t)}}function l(t,r){if(f){var n=e(r);t?$(n).off(f.changeEvent,t):$(n).off(f.changeEvent)}}function c(t,r){if(f){var n=e(r);$(n).on(f.errorEvent,t)}}function d(t,r){if(f){var n=e(r);t?$(n).off(f.errorEvent,t):$(n).off(f.errorEvent)}}var f=function(){try{return Object.freeze([{isEnabled:"fullscreenEnabled",element:"fullscreenElement",requestFn:"requestFullscreen",exitFn:"exitFullscreen",changeEvent:"fullscreenchange",errorEvent:"fullscreenerror"},{isEnabled:"webkitFullscreenEnabled",element:"webkitFullscreenElement",requestFn:"webkitRequestFullscreen",exitFn:"webkitExitFullscreen",changeEvent:"webkitfullscreenchange",errorEvent:"webkitfullscreenerror"},{isEnabled:"mozFullScreenEnabled",element:"mozFullScreenElement",requestFn:"mozRequestFullScreen",exitFn:"mozCancelFullScreen",changeEvent:"mozfullscreenchange",errorEvent:"mozfullscreenerror"},{isEnabled:"msFullscreenEnabled",element:"msFullscreenElement",requestFn:"msRequestFullscreen",exitFn:"msExitFullscreen",changeEvent:"MSFullscreenChange",errorEvent:"MSFullscreenError"}].find(function(e){return e.isEnabled in document}))}catch(e){}return undefined}(),p=function(){function e(){if(null!==t)return t;if(t=!1,f)try{var e=document.exitFullscreen();e.catch(function(){}),t=e instanceof Promise}catch(e){}return t}var t=null;return e}();return Object.freeze(Object.defineProperties({},{vendor:{get:t},element:{get:r},isEnabled:{value:n},isFullscreen:{value:a},request:{value:i},exit:{value:o},toggle:{value:s},onChange:{value:u},offChange:{value:l},onError:{value:c},offError:{value:d}}))}(),_ref3=function(){function e(e){for(var t=e.cloneNode(!0),r=document.createDocumentFragment(),n=void 0;null!==(n=t.firstChild);){if(n.nodeType===Node.ELEMENT_NODE)switch(n.nodeName.toUpperCase()){case"BR":case"DIV":case"P":r.appendChild(document.createTextNode(" "))}r.appendChild(n)}return r.textContent}function t(e){if("object"!==(void 0===e?"undefined":_typeof(e))||null===e)return e;if(e instanceof String)return String(e);if(e instanceof Number)return Number(e);if(e instanceof Boolean)return Boolean(e);if("function"==typeof e.clone)return e.clone(!0);if(e.nodeType&&"function"==typeof e.cloneNode)return e.cloneNode(!0);var r=void 0;return e instanceof Array?r=new Array(e.length):e instanceof Date?r=new Date(e.getTime()):e instanceof Map?(r=new Map,e.forEach(function(e,n){return r.set(n,t(e))})):e instanceof RegExp?r=new RegExp(e):e instanceof Set?(r=new Set,e.forEach(function(e){return r.add(t(e))})):r=Object.create(Object.getPrototypeOf(e)),Object.keys(e).forEach(function(n){return r[n]=t(e[n])}),r}function r(e){

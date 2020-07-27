@@ -10,6 +10,8 @@ Attributes:
         passage, and the second element of which is a function to apply
         to that passage's text before SC's text processing. The function
         should take a string as an argument and return a string.
+    s.history (InfoNode): The `InfoNode` instance associated with the
+        'History' passage.
 
 */
 
@@ -40,12 +42,21 @@ s.Page = function() {
             separator between embedded passages)
         _continuous (bool): Defaults to `false`. Set to `true` to make
             the passages embed by default.
+        _history (arr of arr of arr of str): A 3-dim array of
+            strings. The first index corresponds to the pages in the
+            history. The second index corresponds to a scene of the page
+            (separated by scene breaks). The third index corresponds to
+            paragraphs within that scene. The strings themselves are raw
+            text, obtained by `innerText`, and containing no HTML
+            markup. Text corresponding to nodes whose `_outOfChar`
+            attribute is `true` are not included.
 
     */
     
     this._embeddedPsgs = [];
     this._noBreakFlags = [];
     this._continuous = false;
+    this._history = [];
     return this;    
 };
 
@@ -85,6 +96,7 @@ s.Page.prototype.ready = function(safe) {
 
     Raises:
         Error: If current passage is not a node.
+
     */
     if (s.getNode(passage()) === undefined) {
         if (safe) {
@@ -103,6 +115,7 @@ s.Page.prototype.length = function() {
 
     Returns:
         int: The length of the `_embeddedPsgs` attribute.
+
     */
     return this._embeddedPsgs.length;
 }
@@ -115,6 +128,7 @@ s.Page.prototype.getPsg = function(index) {
 
     Returns:
         str: The passage title at that index.
+
     */
     return this._embeddedPsgs[index];
 }
@@ -127,6 +141,7 @@ s.Page.prototype.getFlag = function(index) {
 
     Returns:
         str: The no-break flag at that index.
+
     */
     return this._noBreakFlags[index];
 }
@@ -136,6 +151,7 @@ s.Page.prototype.isContinuous = function() {
 
     Returns:
         bool: The value of the `_continuous` attribute.
+
     */
     return this._continuous;
 }
@@ -148,9 +164,136 @@ s.Page.prototype.setContinuous = function(val) {
 
     Returns:
         Page: The calling `Page` instance.
+
     */
     this._continuous = val;
     return this;
+}
+
+s.Page.prototype.getScenes = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, and extracts all textual content except scene breaks. Returns
+    that textual content as a 2-dimensional array, with the first index
+    indicating the scene (separated on the page by scene breaks) and the
+    second index indicating the paragraph.
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        arr of arr of str: A 2-dimensional array, with the first index
+            indicating the scene (separated on the page by scene breaks)
+            and the second index indicating the paragraph.
+
+    */
+    var pars = [];
+    $('#' + psg.domId + '-main').find('p').not('.outOfChar').each(
+        function(index, element) {
+            pars.push(element.innerText);
+        }
+    );
+    pars = pars.filter(function(element) {
+        return element !== '';
+    });
+    return s.splitArr(pars, '****');
+}
+
+s.Page.prototype.pushHistory = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, extracts the scenes as an array of arrays of paragraph text,
+    then adds that array of scenes to the end of calling instance's
+    `_history` array.
+
+    Does nothing if the array of scenes is "empty" in the generalized
+    sense (i.e. of length zero, or containing only arrays that are
+    "empty").
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        Page: The calling instance.
+
+    */
+    var scenes = this.getScenes(psg);
+    if (!s.isEmpty(scenes)) {
+        this._history.push(this.getScenes(psg));
+    }
+    return this;
+}
+
+s.Page.prototype.updateHistory = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, extracts the scenes as an array of arrays of paragraph text,
+    then replaces the last element of the calling instance's `_history`
+    array with that array of scenes.
+
+    If the array of scenes is "empty" in the generalized sense (i.e. of
+    length zero, or containing only arrays that are "empty"), deletes
+    the last element of the calling instance's `_history` array.
+
+    Does nothing if the calling instance's `_history` array has length
+    zero.
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        Page: The calling instance.
+
+    */
+    if (this._history.length === 0) {
+        return;
+    }
+
+    var scenes = this.getScenes(psg);
+    if (!s.isEmpty(scenes)) {
+        this._history[this._history.length - 1] = scenes;
+    } else {
+        this._history.pop();
+    }
+    return this;
+}
+
+s.Page.prototype.pages = function() {
+    /*Returns the number of pages in history.
+
+    Returns:
+        int: The length of the calling instance's `_history` attribute.
+
+    */
+    return this._history.length;
+}
+
+s.Page.prototype.pageToHTML = function(index) {
+    /*Returns that page stored in history at the given index in HTML
+    format. Encloses each paragraph in HTML `p` tags and separates
+    scenes with centered scene breaks.
+
+    Args:
+        index (int): The index in history of the page to convert to
+            HTML.
+
+    Returns:
+        str: The page, in HTML, as a single string.
+
+    */
+    var scenes = this._history[index];
+    scenes = scenes.map(function(scene) {
+        return scene.map(function(par) {
+            return '<p>' + par + '</p>';
+        });
+    });
+    scenes = scenes.map(function(scene) {
+        return scene.join('\n\n');
+    });
+    return scenes.join('\n\n<p style="text-align:center">****</p>\n\n');
 }
 
 s.Page.prototype.innerPsg = function() {
@@ -310,7 +453,9 @@ s.Page.prototype.insertActions = function(psg) {
 }
 
 s.Page.prototype.scrollToLast = function() {
-    /*Scrolls to put the innermost passage at the top.
+    /*Scrolls to put the body of the innermost passage at the top. If
+    currently viewing the 'History' passage, scrolls instead to put the
+    actions of the innermost passage at the top.
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
@@ -327,9 +472,11 @@ s.Page.prototype.scrollToLast = function() {
     } else {
         headerHeight = header.offsetHeight;
     }
+
+    var section = (passage() === 'History') ? '-actions' : '-body';
     $('html, body').animate({
         scrollTop: (
-            $('#' + this.innerPsg().domId + '-body').position().top -
+            $('#' + this.innerPsg().domId + section).position().top -
             headerHeight - 16
         )
     }, 0);
@@ -354,11 +501,12 @@ s.Page.prototype.scrollToFirst = function() {
 s.Page.prototype.embedPsg = function(node, nobreak) {
     /*Removes the current actions from the page, inserts the given node
     into the bottom of the page, appends the page's list of embedded
-    passages, and adds a new moment to SC's history. The embedded
-    passage is preceded by a scene break ("****") unless the optional
-    `nobreak` argument is true. Finally, calls the `offerChoices()`
-    method, whose behavior depends on whether there is a 'path' stored
-    in metadata (which should only be the case if in autoplay mode).
+    passages, updates the page's `_history` attribute, and adds a new
+    moment to SC's history. The embedded passage is preceded by a scene
+    break ("****") unless the optional `nobreak` argument is true.
+    Finally, calls the `offerChoices()` method, whose behavior depends
+    on whether there is a 'path' stored in metadata (which should only
+    be the case if in autoplay mode).
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
@@ -390,6 +538,9 @@ s.Page.prototype.embedPsg = function(node, nobreak) {
     this.insertPsgText(nodePsg, latestPsg, 0, nobreak);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
+
+    this.updateHistory(Story.get(passage()));
+
     State.create(State.passage);
     Save.autosave.save();
     this.offerChoices();
@@ -485,6 +636,25 @@ s.Page.prototype.load = function(node, embed, nobreak) {
 st.page = new s.Page();
 s.preProcText = [];
 
+s.history = new s.InfoNode('History');
+s.preProcText.push(['History', function(text) {
+    /*Adds the pages in the `_history` attribute of `st.page` to the
+    'History' passage, separated by centered scene breaks.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
+
+    */
+    var arr = [];
+    for (var i = 0; i < st.page.pages(); i++) {
+        arr.push(st.page.pageToHTML(i));
+    }
+    return arr.join('\n\n<p style=\"text-align:center\">****</p>\n\n');
+}]);
+
 Config.passages.onProcess = function(p) {
     /*Performs all the necessary pre-processing on the passage text.
     Does nothing further if the current passage is not associated with a
@@ -548,11 +718,13 @@ $(document).one(':storyready', s.onStoryReady);
 s.onPsgDisplay = function(ev) {
     /*Triggered by the `:passagedisplay` event. First resets variables
     to the current time, to undo any changes made by
-    `Config.passages.onProcess`. Then re-inserts embedded passage text
-    one at a time. Finally, calls the `offerChoices()` method, whose
-    behavior depends on whether there is a 'path' stored in metadata
-    (which should only be the case if in autoplay mode). Does nothing if
-    the current passage is not associated with a node.
+    `Config.passages.onProcess`. If loading a new page with nothing
+    embedded, adds to the `_history` attribute of `st.page`. Otherwise,
+    re-inserts embedded passage text one at a time. Finally, calls the
+    `offerChoices()` method, whose behavior depends on whether there is
+    a 'path' stored in metadata (which should only be the case if in
+    autoplay mode). Does nothing if the current passage is not
+    associated with a node.
 
     Args:
         ev (<<SC passagedisplay event obj>>): The event object passed to
@@ -565,14 +737,19 @@ s.onPsgDisplay = function(ev) {
     s.loadVars(0);
 
     var currentPsg = ev.passage;
-    var nextPsg, time;
-    for (var i = 0; i < st.page.length(); i++) {
-        nextPsg = Story.get(st.page.getPsg(i));
-        time = st.page.length() - (i + 1)
-        st.page.insertPsgText(
-            nextPsg, currentPsg, time, st.page.getFlag(i)
-        );
-        currentPsg = nextPsg;
+
+    if (st.page.length() === 0) {
+        st.page.pushHistory(currentPsg);
+    } else {
+        var nextPsg, time;
+        for (var i = 0; i < st.page.length(); i++) {
+            nextPsg = Story.get(st.page.getPsg(i));
+            time = st.page.length() - (i + 1)
+            st.page.insertPsgText(
+                nextPsg, currentPsg, time, st.page.getFlag(i)
+            );
+            currentPsg = nextPsg;
+        }
     }
 
     st.page.offerChoices();

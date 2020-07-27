@@ -35,6 +35,7 @@ s.getNode = function(psgTitle) {
 
     Returns:
         node: The node associated with the given passage title.
+
     */
     return s.nodes.get(Story.get(psgTitle));
 }
@@ -132,6 +133,7 @@ s.Node.prototype.getPassage = function() {
     Returns:
         <<SC Passage>>: The `_passage` attribute of the calling
             instance.
+
     */
     return this._passage;
 }
@@ -142,6 +144,7 @@ s.Node.prototype.getExcerpt = function() {
     Returns:
         str: The `_excerpt` property, if it is non-null; otherwise, the
             `_excerpt` property of the associated passage.
+
     */
     var excerpt = this._excerpt;
     if (excerpt === null) {
@@ -155,6 +158,7 @@ s.Node.prototype.getSubCount = function() {
 
     Returns:
         int: The `_subCount` attribute of the calling instance.
+
     */
     return this._subCount;
 }
@@ -169,10 +173,11 @@ s.Node.prototype.setSubCount = function(num) {
             instance.
 
     Returns:
-        Action: The calling instance.
+        Node: The calling instance.
 
     Raises:
         Error: If used when `_subCount` is not 0.
+
     */
     if (this._subCount !== 0) {
         throw new Error(
@@ -184,12 +189,38 @@ s.Node.prototype.setSubCount = function(num) {
     return this;
 }
 
+s.Node.prototype.isOutOfChar = function() {
+    /*Fetches the `_outOfChar` attribute.
+
+    Returns:
+        bool: The `_outOfChar` attribute of the calling instance.
+
+    */
+    return this._outOfChar;
+}
+
+s.Node.prototype.setOutOfChar = function(bool) {
+    /*Sets the `_outOfChar` attribute.
+
+    Args:
+        bool (bool): Assigned to the `_outOfChar` attribute of the
+            calling instance.
+
+    Returns:
+        Node: The calling instance.
+
+    */
+    this._outOfChar = bool;
+    return this;
+}
+
 s.Node.prototype.onLoad = function() {
     /*Does nothing if `this._userScript` is `null` or `undefined`,
     otherwise executes `this._userScript`.
 
     Returns:
         Returns the same value as `this._userScript`.
+
     */
     if (this._userScript == null) {
         return;

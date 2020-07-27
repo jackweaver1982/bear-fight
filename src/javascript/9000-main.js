@@ -6,10 +6,10 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,7);
+s.version.set(0,5,8);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
-st.page.setContinuous(true); // make embedding passages the default
+// st.page.setContinuous(true); // make embedding passages the default
 
 // build menu
 s.menu.addInfoNode('info', 'help');
@@ -22,6 +22,7 @@ s.debCon.setCheat([
 
 // make initial links
 s.addLink('Root', 'continue', null, 'RNG warning');
+s.getNode('RNG warning').setOutOfChar(true);
 s.addLink(
     'RNG warning', 'got it', null, 'who you are', null
 ).setEmbed(false); // don't embed

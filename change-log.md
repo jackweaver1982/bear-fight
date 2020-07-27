@@ -4,6 +4,22 @@ title: Change Log
 
 # Change Log
 
+## Version 0.5.8
+
+* Added `s.isEmpty()`.
+* Added `s.splitArr()`.
+* Added getter and setter for `Node._outOfChar`.
+* In `Parser.addContainers()`, wrapped `body`, `actions`, and `next` in a `main` section.
+* In `Parser.procAllMarkup`, added 'outOfChar' class to all paragraphs if the node's `_outOfChar` attribute is true.
+* Added `_history` attribute to `Page`.
+* Added the following methods to `Page`: `getScenes`, `pushHistory`, `updateHistory`, `pages`, `pageToHTML`.
+* Edited `Pages.scrollToLast()` so that it scrolls to the actions section if on the 'History'.
+* Edited `Pages.embedPsg()` so that it calls the `updateHistory` method.
+* Added `s.history` as an info node associated with the 'History' passage.
+* Added to `s.preProcText` so that the 'History' passage shows a concatenation of the contents of `st.page._history`.
+* Edited `s.onPsgDisplay` so that it calls `st.page.pushHistory`.
+* Added a 'history' action to `s.Menu`.
+
 ## Version 0.5.7
 
 * Renumbered JavaScript files to match correct dependencies.

@@ -317,8 +317,9 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 s.Parser.prototype.addContainers = function(psgTitle, text) {
     /*Wraps the given text in a `body` container; adds an `action`
     container for the action links; adds a `next` container in case the
-    next node is to be loaded without a passage transition. The HTML id
-    of the containers is determined by `psgTitle`.
+    next node is to be loaded without a passage transition. Then wraps
+    everything in a `main` container. The HTML id of the containers is
+    determined by `psgTitle`.
 
     Args:
         psgTitle (str): The title of the passage being processed.
@@ -329,11 +330,13 @@ s.Parser.prototype.addContainers = function(psgTitle, text) {
     */
     var psg = Story.get(psgTitle);
     return (
+        '<div id="' + psg.domId + '-main">\n\n' +
         '<div id="' + psg.domId + '-body">\n\n' +
             text + '\n\n' +
         '</div>\n\n' + 
         '<div id="' + psg.domId + '-actions"></div>\n\n' +
-        '<div id="' + psg.domId + '-next"></div>'
+        '<div id="' + psg.domId + '-next"></div>\n\n' +
+        '</div>'
     );
 
 }
@@ -356,8 +359,10 @@ s.Parser.prototype.removeBreaks = function(text) {
 s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     /*Processes the special node markup in the given passage (inserts
     text subs, processes the detail markup, adds the containers, and
-    removes breaks. Does nothing if the given passage is not associated
-    with a node. Returns the processed text.
+    removes breaks. Adds an 'outOfChar' class to all paragraphs if the
+    corresponding node's `_outOfChar` attribute is true. Does nothing if
+    the given passage is not associated with a node. Returns the
+    processed text.
 
     The optional `time` parameter is used to set the moment in SC's
     history from which to draw the values of variables. It allows for
@@ -374,6 +379,9 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     var node = s.getNode(psgTitle);
     if (node === undefined) {
         return text;
+    }
+    if (node.isOutOfChar()) {
+        text = text.replace(/<p/g, '<p class="outOfChar"');
     }
 
     time = time || 0;

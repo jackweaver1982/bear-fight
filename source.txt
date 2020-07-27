@@ -114,6 +114,69 @@ Object.defineProperty(window, "st", {
     }
 });
 
+s.isEmpty = function(arr) {
+    /*We recursively define "empty" in the generalized sense by the
+    following. A length zero array is "empty". An array is "empty" if
+    all its elements are "empty". This function tests whether a given
+    array is empty.
+
+    Args:
+        arr (arr of obj): The array to test.
+
+    Returns:
+        bool: Returns true if array is "empty" in the generalized sense.
+            Returns false otherwise.
+
+    */
+    if (arr.length === 0) {
+        return true;
+    }
+    if (arr.every(Array.isArray)) {
+        return arr.every(s.isEmpty);
+    } else {
+        return false;
+    }
+}
+
+s.splitArr = function(arr, obj) {
+    /*This function behaves like the `String` method, `split()`, but for
+    arrays. It looks for the specified object in the given array, then
+    splits the given array at that object, returning an array of arrays.
+    Returns a new array, leaving the original unaltered.
+
+    One key difference between this function and the `split()` method is
+    that in this function, initial or terminal appearances of the
+    splitting object have no effect. Similarly, consecutive appearances
+    of the splitting object also have no effect.
+
+    Args:
+        arr (arr of obj): The array to split.
+        obj (obj): The object to split at.
+
+    Returns:
+        arr of arr of obj: A new array, produced by splitting the given
+            array at the specified object.
+
+    Example:
+        console.log(s.splitArr([2,3,1,1,5,1,7,8,6,1], 1));
+        // expected output: [[2,3], [5], [7,8,6]]
+
+    */
+    var index = arr.indexOf(obj);
+    if (index === -1) {
+        return [arr];
+    } else if (index === 0) {
+        return s.splitArr(arr.slice(1), obj);
+    } else if (index === arr.length - 1) {
+        return [arr.slice(0,-1)];
+    } else {
+        var left = arr.slice(0,index);
+        var right = arr.slice(index + 1);
+        var splitRight = s.splitArr(right, obj);
+        return [left].concat(splitRight);
+    }
+}
+
 s.loadVars = function(time) {
     /*Replaces `v` with a copy of `State.variables` from the moment with
     index `time`. Does not touch `v.static`.
@@ -764,6 +827,7 @@ s.getNode = function(psgTitle) {
 
     Returns:
         node: The node associated with the given passage title.
+
     */
     return s.nodes.get(Story.get(psgTitle));
 }
@@ -861,6 +925,7 @@ s.Node.prototype.getPassage = function() {
     Returns:
         <<SC Passage>>: The `_passage` attribute of the calling
             instance.
+
     */
     return this._passage;
 }
@@ -871,6 +936,7 @@ s.Node.prototype.getExcerpt = function() {
     Returns:
         str: The `_excerpt` property, if it is non-null; otherwise, the
             `_excerpt` property of the associated passage.
+
     */
     var excerpt = this._excerpt;
     if (excerpt === null) {
@@ -884,6 +950,7 @@ s.Node.prototype.getSubCount = function() {
 
     Returns:
         int: The `_subCount` attribute of the calling instance.
+
     */
     return this._subCount;
 }
@@ -898,10 +965,11 @@ s.Node.prototype.setSubCount = function(num) {
             instance.
 
     Returns:
-        Action: The calling instance.
+        Node: The calling instance.
 
     Raises:
         Error: If used when `_subCount` is not 0.
+
     */
     if (this._subCount !== 0) {
         throw new Error(
@@ -913,12 +981,38 @@ s.Node.prototype.setSubCount = function(num) {
     return this;
 }
 
+s.Node.prototype.isOutOfChar = function() {
+    /*Fetches the `_outOfChar` attribute.
+
+    Returns:
+        bool: The `_outOfChar` attribute of the calling instance.
+
+    */
+    return this._outOfChar;
+}
+
+s.Node.prototype.setOutOfChar = function(bool) {
+    /*Sets the `_outOfChar` attribute.
+
+    Args:
+        bool (bool): Assigned to the `_outOfChar` attribute of the
+            calling instance.
+
+    Returns:
+        Node: The calling instance.
+
+    */
+    this._outOfChar = bool;
+    return this;
+}
+
 s.Node.prototype.onLoad = function() {
     /*Does nothing if `this._userScript` is `null` or `undefined`,
     otherwise executes `this._userScript`.
 
     Returns:
         Returns the same value as `this._userScript`.
+
     */
     if (this._userScript == null) {
         return;
@@ -1248,8 +1342,9 @@ s.Parser.prototype.procDetailMarkup = function(psgTitle, text) {
 s.Parser.prototype.addContainers = function(psgTitle, text) {
     /*Wraps the given text in a `body` container; adds an `action`
     container for the action links; adds a `next` container in case the
-    next node is to be loaded without a passage transition. The HTML id
-    of the containers is determined by `psgTitle`.
+    next node is to be loaded without a passage transition. Then wraps
+    everything in a `main` container. The HTML id of the containers is
+    determined by `psgTitle`.
 
     Args:
         psgTitle (str): The title of the passage being processed.
@@ -1260,11 +1355,13 @@ s.Parser.prototype.addContainers = function(psgTitle, text) {
     */
     var psg = Story.get(psgTitle);
     return (
+        '<div id="' + psg.domId + '-main">\n\n' +
         '<div id="' + psg.domId + '-body">\n\n' +
             text + '\n\n' +
         '</div>\n\n' + 
         '<div id="' + psg.domId + '-actions"></div>\n\n' +
-        '<div id="' + psg.domId + '-next"></div>'
+        '<div id="' + psg.domId + '-next"></div>\n\n' +
+        '</div>'
     );
 
 }
@@ -1287,8 +1384,10 @@ s.Parser.prototype.removeBreaks = function(text) {
 s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     /*Processes the special node markup in the given passage (inserts
     text subs, processes the detail markup, adds the containers, and
-    removes breaks. Does nothing if the given passage is not associated
-    with a node. Returns the processed text.
+    removes breaks. Adds an 'outOfChar' class to all paragraphs if the
+    corresponding node's `_outOfChar` attribute is true. Does nothing if
+    the given passage is not associated with a node. Returns the
+    processed text.
 
     The optional `time` parameter is used to set the moment in SC's
     history from which to draw the values of variables. It allows for
@@ -1305,6 +1404,9 @@ s.Parser.prototype.procAllMarkup = function(psgTitle, text, time) {
     var node = s.getNode(psgTitle);
     if (node === undefined) {
         return text;
+    }
+    if (node.isOutOfChar()) {
+        text = text.replace(/<p/g, '<p class="outOfChar"');
     }
 
     time = time || 0;
@@ -1675,6 +1777,8 @@ Attributes:
         passage, and the second element of which is a function to apply
         to that passage's text before SC's text processing. The function
         should take a string as an argument and return a string.
+    s.history (InfoNode): The `InfoNode` instance associated with the
+        'History' passage.
 
 */
 
@@ -1705,12 +1809,21 @@ s.Page = function() {
             separator between embedded passages)
         _continuous (bool): Defaults to `false`. Set to `true` to make
             the passages embed by default.
+        _history (arr of arr of arr of str): A 3-dim array of
+            strings. The first index corresponds to the pages in the
+            history. The second index corresponds to a scene of the page
+            (separated by scene breaks). The third index corresponds to
+            paragraphs within that scene. The strings themselves are raw
+            text, obtained by `innerText`, and containing no HTML
+            markup. Text corresponding to nodes whose `_outOfChar`
+            attribute is `true` are not included.
 
     */
     
     this._embeddedPsgs = [];
     this._noBreakFlags = [];
     this._continuous = false;
+    this._history = [];
     return this;    
 };
 
@@ -1750,6 +1863,7 @@ s.Page.prototype.ready = function(safe) {
 
     Raises:
         Error: If current passage is not a node.
+
     */
     if (s.getNode(passage()) === undefined) {
         if (safe) {
@@ -1768,6 +1882,7 @@ s.Page.prototype.length = function() {
 
     Returns:
         int: The length of the `_embeddedPsgs` attribute.
+
     */
     return this._embeddedPsgs.length;
 }
@@ -1780,6 +1895,7 @@ s.Page.prototype.getPsg = function(index) {
 
     Returns:
         str: The passage title at that index.
+
     */
     return this._embeddedPsgs[index];
 }
@@ -1792,6 +1908,7 @@ s.Page.prototype.getFlag = function(index) {
 
     Returns:
         str: The no-break flag at that index.
+
     */
     return this._noBreakFlags[index];
 }
@@ -1801,6 +1918,7 @@ s.Page.prototype.isContinuous = function() {
 
     Returns:
         bool: The value of the `_continuous` attribute.
+
     */
     return this._continuous;
 }
@@ -1813,9 +1931,136 @@ s.Page.prototype.setContinuous = function(val) {
 
     Returns:
         Page: The calling `Page` instance.
+
     */
     this._continuous = val;
     return this;
+}
+
+s.Page.prototype.getScenes = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, and extracts all textual content except scene breaks. Returns
+    that textual content as a 2-dimensional array, with the first index
+    indicating the scene (separated on the page by scene breaks) and the
+    second index indicating the paragraph.
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        arr of arr of str: A 2-dimensional array, with the first index
+            indicating the scene (separated on the page by scene breaks)
+            and the second index indicating the paragraph.
+
+    */
+    var pars = [];
+    $('#' + psg.domId + '-main').find('p').not('.outOfChar').each(
+        function(index, element) {
+            pars.push(element.innerText);
+        }
+    );
+    pars = pars.filter(function(element) {
+        return element !== '';
+    });
+    return s.splitArr(pars, '****');
+}
+
+s.Page.prototype.pushHistory = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, extracts the scenes as an array of arrays of paragraph text,
+    then adds that array of scenes to the end of calling instance's
+    `_history` array.
+
+    Does nothing if the array of scenes is "empty" in the generalized
+    sense (i.e. of length zero, or containing only arrays that are
+    "empty").
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        Page: The calling instance.
+
+    */
+    var scenes = this.getScenes(psg);
+    if (!s.isEmpty(scenes)) {
+        this._history.push(this.getScenes(psg));
+    }
+    return this;
+}
+
+s.Page.prototype.updateHistory = function(psg) {
+    /*Looks at the node associated with the given passage and all nodes
+    embedded within it, ignoring nodes whose `_outOfChar` attribute is
+    true, extracts the scenes as an array of arrays of paragraph text,
+    then replaces the last element of the calling instance's `_history`
+    array with that array of scenes.
+
+    If the array of scenes is "empty" in the generalized sense (i.e. of
+    length zero, or containing only arrays that are "empty"), deletes
+    the last element of the calling instance's `_history` array.
+
+    Does nothing if the calling instance's `_history` array has length
+    zero.
+
+    Args:
+        psg (<<SC Passage>>): The passage associated to the node from
+            which textual content will be extracted.
+
+    Returns:
+        Page: The calling instance.
+
+    */
+    if (this._history.length === 0) {
+        return;
+    }
+
+    var scenes = this.getScenes(psg);
+    if (!s.isEmpty(scenes)) {
+        this._history[this._history.length - 1] = scenes;
+    } else {
+        this._history.pop();
+    }
+    return this;
+}
+
+s.Page.prototype.pages = function() {
+    /*Returns the number of pages in history.
+
+    Returns:
+        int: The length of the calling instance's `_history` attribute.
+
+    */
+    return this._history.length;
+}
+
+s.Page.prototype.pageToHTML = function(index) {
+    /*Returns that page stored in history at the given index in HTML
+    format. Encloses each paragraph in HTML `p` tags and separates
+    scenes with centered scene breaks.
+
+    Args:
+        index (int): The index in history of the page to convert to
+            HTML.
+
+    Returns:
+        str: The page, in HTML, as a single string.
+
+    */
+    var scenes = this._history[index];
+    scenes = scenes.map(function(scene) {
+        return scene.map(function(par) {
+            return '<p>' + par + '</p>';
+        });
+    });
+    scenes = scenes.map(function(scene) {
+        return scene.join('\n\n');
+    });
+    return scenes.join('\n\n<p style="text-align:center">****</p>\n\n');
 }
 
 s.Page.prototype.innerPsg = function() {
@@ -1975,7 +2220,9 @@ s.Page.prototype.insertActions = function(psg) {
 }
 
 s.Page.prototype.scrollToLast = function() {
-    /*Scrolls to put the innermost passage at the top.
+    /*Scrolls to put the body of the innermost passage at the top. If
+    currently viewing the 'History' passage, scrolls instead to put the
+    actions of the innermost passage at the top.
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
@@ -1992,9 +2239,11 @@ s.Page.prototype.scrollToLast = function() {
     } else {
         headerHeight = header.offsetHeight;
     }
+
+    var section = (passage() === 'History') ? '-actions' : '-body';
     $('html, body').animate({
         scrollTop: (
-            $('#' + this.innerPsg().domId + '-body').position().top -
+            $('#' + this.innerPsg().domId + section).position().top -
             headerHeight - 16
         )
     }, 0);
@@ -2019,11 +2268,12 @@ s.Page.prototype.scrollToFirst = function() {
 s.Page.prototype.embedPsg = function(node, nobreak) {
     /*Removes the current actions from the page, inserts the given node
     into the bottom of the page, appends the page's list of embedded
-    passages, and adds a new moment to SC's history. The embedded
-    passage is preceded by a scene break ("****") unless the optional
-    `nobreak` argument is true. Finally, calls the `offerChoices()`
-    method, whose behavior depends on whether there is a 'path' stored
-    in metadata (which should only be the case if in autoplay mode).
+    passages, updates the page's `_history` attribute, and adds a new
+    moment to SC's history. The embedded passage is preceded by a scene
+    break ("****") unless the optional `nobreak` argument is true.
+    Finally, calls the `offerChoices()` method, whose behavior depends
+    on whether there is a 'path' stored in metadata (which should only
+    be the case if in autoplay mode).
 
     Uses `Page.ready()` to check if the incoming passage corresponds to
     a node.
@@ -2055,6 +2305,9 @@ s.Page.prototype.embedPsg = function(node, nobreak) {
     this.insertPsgText(nodePsg, latestPsg, 0, nobreak);
     this._embeddedPsgs.push(nodePsg.title);
     this._noBreakFlags.push(nobreak);
+
+    this.updateHistory(Story.get(passage()));
+
     State.create(State.passage);
     Save.autosave.save();
     this.offerChoices();
@@ -2150,6 +2403,25 @@ s.Page.prototype.load = function(node, embed, nobreak) {
 st.page = new s.Page();
 s.preProcText = [];
 
+s.history = new s.InfoNode('History');
+s.preProcText.push(['History', function(text) {
+    /*Adds the pages in the `_history` attribute of `st.page` to the
+    'History' passage, separated by centered scene breaks.
+
+    Args:
+        text (str): The passage text to process.
+
+    Returns:
+        str: The processed text.
+
+    */
+    var arr = [];
+    for (var i = 0; i < st.page.pages(); i++) {
+        arr.push(st.page.pageToHTML(i));
+    }
+    return arr.join('\n\n<p style=\"text-align:center\">****</p>\n\n');
+}]);
+
 Config.passages.onProcess = function(p) {
     /*Performs all the necessary pre-processing on the passage text.
     Does nothing further if the current passage is not associated with a
@@ -2213,11 +2485,13 @@ $(document).one(':storyready', s.onStoryReady);
 s.onPsgDisplay = function(ev) {
     /*Triggered by the `:passagedisplay` event. First resets variables
     to the current time, to undo any changes made by
-    `Config.passages.onProcess`. Then re-inserts embedded passage text
-    one at a time. Finally, calls the `offerChoices()` method, whose
-    behavior depends on whether there is a 'path' stored in metadata
-    (which should only be the case if in autoplay mode). Does nothing if
-    the current passage is not associated with a node.
+    `Config.passages.onProcess`. If loading a new page with nothing
+    embedded, adds to the `_history` attribute of `st.page`. Otherwise,
+    re-inserts embedded passage text one at a time. Finally, calls the
+    `offerChoices()` method, whose behavior depends on whether there is
+    a 'path' stored in metadata (which should only be the case if in
+    autoplay mode). Does nothing if the current passage is not
+    associated with a node.
 
     Args:
         ev (<<SC passagedisplay event obj>>): The event object passed to
@@ -2230,14 +2504,19 @@ s.onPsgDisplay = function(ev) {
     s.loadVars(0);
 
     var currentPsg = ev.passage;
-    var nextPsg, time;
-    for (var i = 0; i < st.page.length(); i++) {
-        nextPsg = Story.get(st.page.getPsg(i));
-        time = st.page.length() - (i + 1)
-        st.page.insertPsgText(
-            nextPsg, currentPsg, time, st.page.getFlag(i)
-        );
-        currentPsg = nextPsg;
+
+    if (st.page.length() === 0) {
+        st.page.pushHistory(currentPsg);
+    } else {
+        var nextPsg, time;
+        for (var i = 0; i < st.page.length(); i++) {
+            nextPsg = Story.get(st.page.getPsg(i));
+            time = st.page.length() - (i + 1)
+            st.page.insertPsgText(
+                nextPsg, currentPsg, time, st.page.getFlag(i)
+            );
+            currentPsg = nextPsg;
+        }
     }
 
     st.page.offerChoices();
@@ -2635,19 +2914,20 @@ s.Menu = function() {
     /*The in-game menu offering persistent actions to the user.
 
     A `Menu` object is an `ActionList` with built-in 'begin', 'resume',
-    'save', 'load', and 'restart' actions. The 'save', 'load', and
-    'restart' methods are kept at the end of the list. These actions are
-    automatically inserted into various areas of the story (such as the
-    header, the UI bar, and the bottom of the 'Start' passage.)
+    'history', save', 'load', and 'restart' actions. The 'history',
+    'save', 'load', and 'restart' methods are kept at the end of the
+    list. These actions are automatically inserted into various areas of
+    the story (such as the header, the UI bar, and the bottom of the
+    'Start' passage.)
 
     Attributes:
         _array (arr): The embedded array of `Action` objects.
         _fixedEnd (int): Indicates how many elements at the end of the
-            array to keep fixed in place. Defaults to 3.
+            array to keep fixed in place. Defaults to 4.
 
     */
     
-    s.ActionList.call(this, 3);
+    s.ActionList.call(this, 4);
     this.addAction(
         'restart',
         function() {
@@ -2683,6 +2963,15 @@ s.Menu = function() {
             s.savesMgr.saveBkMark();
         },
         Config.saves.isAllowed
+    );
+    this.addAction(
+        'history',
+        function() {
+            st.page.load(s.history);
+        },
+        function() {
+            return st.page.pages() > 0;
+        }
     );
     this.addAction(
         'begin',
@@ -2737,6 +3026,7 @@ s.Menu.prototype.addAction = function(text, carryOutFunc, checkFunc, index) {
 
     Returns:
         Menu: The calling instance.
+
     */
     if (checkFunc == null) {
         checkFunc = function() {
@@ -2763,6 +3053,7 @@ s.Menu.prototype.addInfoNode = function(text, psgTitle) {
     Raises:
         Error: If the given passage title is associated to a node that
             is not an info node.
+
     */
     var node = s.getNode(psgTitle);
     if (node === undefined) {
@@ -2788,6 +3079,7 @@ s.menuMarkup = function() {
 
     Returns:
         str: SC markup for menu links.
+
     */
     var text = '';
     var action;
@@ -2817,6 +3109,7 @@ s.preProcText.push(['StoryMenu', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     if (!UIBar.isHidden() && !tags().includes('no-menu')) {
         return s.menuMarkup();
@@ -2836,6 +3129,7 @@ s.preProcText.push(['PassageHeader', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     var buttonMarkup = (
         '<span title="Scroll to top">' +
@@ -2872,6 +3166,7 @@ s.preProcText.push(['Start', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     return (
         '<<timed 0s>>' +
@@ -2882,7 +3177,7 @@ s.preProcText.push(['Start', function(text) {
         '<</timed>>' +
         text
     );
-}])
+}]);
 
 s.preProcText.push(['Start', function(text) {
     /*Adds the menu to the bottom of the Start passage.
@@ -2892,6 +3187,7 @@ s.preProcText.push(['Start', function(text) {
 
     Returns:
         str: The processed text.
+
     */
     return (
         text + '<br>' +
@@ -3090,10 +3386,10 @@ choose function to select between different possible outcomes, depending
 on conditions.
 */
 
-s.version.set(0,5,7);
+s.version.set(0,5,8);
 s.savesMgr.setBlock(true); // block loading of saves from old versions
 s.savesMgr.setBkMarks(8); // allow 8 bookmarks instead of 1
-st.page.setContinuous(true); // make embedding passages the default
+// st.page.setContinuous(true); // make embedding passages the default
 
 // build menu
 s.menu.addInfoNode('info', 'help');
@@ -3106,6 +3402,7 @@ s.debCon.setCheat([
 
 // make initial links
 s.addLink('Root', 'continue', null, 'RNG warning');
+s.getNode('RNG warning').setOutOfChar(true);
 s.addLink(
     'RNG warning', 'got it', null, 'who you are', null
 ).setEmbed(false); // don't embed
@@ -3211,6 +3508,10 @@ Story Caption
 /* This passage needs to be here and should be empty */
 
 
+:: History
+/* This passage needs to be here and should be empty */
+
+
 :: help
 <p>The story you are reading is a work of interactive fiction. In interactive fiction you play the main character of a story. Your actions drive the story forward.</p>
 
@@ -3240,7 +3541,7 @@ Story Caption
 
 :: Root [no-menu]
 /* The 'Root' passage must be present. It will be the first passage
-visited after the `Start` passage.
+visited after the `Start` passage. All node content must be structured as paragraphs with html paragraph tags. This is used by the narrative history system to extract a log of the story so far, and is also necessary because `nobr` is set by default.
 */
 <p>It started with one shot of whiskey. Of course, most nights started with one shot of whiskey. Then one became two and two became more. Before long, you were making a fool of yourself. At least you assume you were. You can't remember.</p>
 
@@ -3292,6 +3593,6 @@ visited after the `Start` passage.
 
 
 :: Next
-To be continued.
+<p>To be continued.</p>
 
 
